@@ -43,23 +43,23 @@ export const Blogs = () => {
   return (
     <section className="mt-24">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col items-center gap-12">
-          <div className="flex flex-col items-center gap-4 max-w-2xl">
-            <h2 className="text-7xl font-black tracking-tighter text-center bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
+        <div className="flex flex-col items-center md:gap-8 lg:gap-12">
+          <div className="flex flex-col items-center md:gap-1 lg:gap-4 max-w-2xl">
+            <h2 className="md:text-4xl lg:text-7xl font-black tracking-tighter text-center bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
               We know a thing or two about eyes
             </h2>
-            <p className="text-xl font-medium text-center">
+            <p className="md:text-lg lg:text-xl font-medium text-center">
               Eye-opening reads you&apos;ll actually want to see.
             </p>
           </div>
-          <div className="flex flex-row justify-center gap-12">
+          <div className="flex flex-row justify-center md:gap-3 lg:gap-12">
             {blogData.map(({ image, title }, index) => (
               <Link
                 key={index}
                 href={"/"}
-                className="text-md font-semibold tracking-tighter text-center group"
+                className="md:text-xs lg:text-lg font-semibold tracking-tighter text-center group"
               >
-                <div className="flex flex-col items-center gap-2.5 max-w-5xl">
+                <div className="flex flex-col items-center md:gap-1.5 lg:gap-2.5">
                   <Image
                     src={image}
                     alt="Blog Image"
