@@ -8,31 +8,31 @@ import LinkButton from "@/components/LinkButton";
 export const CureBlindnessDetails = () => {
   return (
     <section className="bg-[#E5DBD9]/50 mt-20">
-      <div className="container">
+      <div className="container sm:py-16 md:py-0">
         <div className="flex flex-row justify-between items-center md:gap-12 lg:gap-28">
           <div className="flex flex-col gap-4 md:max-w-md lg:max-w-lg">
-            <h2 className="md:text-2xl lg:text-4xl font-bold tracking-tighter">
+            <h2 className="text-3xl md:text-2xl lg:text-4xl font-bold tracking-tighter">
               Meet CureBlindness.org
             </h2>
-            <div className="flex flex-col md:gap-5 lg:gap-8">
-              <p className="md:text-sm lg:text-lg font-semibold tracking-tight leading-tight">
+            <div className="flex flex-col gap-8 md:gap-5 lg:gap-8">
+              <p className="text-lg md:text-sm lg:text-lg font-semibold tracking-tight leading-snug md:leading-tight">
                 For 30 years, we&apos;ve worked to overcome the mountain of
                 global blindness. We pause to see how far we&apos;ve come, and
                 we&apos;re invigorated to see the possibilities ahead.
               </p>
-              <p className="md:text-sm lg:text-lg font-semibold tracking-tight leading-tight">
+              <p className="text-lg md:text-sm lg:text-lg font-semibold tracking-tight leading-snug md:leading-tight">
                 Together with our supporters and partners, we are striving for a
                 summit where sight is in reach.
               </p>
               <LinkButton
                 title="Learn More About CureBlindness.org"
                 sectionId="learn-more-btn"
-                textStyles="md:text-sm lg:text-lg"
-                containerStyles="bg-black text-white px-4 py-2 lg:px-8 lg:py-2 rounded-lg font-medium inline-flex align-items justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms] w-max"
+                textStyles="text-sm md:text-sm lg:text-lg"
+                containerStyles="bg-black text-white px-4 py-2 lg:px-8 lg:py-2 rounded-lg font-medium inline-flex align-items justify-center tracking-normal md:tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms] w-max"
               />
             </div>
           </div>
-          <div className="flex flex-row md:gap-5 lg:gap-10">
+          <div className="hidden md:flex md:flex-row md:gap-5 lg:gap-10">
             <div className="flex flex-col items-center">
               <div className="bg-white md:px-7 md:py-7 lg:px-12 lg:py-10 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-all duration-[350ms]">
                 <Image

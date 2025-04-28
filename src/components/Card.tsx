@@ -11,7 +11,7 @@ interface CardProps {
 
 const Card = ({ image, title, quantity, imageStyles }: CardProps) => {
   return (
-    <div className="bg-[#E6E0E0]/30 w-full px-12 py-5 rounded-2xl md:h-[200px] lg:h-[300px] group">
+    <div className="bg-[#E6E0E0]/30 w-full px-12 py-5 rounded-2xl h-[200px] md:h-[200px] lg:h-[300px] group">
       <div className="md:h-[85px] lg:h-[131px] flex items-center justify-center relative">
         <Image
           src={image}

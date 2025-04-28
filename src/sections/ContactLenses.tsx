@@ -36,17 +36,27 @@ export const ContactLenses = () => {
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   return (
     <section>
-      <div className="container md:mt-[70px] lg:mt-[100px]">
+      <div className="container sm:mt-[50px] md:mt-[70px] lg:mt-[100px]">
         <div>
-          <div className="text-center flex flex-col gap-2">
-            <h2 className="md:text-3xl lg:text-5xl tracking-tight md:tracking-tighter font-extrabold">
+          <div className="text-center flex flex-col md:gap-2">
+            <h2 className="sm:text-2xl md:text-3xl lg:text-5xl tracking-tight md:tracking-tighter font-extrabold">
               Contact Lenses
             </h2>
-            <p className="md:text-sm lg:text-xl font-semibold tracking-tight">
+            <p className="text-xs md:text-sm lg:text-xl font-semibold tracking-tight">
               Our Featured, Best-Selling Contact Lenses
             </p>
           </div>
-          <div className="flex flex-row items-center justify-center md:gap-6 lg:gap-10 md:mt-16 lg:mt-9">
+          <div className="hidden md:flex md:flex-row items-center justify-center md:gap-6 lg:gap-10 md:mt-16 lg:mt-9">
+            {cardData.map(({ image, title, quantity }, cardIndex) => (
+              <Card
+                key={cardIndex}
+                image={image}
+                title={title}
+                quantity={quantity}
+              />
+            ))}
+          </div>
+          <div className="md:hidden grid grid-cols-2 items-center justify-center gap-4 md:gap-6 lg:gap-10 mt-12 md:mt-16 lg:mt-9">
             {cardData.map(({ image, title, quantity }, cardIndex) => (
               <Card
                 key={cardIndex}
@@ -57,8 +67,8 @@ export const ContactLenses = () => {
             ))}
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center md:5 lg:gap-6">
-          <div className="flex justify-center md:mt-7 lg:mt-10">
+        <div className="flex flex-col items-center justify-center mt-8 md:mt-0 md:gap-5 lg:gap-6">
+          <div className="hidden md:flex justify-center md:mt-7 lg:mt-10">
             <div className="bg-black/10 inline-flex md:gap-1 lg:gap-2 md:py-2 md:px-2.5 lg:py-3 lg:px-5 rounded-full hover:scale-110 transition-all duration-[350ms]">
               {cardData.map(({ title }, cardIndex) => (
                 <div

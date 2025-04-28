@@ -13,7 +13,7 @@ import { Testimonials } from "@/sections/Testimonials";
 
 export default function Home() {
   return (
-    <main className="overflow-hidden">
+    <main className="md:overflow-hidden">
       <Header />
       <Hero />
       <Headline />
