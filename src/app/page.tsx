@@ -3,6 +3,8 @@ import { ContactLenses } from "@/sections/ContactLenses";
 import { CureBlindnessDetails } from "@/sections/CureBlindnessDetails";
 import { CureBlindnessFeatures } from "@/sections/CureBlindnessFeatures";
 import { CureBlindnessVideo } from "@/sections/CureBlindnessVideo";
+import { FAQ } from "@/sections/FAQ";
+import { Footer } from "@/sections/Footer";
 import { Header } from "@/sections/Header";
 import { Headline } from "@/sections/Headline";
 import { Hero } from "@/sections/Hero";
@@ -11,7 +13,7 @@ import { Testimonials } from "@/sections/Testimonials";
 
 export default function Home() {
   return (
-    <>
+    <main className="overflow-hidden">
       <Header />
       <Hero />
       <Headline />
@@ -22,6 +24,8 @@ export default function Home() {
       <Blogs />
       <LensType />
       <Testimonials />
-    </>
+      <FAQ />
+      <Footer />
+    </main>
   );
 }
