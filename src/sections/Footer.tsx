@@ -21,7 +21,7 @@ export const Footer = () => {
     <footer className="bg-black py-10">
       <div className="flex flex-col md:flex-row justify-center md:gap-16 lg:gap-24 items-start px-10 py-5 text-white mx-auto">
         <div className="flex flex-col gap-8 md:max-w-lg lg:max-w-md items-start">
-          <div className="flex flex-col items-center md:flex-col gap-5 md:gap-5">
+          <div className="flex flex-col items-center md:items-start md:flex-col gap-5 md:gap-5">
             <Link href={"/"}>
               <Image
                 src={Logo}

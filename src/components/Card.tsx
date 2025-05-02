@@ -10,11 +10,13 @@ interface CardProps {
 }
 
 const Card = ({ image, title, quantity, imageStyles }: CardProps) => {
+  if (!image) return null;
+  let imageSrc: StaticImageData = image;
   return (
     <div className="bg-[#E6E0E0]/30 w-full px-12 py-5 rounded-2xl h-[200px] md:h-[200px] lg:h-[300px] group">
       <div className="md:h-[85px] lg:h-[131px] flex items-center justify-center relative">
         <Image
-          src={image}
+          src={imageSrc}
           alt="product"
           className="rounded-lg group-hover:-translate-y-5 transition-all duration-300"
         />
@@ -29,5 +31,4 @@ const Card = ({ image, title, quantity, imageStyles }: CardProps) => {
     </div>
   );
 };
-
 export default Card;
