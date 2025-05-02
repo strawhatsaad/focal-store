@@ -1,3 +1,21 @@
+import Image from "next/image";
+import Link from "next/link";
+import Logo from "@/assets/NavBarFocalLogo 1.png";
+import ArrowIcon from "@/assets/arrow-right.svg";
+import {
+  Facebook,
+  InstagramIcon,
+  MessageSquareIcon,
+  PhoneCall,
+  Youtube,
+} from "lucide-react";
+import visaIcon from "@/assets/visa.png";
+import mastercardIcon from "@/assets/mastercard.png";
+import discoverIcon from "@/assets/discover.png";
+import paypalIcon from "@/assets/paypal.png";
+import americanExpressIcon from "@/assets/american-express.png";
+import fsaHsaIcon from "@/assets/fsahsa.png";
+
 export const Footer = () => {
   return (
     <footer className="bg-black py-10">
