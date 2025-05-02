@@ -78,7 +78,7 @@ export const Testimonials = () => {
           <h1 className="section-title mt-5 text-center">
             What our customers say
           </h1>
-          <p className="section-description mt-5">
+          <p className="section-description mt-4 md:mt-5">
             Their words, not ours - honest feedback from our happy customers.
           </p>
         </div>
