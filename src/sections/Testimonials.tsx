@@ -72,13 +72,13 @@ const thirdColumn = testimonials.slice(6, 9);
 
 export const Testimonials = () => {
   return (
-    <section className="bg-white mt-20 pb-[1000px]" id="testimonials">
+    <section className="bg-white mt-20" id="testimonials">
       <div className="container">
         <div className="section-heading">
           <h1 className="section-title mt-5 text-center">
             What our customers say
           </h1>
-          <p className="section-description mt-5">
+          <p className="section-description mt-4 md:mt-5">
             Their words, not ours - honest feedback from our happy customers.
           </p>
         </div>

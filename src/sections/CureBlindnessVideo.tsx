@@ -8,7 +8,7 @@ export const CureBlindnessVideo = () => {
             title="YouTube video"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            className="w-full h-[500px] rounded-xl"
+            className="w-full h-[375px] md:h-[500px] rounded-xl"
           ></iframe>
         </div>
       </div>
