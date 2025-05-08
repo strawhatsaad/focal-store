@@ -3,7 +3,7 @@ import ProductsSection from "@/sections/Products/Products";
 import React from "react";
 import { storeFront } from "../../../utils/index";
 
-const Products = async () => {
+const ContactLensesPage = async () => {
   const result = await storeFront(productQuery);
 
   const products = result.data.products.edges.map(({ node }: any) => ({
@@ -23,11 +23,11 @@ const Products = async () => {
   );
 };
 
-export default Products;
+export default ContactLensesPage;
 
 const gql = String.raw;
 
-export const productQuery = gql`
+const productQuery = gql`
   query Products {
     products(first: 20) {
       edges {

@@ -3,6 +3,7 @@ import acuvueOasysImage from "@/assets/acuvueOasys.png";
 import dailiesTotalImage from "@/assets/dailiesTotal.webp";
 import acuvueMax from "@/assets/acuvueMax.webp";
 import { storeFront } from "../../../utils/index";
+import Image from "next/image";
 
 const ProductsSection = ({ products }: any) => {
   const productData = products;
@@ -17,7 +18,7 @@ const ProductsSection = ({ products }: any) => {
           {productData.map((product: any) => (
             <a key={product.id} href={product.href} className="group">
               <div className="w-full py-0 px-4 md:px-6 md:py-6 lg:px-2 lg:py-12 border border-gray-300 bg-transparent rounded-lg group-hover:scale-105 transition-transform duration-300">
-                <img
+                <Image
                   alt={product.imageAlt}
                   src={product.imageSrc}
                   className="w-full h-48 md:h-64 object-contain"

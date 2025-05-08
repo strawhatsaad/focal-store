@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function RelatedProducts({ products }: any) {
   return (
     <div className="bg-white">
@@ -10,7 +12,7 @@ export default function RelatedProducts({ products }: any) {
           {products.map((product: any) => (
             <div key={product.id} className="group relative">
               <div className="w-full py-0 px-4 md:px-6 md:py-6 lg:px-2 lg:py-6 border border-gray-300 bg-transparent rounded-lg group-hover:scale-105 transition-transform duration-300">
-                <img
+                <Image
                   alt={product.imageAlt}
                   src={product.imageSrc}
                   className="w-full h-48 md:h-64 object-contain"

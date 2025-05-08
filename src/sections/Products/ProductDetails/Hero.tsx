@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
+import Image from "next/image";
 
 const Hero = ({ product }: any) => {
   const [selectedVariant, setSelectedVariant] = useState<any>(
@@ -25,7 +26,7 @@ const Hero = ({ product }: any) => {
         <div className="lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-16">
           <div className="shrink-0 max-w-md lg:max-w-lg mx-auto">
             <div className="w-full h-[400px] flex justify-center items-center bg-transparent overflow-hidden">
-              <img
+              <Image
                 className="object-cover max-w-full max-h-full"
                 src={selectedVariant?.imageSrc || product.imageSrc}
                 alt={product.name}
