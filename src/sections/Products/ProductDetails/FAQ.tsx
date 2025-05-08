@@ -15,7 +15,7 @@ export default function FAQSection({ product }: any) {
           days. Specialty contacts, including toric lenses and made-to-order
           lenses (e.g., Biofinity XR, Proclear XR), may take longer to arrive.
           In rare cases, due to manufacturing and supply chain issues, certain
-          products may be on backorder—if that's the case, our CX team will
+          products may be on backorder—if that&apos;s the case, our CX team will
           reach out to let you know about the delay.
         </p>
       </FAQItem>
@@ -69,9 +69,10 @@ export default function FAQSection({ product }: any) {
         <p className="text-gray-500">
           You&apos;ll need to provide an accurate, unexpired prescription before
           we can process your order. Your prescription must include the brand
-          name of the lenses you're ordering, plus a doctor&apos;s signature. If
-          you don't have your prescription on hand, we can contact your
-          optometrist for a copy—just enter their information at checkout.
+          name of the lenses you&apos;re ordering, plus a doctor&apos;s
+          signature. If you don&apos;t have your prescription on hand, we can
+          contact your optometrist for a copy—just enter their information at
+          checkout.
         </p>
       </FAQItem>
 
@@ -81,20 +82,20 @@ export default function FAQSection({ product }: any) {
       >
         <ul className="space-y-2 font-medium text-gray-500 list-disc list-inside">
           <li>
-            "Ordering process was easy, and I immediately received delivery of
-            my contacts." <b>– Mamta P</b>
+            &quot;Ordering process was easy, and I immediately received delivery
+            of my contacts.&quot; <b>– Mamta P</b>
           </li>
           <li>
-            "The speed of delivery for my son&apos;s contacts was impressive."{" "}
-            <b>– Phoenix M</b>
+            &quot;The speed of delivery for my son&apos;s contacts was
+            impressive.&quot; <b>– Phoenix M</b>
           </li>
           <li>
-            "The customer service was excellent, and I received my contacts
-            within a few days." <b>– Sarah T</b>
+            &quot;The customer service was excellent, and I received my contacts
+            within a few days.&quot; <b>– Sarah T</b>
           </li>
           <li>
-            "The quality of the contacts was top-notch, and I&apos;m very
-            satisfied with my purchase." <b>– John D</b>
+            &quot;The quality of the contacts was top-notch, and I&apos;m very
+            satisfied with my purchase.&quot; <b>– John D</b>
           </li>
         </ul>
       </FAQItem>

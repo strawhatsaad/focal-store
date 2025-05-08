@@ -32,9 +32,9 @@ export const FAQ = () => {
             >
               <p className="text-gray-500">
                 You bet we do! Standard shipping is 100% on us—because who
-                doesn’t love free delivery? If you’re in a hurry to get your new
-                look, we also offer expedited shipping at checkout (but that
-                one's on you).
+                doesn&apos;t love free delivery? If you&apos;re in a hurry to
+                get your new look, we also offer expedited shipping at checkout
+                (but that one&apos;s on you).
               </p>
             </FAQItem>
 
