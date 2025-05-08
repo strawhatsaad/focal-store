@@ -10,6 +10,7 @@ import {
 } from "framer-motion";
 import { useRef } from "react";
 import LinkButton from "@/components/LinkButton";
+import Link from "next/link";
 
 export const Hero = () => {
   const heroRef = useRef(null);
@@ -42,12 +43,14 @@ export const Hero = () => {
             </div>
             <div className="flex flex-col gap-5 mt-8">
               <div className="flex gap-3 items-center md:-mx-2">
-                <LinkButton
-                  title="Contact Lenses"
-                  containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-4 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
-                  textStyles="text-white font-medium"
-                  sectionId="cta"
-                />
+                <Link href={"/pages/contact-lenses"}>
+                  <LinkButton
+                    title="Contact Lenses"
+                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-4 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
+                    textStyles="text-white font-medium"
+                    sectionId="cta"
+                  />
+                </Link>
                 <LinkButton
                   title="Eyewear"
                   containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-7 hover:font-bold hover:scale-110 transition-all duration-[350ms]"

@@ -1,5 +1,5 @@
 "use client";
-import { testimonials } from "@/sections/Testimonials";
+import { testimonials } from "@/sections/HomePage/Testimonials";
 import Image from "next/image";
 import React from "react";
 import { motion } from "framer-motion";
