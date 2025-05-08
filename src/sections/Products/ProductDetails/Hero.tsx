@@ -201,10 +201,6 @@ const Hero = ({ product }: any) => {
                     Add to cart
                   </a>
                 </div>
-
-                {/* <hr className="my-6 md:my-8 border-gray-800" /> */}
-
-                {/* <p className="mb-6 text-black">{product.description}</p> */}
               </div>
             </div>
           </div>
