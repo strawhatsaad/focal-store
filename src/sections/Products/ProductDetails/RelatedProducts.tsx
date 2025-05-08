@@ -1,10 +1,15 @@
-import Image from "next/image";
+import { twMerge } from "tailwind-merge";
 
-export default function RelatedProducts({ products }: any) {
+export default function RelatedProducts({ products, headingText }: any) {
   return (
     <div className="bg-white">
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-0">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h2
+          className={twMerge(
+            "text-2xl font-bold tracking-tight text-gray-900",
+            !headingText ? "hidden" : ""
+          )}
+        >
           Customers also purchased
         </h2>
 
@@ -12,7 +17,7 @@ export default function RelatedProducts({ products }: any) {
           {products.map((product: any) => (
             <div key={product.id} className="group relative">
               <div className="w-full py-0 px-4 md:px-6 md:py-6 lg:px-2 lg:py-6 border border-gray-300 bg-transparent rounded-lg group-hover:scale-105 transition-transform duration-300">
-                <Image
+                <img
                   alt={product.imageAlt}
                   src={product.imageSrc}
                   className="w-full h-48 md:h-64 object-contain"

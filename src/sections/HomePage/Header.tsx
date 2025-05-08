@@ -17,7 +17,7 @@ export const Header = () => {
   };
 
   const navLinks = [
-    { title: "Contact Lenses", href: "/contact-lenses" },
+    { title: "Contact Lenses", href: "/pages/contact-lenses" },
     { title: "Eyewear", href: "/eyewear" },
     { title: "Sunglasses", href: "/sunglasses" },
     { title: "Eyehealth", href: "/eyehealth" },

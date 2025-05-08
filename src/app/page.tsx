@@ -10,13 +10,25 @@ import { Headline } from "@/sections/HomePage/Headline";
 import { Hero } from "@/sections/HomePage/Hero";
 import { LensType } from "@/sections/HomePage/LensType";
 import { Testimonials } from "@/sections/HomePage/Testimonials";
+import { storeFront } from "../../utils";
 
-export default function Home() {
+export default async function Home() {
+  const result = await storeFront(productQuery);
+
+  const products = result.data.products.edges.map(({ node }: any) => ({
+    id: node.handle,
+    name: node.title,
+    href: `/products/${node.handle}`,
+    price: `$${node.priceRange.minVariantPrice.amount}`,
+    imageSrc: node.images.edges[0]?.node.transformedSrc || "",
+    imageAlt: node.images.edges[0]?.node.altText || "",
+  }));
+
   return (
     <main className="overflow-hidden">
       <Hero />
       <Headline />
-      <ContactLenses />
+      <ContactLenses products={products} />
       <CureBlindnessFeatures />
       <CureBlindnessDetails />
       <CureBlindnessVideo />
@@ -27,3 +39,36 @@ export default function Home() {
     </main>
   );
 }
+
+const gql = String.raw;
+
+const productQuery = gql`
+  query Products {
+    products(first: 6) {
+      edges {
+        node {
+          title
+          handle
+          tags
+          priceRange {
+            minVariantPrice {
+              amount
+            }
+            maxVariantPrice {
+              amount
+            }
+          }
+          images(first: 1) {
+            edges {
+              node {
+                transformedSrc
+                altText
+              }
+            }
+          }
+          description
+        }
+      }
+    }
+  }
+`;

@@ -3,7 +3,7 @@ import acuvueOasysImage from "@/assets/acuvueOasys.png";
 import dailiesTotalImage from "@/assets/dailiesTotal.webp";
 import acuvueMax from "@/assets/acuvueMax.webp";
 import { storeFront } from "../../../utils/index";
-import Image from "next/image";
+import Link from "next/link";
 
 const ProductsSection = ({ products }: any) => {
   const productData = products;
@@ -16,9 +16,9 @@ const ProductsSection = ({ products }: any) => {
 
         <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
           {productData.map((product: any) => (
-            <a key={product.id} href={product.href} className="group">
+            <Link key={product.id} href={product.href} className="group">
               <div className="w-full py-0 px-4 md:px-6 md:py-6 lg:px-2 lg:py-12 border border-gray-300 bg-transparent rounded-lg group-hover:scale-105 transition-transform duration-300">
-                <Image
+                <img
                   alt={product.imageAlt}
                   src={product.imageSrc}
                   className="w-full h-48 md:h-64 object-contain"
@@ -28,7 +28,7 @@ const ProductsSection = ({ products }: any) => {
               <p className="mt-1 text-lg font-medium text-gray-900">
                 {product.price}
               </p>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

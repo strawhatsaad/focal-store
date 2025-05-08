@@ -1,7 +1,7 @@
 import Hero from "@/sections/Products/Hero";
 import ProductsSection from "@/sections/Products/Products";
 import React from "react";
-import { storeFront } from "../../../utils/index";
+import { storeFront } from "../../../../utils/index";
 
 const ContactLensesPage = async () => {
   const result = await storeFront(productQuery);

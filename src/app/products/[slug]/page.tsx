@@ -63,7 +63,9 @@ const ProductDetails = async ({ params }: PageProps) => {
       </div>
       <hr className="my-12 md:mb-8 md:mt-0 border-gray-800 container" />
       <FAQSection product={product} />
-      <RelatedProducts products={relatedProducts} />
+      <div>
+        <RelatedProducts products={relatedProducts} headingText={true} />
+      </div>
     </main>
   );
 };
