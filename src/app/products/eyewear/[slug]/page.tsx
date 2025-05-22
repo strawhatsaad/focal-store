@@ -1,9 +1,9 @@
 import Hero from "@/sections/Products/ProductDetails/Hero";
 import React from "react";
-import { storeFront } from "../../../../utils";
 import RelatedProducts from "@/sections/Products/ProductDetails/RelatedProducts";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
 import FAQSection from "@/sections/Products/ProductDetails/FAQ";
+import { storeFront } from "../../../../../utils";
 
 interface PageProps {
   params: {
@@ -14,25 +14,24 @@ interface PageProps {
 const ProductDetails = async ({ params }: PageProps) => {
   const { slug } = params;
 
+  console.log(slug);
+
   const variables = {
     handle: slug, // Replace with dynamic value as needed
   };
 
   let result = await storeFront(singleProductQuery, variables);
 
-  let data = result.data.productByHandle;
-
+  const data = result.data.productByHandle;
+  console.log(data);
   const product = {
     id: data.handle,
     name: data.title,
-    href: `/products/${data.handle}`,
+    href: `/products/eyewear/${data.handle}`,
     price: `$${data.priceRange.minVariantPrice.amount}`,
-    images: data.images.edges.map(({ node }: any) => ({
-      src: node.transformedSrc || "",
-      alt: node.altText || "",
-    })),
+    imageSrc: data.images.edges[0]?.node.transformedSrc || "",
+    imageAlt: data.images.edges[0]?.node.altText || "",
     description: data.description,
-    collection: data.collections.edges[0]?.node.title || "",
     variants: data.variants.edges.map(({ node }: any) => ({
       id: node.id,
       name: node.title,
@@ -44,28 +43,20 @@ const ProductDetails = async ({ params }: PageProps) => {
     type: data.metafields[0]?.value || "",
     material: data.metafields[1]?.value || "",
     manufacturer: data.metafields[2]?.value || "",
-    frame_width: data.metafields[3]?.value || "",
-    frame_size: data.metafields[4]?.value || "",
   };
 
-  console.log(product);
+  result = await storeFront(allProductsQuery, { handle: "Eyewear" });
 
-  const relatedProductVariables = {
-    handle: product.collection || "", // Replace with dynamic value as needed
-  };
-
-  result = await storeFront(allProductsQuery, relatedProductVariables);
-
-  data = result.data.collectionByHandle.products.edges;
-
-  const relatedProducts = data.map(({ node }: any) => ({
-    id: node.id,
-    name: node.title,
-    href: `/products/${node.handle}`,
-    price: `$${node.priceRange.minVariantPrice.amount}`,
-    imageSrc: node.featuredImage.url,
-    imageAlt: node.featuredImage.altText,
-  }));
+  const relatedProducts = result.data.collectionByHandle.products.edges.map(
+    ({ node }: any) => ({
+      id: node.handle,
+      name: node.title,
+      href: `/products/eyewear/${node.handle}`,
+      price: `$${node.priceRange.minVariantPrice.amount}`,
+      imageSrc: node.images.edges[0]?.node.transformedSrc || "",
+      imageAlt: node.images.edges[0]?.node.altText || "",
+    })
+  );
 
   return (
     <main>
@@ -93,13 +84,6 @@ const singleProductQuery = gql`
       handle
       description
       tags
-      collections(first: 1) {
-        edges {
-          node {
-            title
-          }
-        }
-      }
       priceRange {
         minVariantPrice {
           amount
@@ -108,7 +92,7 @@ const singleProductQuery = gql`
           amount
         }
       }
-      images(first: 10) {
+      images(first: 1) {
         edges {
           node {
             transformedSrc
@@ -143,8 +127,6 @@ const singleProductQuery = gql`
           { namespace: "custom", key: "lens_type" }
           { namespace: "custom", key: "material" }
           { namespace: "custom", key: "manufacturer" }
-          { namespace: "custom", key: "frame_width1" }
-          { namespace: "custom", key: "frame_size" }
         ]
       ) {
         namespace
@@ -161,7 +143,7 @@ const allProductsQuery = gql`
     collectionByHandle(handle: $handle) {
       title
       description
-      products(first: 4) {
+      products(first: 50) {
         edges {
           node {
             id
