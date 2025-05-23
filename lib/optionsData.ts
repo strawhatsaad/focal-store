@@ -2,37 +2,66 @@
 
 export const optionsTree = {
     "Single-vision": {
+        label: "Single-Vision Lens Options",
         basePrice: 0,
         children: {
             "Standard": {
+                label: "Lens Type",
                 basePrice: 0,
                 children: {
-                    "Blue-light filtering": {
-                        basePrice: 50,
+                    "Classic": {
+                        label: "Lens Material",
+                        basePrice: 0,
                         children: {
                             "Classic": {
+                                label: "Final Option",
                                 basePrice: 0,
                                 final: true,
                             },
                             "Thinner": {
+                                label: "Final Option",
+                                basePrice: 60,
+                                final: true,
+                            },
+                        },
+                    },
+                    "Blue-light filtering": {
+                        label: "Lens Material",
+                        basePrice: 50,
+                        children: {
+                            "Classic": {
+                                label: "Final Option",
+                                basePrice: 0,
+                                final: true,
+                            },
+                            "Thinner": {
+                                label: "Final Option",
                                 basePrice: 60,
                                 final: true,
                             },
                         },
                     },
                     "Light-responsive": {
+                        label: "Light-responsive Lens Type",
                         basePrice: 125,
                         children: {
                             "Signature": {
+                                label: "Lens Color",
                                 basePrice: 0,
                                 final: true,
+                                children: {
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
+                                },
                             },
                             "Transitions XTRActive": {
+                                label: "Lens Color",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
                                 },
                             },
                         },
@@ -40,32 +69,44 @@ export const optionsTree = {
                 }
             },
             "Anti-Fatigue": {
+                label: "Lens Type",
                 basePrice: 100,
                 children: {
                     "Classic": {
+                        label: "Lens Material",
                         basePrice: 0,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Blue-light filtering": {
+                        label: "Lens Material",
                         basePrice: 50,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Light-responsive": {
+                        label: "Light-responsive Lens Type",
                         basePrice: 125,
                         children: {
-                            "Signature": { basePrice: 0, final: true },
+                            "Signature": {
+                                label: "Lens Color",
+                                basePrice: 0, final: true, children: {
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
+                                },
+                            },
                             "Transitions XTRActive": {
+                                label: "Lens Color",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
                                 },
                             },
                         },
@@ -77,35 +118,48 @@ export const optionsTree = {
 
 
     "Progressives": {
+        label: "Progressive Lens Type",
         basePrice: 230,
         children: {
             "Signature": {
+                label: "Lens Type",
                 basePrice: 0,
                 children: {
                     "Classic": {
+                        label: "Lens Material",
                         basePrice: 0,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Blue-light filtering": {
+                        label: "Lens Material",
                         basePrice: 50,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Light-responsive": {
+                        label: "Light-responsive Lens Type",
                         basePrice: 125,
                         children: {
-                            "Signature": { basePrice: 0, final: true },
+                            "Signature": {
+                                label: "Lens Color",
+                                basePrice: 0, final: true, children: {
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
+                                },
+                            },
                             "Transitions XTRActive": {
+                                label: "Lens Color",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
                                 },
                             },
                         },
@@ -113,32 +167,44 @@ export const optionsTree = {
                 },
             },
             "Precision": {
+                label: "Lens Type",
                 basePrice: 70,
                 children: {
                     "Classic": {
+                        label: "Lens Material",
                         basePrice: 0,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Blue-light filtering": {
+                        label: "Lens Material",
                         basePrice: 50,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Light-responsive": {
+                        label: "Light-responsive Lens Type",
                         basePrice: 125,
                         children: {
-                            "Signature": { basePrice: 0, final: true },
+                            "Signature": {
+                                label: "Lens Color",
+                                basePrice: 0, final: true, children: {
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
+                                },
+                            },
                             "Transitions XTRActive": {
+                                label: "Lens Color",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
                                 },
                             },
                         },
@@ -149,32 +215,44 @@ export const optionsTree = {
     },
 
     "Non Prescription Lens": {
+        label: "Lens Type",
         basePrice: 0,
         children: {
             "Classic": {
+                label: "Lens Material",
                 basePrice: 0,
                 children: {
-                    "Classic": { basePrice: 0, final: true },
-                    "Thinner": { basePrice: 60, final: true },
+                    "Classic": { label: "Final Option", basePrice: 0, final: true },
+                    "Thinner": { label: "Final Option", basePrice: 60, final: true },
                 },
             },
             "Blue-light filtering": {
+                label: "Lens Material",
                 basePrice: 50,
                 children: {
-                    "Classic": { basePrice: 0, final: true },
-                    "Thinner": { basePrice: 60, final: true },
+                    "Classic": { label: "Final Option", basePrice: 0, final: true },
+                    "Thinner": { label: "Final Option", basePrice: 60, final: true },
                 },
             },
             "Light-responsive": {
+                label: "Light-responsive Lens Type",
                 basePrice: 125,
                 children: {
-                    "Signature": { basePrice: 0, final: true },
+                    "Signature": {
+                        label: "Lens Color",
+                        basePrice: 0, final: true, children: {
+                            "Grey": { label: "Final Option", basePrice: 0, final: true },
+                            "Brown": { label: "Final Option", basePrice: 0, final: true },
+                            "Green": { label: "Final Option", basePrice: 0, final: true },
+                        },
+                    },
                     "Transitions XTRActive": {
+                        label: "Lens Color",
                         basePrice: 50,
                         children: {
-                            "Grey": { basePrice: 0, final: true },
-                            "Brown": { basePrice: 0, final: true },
-                            "Green": { basePrice: 0, final: true },
+                            "Grey": { label: "Final Option", basePrice: 0, final: true },
+                            "Brown": { label: "Final Option", basePrice: 0, final: true },
+                            "Green": { label: "Final Option", basePrice: 0, final: true },
                         },
                     },
                 },
@@ -183,372 +261,106 @@ export const optionsTree = {
     },
 
     "Readers Lens": {
+        label: "Reading Strength",
         basePrice: 0,
         children: {
             "+0.25": {
+                label: "Lens Type",
                 basePrice: 0,
                 children: {
                     "Classic": {
+                        label: "Lens Material",
                         basePrice: 0,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Blue-light filtering": {
+                        label: "Lens Material",
                         basePrice: 50,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
+                            "Classic": { label: "Final Option", basePrice: 0, final: true },
+                            "Thinner": { label: "Final Option", basePrice: 60, final: true },
                         },
                     },
                     "Light-responsive": {
+                        label: "Light-responsive Lens Type",
                         basePrice: 125,
                         children: {
-                            "Signature": { basePrice: 0, final: true },
+                            "Signature": {
+                                label: "Lens Color",
+                                basePrice: 0,
+                                children: {
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
+                                },
+                            },
                             "Transitions XTRActive": {
+                                label: "Lens Color",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                    "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                    "Green": { label: "Final Option", basePrice: 0, final: true },
                                 },
                             },
                         },
                     },
                 },
             },
-            "+0.50": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
+            ...Object.fromEntries(
+                ["+0.50", "+0.75", "+1.00", "+1.25", "+1.50", "+1.75", "+2.00", "+2.25", "+2.50"].map(strength => [
+                    strength,
+                    {
+                        label: "Lens Type",
                         basePrice: 0,
                         children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
+                            "Classic": {
+                                label: "Lens Material",
+                                basePrice: 0,
+                                children: {
+                                    "Classic": { label: "Final Option", basePrice: 0, final: true },
+                                    "Thinner": { label: "Final Option", basePrice: 60, final: true },
+                                },
+                            },
+                            "Blue-light filtering": {
+                                label: "Lens Material",
                                 basePrice: 50,
                                 children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
+                                    "Classic": { label: "Final Option", basePrice: 0, final: true },
+                                    "Thinner": { label: "Final Option", basePrice: 60, final: true },
+                                },
+                            },
+                            "Light-responsive": {
+                                label: "Light-responsive Lens Type",
+                                basePrice: 125,
+                                children: {
+                                    "Signature": {
+                                        label: "Lens Color",
+                                        basePrice: 0,
+                                        children: {
+                                            "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                            "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                            "Green": { label: "Final Option", basePrice: 0, final: true },
+                                        },
+                                    },
+                                    "Transitions XTRActive": {
+                                        label: "Lens Color",
+                                        basePrice: 50,
+                                        children: {
+                                            "Grey": { label: "Final Option", basePrice: 0, final: true },
+                                            "Brown": { label: "Final Option", basePrice: 0, final: true },
+                                            "Green": { label: "Final Option", basePrice: 0, final: true },
+                                        },
+                                    },
                                 },
                             },
                         },
-                    },
-                },
-            },
-            "+0.75": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+1.00": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+1.25": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+1.50": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+1.75": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+2.00": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+2.25": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+2.50": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            "+2.75": {
-                basePrice: 0,
-                children: {
-                    "Classic": {
-                        basePrice: 0,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Blue-light filtering": {
-                        basePrice: 50,
-                        children: {
-                            "Classic": { basePrice: 0, final: true },
-                            "Thinner": { basePrice: 60, final: true },
-                        },
-                    },
-                    "Light-responsive": {
-                        basePrice: 125,
-                        children: {
-                            "Signature": { basePrice: 0, final: true },
-                            "Transitions XTRActive": {
-                                basePrice: 50,
-                                children: {
-                                    "Grey": { basePrice: 0, final: true },
-                                    "Brown": { basePrice: 0, final: true },
-                                    "Green": { basePrice: 0, final: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            // Continue increments +0.75, +1.00, ... +2.75 similarly
-        },
-    },
+                    }
+                ])
+            )
+        }
+    }
 };
