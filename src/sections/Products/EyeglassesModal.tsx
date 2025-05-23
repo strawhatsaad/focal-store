@@ -159,8 +159,7 @@ export default function EyeglassesModal({
             <img
               src={selectedVariant.imageSrc}
               alt={product?.title || product?.name || "Product Image"}
-              layout="fill"
-              objectFit="contain"
+              className="w-full h-full object-contain"
             />
           )}
         </div>
