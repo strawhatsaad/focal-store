@@ -51,12 +51,14 @@ export const Hero = () => {
                     sectionId="cta"
                   />
                 </Link>
-                <LinkButton
-                  title="Eyewear"
-                  containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-7 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
-                  textStyles="text-white font-medium"
-                  sectionId="cta"
-                />
+                <Link href={"/pages/eyewear"}>
+                  <LinkButton
+                    title="Eyewear"
+                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-7 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
+                    textStyles="text-white font-medium"
+                    sectionId="cta"
+                  />
+                </Link>
               </div>
               <div>
                 <button className="btn btn-text gap-1 flex items-center p-0 hover:font-bold hover:scale-105 transition-all duration-[350ms]">
