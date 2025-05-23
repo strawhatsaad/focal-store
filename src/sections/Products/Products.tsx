@@ -5,14 +5,12 @@ import acuvueMax from "@/assets/acuvueMax.webp";
 import { storeFront } from "../../../utils/index";
 import Link from "next/link";
 
-const ProductsSection = ({ products }: any) => {
+const ProductsSection = ({ products, heading }: any) => {
   const productData = products;
   return (
     <div className="bg-white" id="products">
       <div className="mx-auto max-w-2xl px-4 py-16 sm:pt-0 sm:px-6 sm:pb-20 lg:max-w-7xl lg:px-8">
-        <h2 className="text-4xl tracking-tighter font-bold mb-12">
-          Featured Lenses
-        </h2>
+        <h2 className="text-4xl tracking-tighter font-bold mb-12">{heading}</h2>
 
         <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
           {productData.map((product: any) => (

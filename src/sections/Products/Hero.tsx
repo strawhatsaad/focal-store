@@ -1,6 +1,6 @@
 import React from "react";
 
-const Hero = () => {
+const Hero = ({ title, headline }: { title: string; headline: string }) => {
   return (
     <section>
       <div className="relative isolate px-6 lg:px-8">
@@ -19,18 +19,17 @@ const Hero = () => {
         <div className="mx-auto max-w-2xl py-32 sm:py-24 lg:py-16">
           <div className="text-center">
             <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
-              Contact Lenses
+              {title}
             </h1>
             <p className="mt-8 text-lg font-medium text-pretty text-gray-500 sm:text-xl/8">
-              Explore our premium selection of prescription and colored contact
-              lenses designed for comfort, clarity, and style.
+              {headline}
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <a
                 href="#products"
                 className="rounded-md bg-black px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:scale-110 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
               >
-                View All Contact Lenses
+                View All {title}
               </a>
             </div>
           </div>

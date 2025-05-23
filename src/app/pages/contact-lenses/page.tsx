@@ -17,8 +17,11 @@ const ContactLensesPage = async () => {
 
   return (
     <main>
-      <Hero />
-      <ProductsSection products={products} />
+      <Hero
+        title="Contact Lenses"
+        headline="Explore our premium selection of prescription and colored contact lenses designed for comfort, clarity, and style."
+      />
+      <ProductsSection products={products} heading="Featured Contact Lenses" />
     </main>
   );
 };
