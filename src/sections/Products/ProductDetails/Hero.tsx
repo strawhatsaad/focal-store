@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
+import EyeglassesModal from "../EyeglassesModal";
 
 const Hero = ({ product }: any) => {
   const [selectedVariant, setSelectedVariant] = useState<any>(
@@ -13,6 +14,8 @@ const Hero = ({ product }: any) => {
   );
 
   const [hasUserSelectedImage, setHasUserSelectedImage] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleThumbnailClick = (src: string) => {
     setSelectedImage(src);
@@ -78,7 +81,7 @@ const Hero = ({ product }: any) => {
             <div className="relative mt-4">
               <button
                 onClick={() => scrollThumbnails("left")}
-                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white shadow p-2 rounded-full"
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-0 bg-white shadow p-2 rounded-full"
               >
                 ←
               </button>
@@ -102,7 +105,7 @@ const Hero = ({ product }: any) => {
               </div>
               <button
                 onClick={() => scrollThumbnails("right")}
-                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white shadow p-2 rounded-full"
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-0 bg-white shadow p-2 rounded-full"
               >
                 →
               </button>
@@ -260,6 +263,7 @@ const Hero = ({ product }: any) => {
               <div className="mt-6 sm:gap-4 sm:flex sm:items-center sm:mt-8">
                 <a
                   href="#"
+                  onClick={() => setModalOpen(true)}
                   className={twMerge(
                     "text-white bg-black rounded-lg text-sm px-5 py-2.5 flex items-center justify-center hover:scale-105 transition-all duration-300",
                     product.collection !== "Eyewear" && "hidden"
@@ -280,6 +284,15 @@ const Hero = ({ product }: any) => {
                   </svg>
                   Select Lenses and Buy
                 </a>
+
+                {modalOpen && (
+                  <EyeglassesModal
+                    product={product}
+                    onClose={() => setModalOpen(false)}
+                    isOpen={modalOpen}
+                    selectedVariant={selectedVariant}
+                  />
+                )}
 
                 <a
                   href="#"
