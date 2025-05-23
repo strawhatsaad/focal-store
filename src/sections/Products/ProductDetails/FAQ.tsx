@@ -202,8 +202,8 @@ export default function FAQSection({ product }: any) {
 
             <p>
               They help reduce eye strain, headaches, and late-night
-              doomscrolling guilt. If you're glued to your phone, laptop, or
-              Netflix (guilty 🙋‍♂️), they&apos;re definitely worth trying.
+              doomscrolling guilt. If you&apos;re glued to your phone, laptop,
+              or Netflix (guilty 🙋‍♂️), they&apos;re definitely worth trying.
             </p>
           </div>
         </FAQItem>
