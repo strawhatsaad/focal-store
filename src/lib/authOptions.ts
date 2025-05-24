@@ -1,19 +1,18 @@
 // File: src/lib/authOptions.ts
 
-import { NextAuthOptions, User as NextAuthUserFromLib, Account, Profile } from "next-auth";
+import { NextAuthOptions, User as NextAuthUserOriginal, Account, Profile } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import AppleProvider from "next-auth/providers/apple";
-// Removed getShopifyCustomerByEmail from import as the query is not valid for Storefront API
+// Removed getShopifyCustomerByEmail as it's not a valid Storefront API approach for general lookup
 import { storeFront } from "../../utils";
 
-// Define a type for the Shopify Customer Access Token
+// Type definitions for Shopify data
 interface ShopifyCustomerAccessToken {
     accessToken: string;
     expiresAt: string;
 }
 
-// Define a type for the Shopify Customer
 interface ShopifyCustomer {
     id: string;
     email?: string;
@@ -21,49 +20,9 @@ interface ShopifyCustomer {
     lastName?: string;
 }
 
-// Augment NextAuth.js types
-declare module "next-auth/jwt" {
-    interface JWT {
-        id?: string;
-        shopifyCustomerId?: string;
-        shopifyAccessToken?: string;
-        shopifyAccessTokenExpiresAt?: string;
-        error?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
-    }
-}
+// The User, Session, and JWT types are augmented globally via src/types/next-auth.d.ts
 
-declare module "next-auth" {
-    interface Session {
-        user: {
-            id?: string;
-            name?: string | null;
-            email?: string | null;
-            image?: string | null;
-            shopifyCustomerId?: string;
-        } & Omit<NextAuthUserFromLib, "id">;
-
-        shopifyAccessToken?: string;
-        shopifyAccessTokenExpiresAt?: string;
-        error?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
-    }
-
-    interface User {
-        id: string;
-        name?: string | null;
-        email?: string | null;
-        image?: string | null;
-        shopifyCustomerId?: string;
-        shopifyAccessToken?: string;
-        shopifyAccessTokenExpiresAt?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
-    }
-}
-
+// GraphQL Constants
 const CREATE_CUSTOMER_MUTATION = `
   mutation customerCreate($input: CustomerCreateInput!) {
     customerCreate(input: $input) {
@@ -94,7 +53,7 @@ export const authOptions: NextAuthOptions = {
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials): Promise<User | null> {
+            async authorize(credentials): Promise<import("next-auth").User | null> {
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Please enter both email and password.");
                 }
@@ -112,12 +71,15 @@ export const authOptions: NextAuthOptions = {
                         if (customerInfoResponse.data?.customer) {
                             const shopifyCustomer = customerInfoResponse.data.customer;
                             return {
-                                id: shopifyCustomer.id, email: shopifyCustomer.email,
+                                id: shopifyCustomer.id,
+                                email: shopifyCustomer.email,
                                 name: `${shopifyCustomer.firstName || ''} ${shopifyCustomer.lastName || ''}`.trim() || shopifyCustomer.email,
-                                image: null, shopifyCustomerId: shopifyCustomer.id,
+                                image: null,
+                                shopifyCustomerId: shopifyCustomer.id,
                                 shopifyAccessToken: shopifyToken.accessToken,
                                 shopifyAccessTokenExpiresAt: shopifyToken.expiresAt,
-                                shopifyLinkFailed: false, shopifyAccountExists: true,
+                                shopifyLinkFailed: false,
+                                shopifyAccountExists: true,
                             };
                         }
                         throw new Error("Login successful, but failed to retrieve customer details.");
@@ -143,7 +105,7 @@ export const authOptions: NextAuthOptions = {
     pages: { signIn: '/auth/signin', error: '/auth/error' },
     callbacks: {
         async signIn({ user, account, profile }) {
-            const internalUser = user as User;
+            const internalUser = user as import("next-auth").User;
 
             if (account?.provider === "credentials") {
                 return true;
@@ -202,10 +164,10 @@ export const authOptions: NextAuthOptions = {
                 } else if (emailTakenError) {
                     shopifyAccountExists = true;
                     console.log(`[NextAuth OAuth SignIn] Shopify email ${internalUser.email} TAKEN (Error: ${emailTakenError.message}). Account exists.`);
-                    // We cannot reliably get the shopifyCustomerId here for a pre-existing account
-                    // using only the Storefront API and public token if it wasn't created via this social flow.
-                    // The GET_SHOPIFY_CUSTOMER_BY_EMAIL_QUERY was incorrect for Storefront API.
-                    // So, shopifyCustomerId will remain undefined here for this specific scenario.
+                    // Cannot reliably fetch shopifyCustomerId here for a pre-existing account with Storefront API alone
+                    // if it wasn't created via this social flow initially.
+                    // The getShopifyCustomerByEmail using a general 'customers' query was invalid.
+                    // shopifyCustomerId will remain undefined in this branch for this specific sign-in.
                     shopifyLinkFailed = true;
                     console.warn(`[NextAuth OAuth SignIn] Existing Shopify account for ${internalUser.email}. A Shopify access token and specific customer ID were NOT obtained in this flow for the pre-existing account. NextAuth session will be established.`);
                 } else {
@@ -224,7 +186,6 @@ export const authOptions: NextAuthOptions = {
                 if (error.message && (error.message.toLowerCase().includes("email has already been taken") || error.message.toLowerCase().includes("taken"))) {
                     shopifyAccountExists = true;
                     console.log(`[NextAuth OAuth SignIn] Caught 'Email Taken' error for ${internalUser.email} in outer catch.`);
-                    // Even here, we can't reliably fetch the ID without a valid query.
                 }
 
                 (internalUser as any).error = error.message;
@@ -241,7 +202,7 @@ export const authOptions: NextAuthOptions = {
         },
         async jwt({ token, user }) {
             if (user) {
-                const internalUser = user as User;
+                const internalUser = user as import("next-auth").User;
                 token.id = internalUser.id;
                 token.name = internalUser.name;
                 token.email = internalUser.email;
@@ -257,7 +218,7 @@ export const authOptions: NextAuthOptions = {
             return token;
         },
         async session({ session, token }) {
-            if (!session.user) session.user = {} as User["user"];
+            if (!session.user) session.user = {} as import("next-auth").Session["user"];
 
             if (token.sub) session.user.id = token.sub;
             if (token.name) session.user.name = token.name;
@@ -265,6 +226,7 @@ export const authOptions: NextAuthOptions = {
             if (token.picture) session.user.image = token.picture;
 
             session.user.shopifyCustomerId = token.shopifyCustomerId as string | undefined;
+
             session.shopifyAccessToken = token.shopifyAccessToken as string | undefined;
             session.shopifyAccessTokenExpiresAt = token.shopifyAccessTokenExpiresAt as string | undefined;
             session.error = token.error as string | undefined;
