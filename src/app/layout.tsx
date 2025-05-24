@@ -1,9 +1,11 @@
+// File: src/app/layout.tsx
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { twMerge } from "tailwind-merge";
-import { Header } from "@/sections/HomePage/Header";
-import { Footer } from "@/sections/HomePage/Footer";
+import { Header } from "@/sections/HomePage/Header"; // Ensure this path is correct
+import { Footer } from "@/sections/HomePage/Footer"; // Ensure this path is correct
+import NextAuthProvider from "@/app/providers"; // Create this new providers file
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
@@ -21,9 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="relative">
       <body className={twMerge(dmSans.className, "antialiased bg-[#FFFFFF]")}>
-        <Header />
-        {children}
-        <Footer />
+        <NextAuthProvider>
+          {" "}
+          {/* Wrap with the session provider */}
+          <Header />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+        </NextAuthProvider>
       </body>
     </html>
   );
