@@ -107,11 +107,6 @@ export const CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION = `
   }
 `;
 
-// The GET_SHOPIFY_CUSTOMER_BY_EMAIL_QUERY and its helper function are removed
-// as the query `customers(first: 1, query: $emailQuery)` is not valid for Storefront API
-// for general email lookup without specific conditions or different API (Admin API).
-
-
 // --- Order History ---
 export const GET_CUSTOMER_ORDERS_QUERY = `
   query getCustomerOrders($customerAccessToken: String!, $first: Int!, $cursor: String) {
@@ -265,12 +260,132 @@ export const CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION = `
 
 
 // --- Cart Mutations and Queries ---
-export const CART_FRAGMENT = `/* ... existing fragment ... */`;
-export const CART_CREATE_MUTATION = `/* ... existing mutation ... */`;
-export const CART_LINES_ADD_MUTATION = `/* ... existing mutation ... */`;
-export const CART_LINES_UPDATE_MUTATION = `/* ... existing mutation ... */`;
-export const CART_LINES_REMOVE_MUTATION = `/* ... existing mutation ... */`;
-export const GET_CART_QUERY = `/* ... existing query ... */`;
+export const CART_FRAGMENT = `
+  fragment CartFragment on Cart {
+    id
+    checkoutUrl
+    cost {
+      subtotalAmount {
+        amount
+        currencyCode
+      }
+      totalAmount {
+        amount
+        currencyCode
+      }
+      totalTaxAmount {
+        amount
+        currencyCode
+      }
+    }
+    lines(first: 100) { # Adjust count as needed, or implement pagination for cart lines
+      edges {
+        node {
+          id
+          quantity
+          merchandise {
+            ... on ProductVariant {
+              id
+              title
+              priceV2 {
+                amount
+                currencyCode
+              }
+              image {
+                url(transform: {maxWidth: 100, maxHeight: 100})
+                altText
+              }
+              product {
+                title
+                handle
+              }
+            }
+          }
+          attributes { # Custom attributes for customizations
+            key
+            value
+          }
+        }
+      }
+    }
+    totalQuantity
+    # buyerIdentity { # Useful if you want to associate cart with a logged-in customer
+    #   customerAccessToken
+    #   email
+    #   phone
+    #   countryCode
+    # }
+  }
+`;
+
+export const CART_CREATE_MUTATION = `
+  mutation cartCreate($input: CartInput) {
+    cartCreate(input: $input) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
+export const CART_LINES_ADD_MUTATION = `
+  mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+    cartLinesAdd(cartId: $cartId, lines: $lines) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
+export const CART_LINES_UPDATE_MUTATION = `
+  mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+    cartLinesUpdate(cartId: $cartId, lines: $lines) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
+export const CART_LINES_REMOVE_MUTATION = `
+  mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+      cart {
+        ...CartFragment
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
+export const GET_CART_QUERY = `
+  query getCart($id: ID!) {
+    cart(id: $id) {
+      ...CartFragment
+    }
+  }
+  ${CART_FRAGMENT}
+`;
 
 
 // --- Helper Functions ---
@@ -292,9 +407,6 @@ export async function createShopifyCustomer(input) {
 export async function createShopifyCustomerAccessToken(input) {
   return storeFront(CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, { input });
 }
-
-// getShopifyCustomerByEmail function removed as its query was invalid for Storefront API
-
 
 /**
  * Fetches customer orders from Shopify.
@@ -382,8 +494,68 @@ export async function updateCustomerDefaultAddress(customerAccessToken, addressI
 }
 
 // --- Cart Helper Functions ---
-export async function createShopifyCart(input = {}) { /* ... */ }
-export async function getShopifyCart(cartId) { /* ... */ }
-export async function addLinesToShopifyCart(cartId, lines) { /* ... */ }
-export async function updateLinesInShopifyCart(cartId, lines) { /* ... */ }
-export async function removeLinesFromShopifyCart(cartId, lineIds) { /* ... */ }
+/**
+ * Creates a new Shopify cart.
+ * Can optionally include lines and buyer identity.
+ * @param {object} [input={}] - The input for cart creation (e.g., { lines: [...], buyerIdentity: {...} }).
+ * @returns {Promise<any>} The Shopify API response containing the cart.
+ */
+export async function createShopifyCart(input = {}) {
+  return storeFront(CART_CREATE_MUTATION, { input });
+}
+
+/**
+ * Fetches an existing Shopify cart by its ID.
+ * @param {string} cartId - The ID of the cart to fetch.
+ * @returns {Promise<any>} The Shopify API response containing the cart.
+ */
+export async function getShopifyCart(cartId) {
+  if (!cartId) {
+    console.warn("getShopifyCart called without cartId");
+    return null; // Or throw an error, or return a specific structure
+  }
+  return storeFront(GET_CART_QUERY, { id: cartId });
+}
+
+/**
+ * Adds line items to an existing Shopify cart.
+ * @param {string} cartId - The ID of the cart.
+ * @param {Array<object>} lines - An array of line items to add. Each item: { merchandiseId, quantity, attributes? }
+ * @returns {Promise<any>} The Shopify API response containing the updated cart.
+ */
+export async function addLinesToShopifyCart(cartId, lines) {
+  if (!cartId || !lines || lines.length === 0) {
+    console.warn("addLinesToShopifyCart called with invalid parameters.");
+    // Potentially throw an error or return a specific error structure
+    return null; 
+  }
+  return storeFront(CART_LINES_ADD_MUTATION, { cartId, lines });
+}
+
+/**
+ * Updates line items in an existing Shopify cart.
+ * @param {string} cartId - The ID of the cart.
+ * @param {Array<object>} lines - An array of line items to update. Each item: { id (line ID), quantity }
+ * @returns {Promise<any>} The Shopify API response containing the updated cart.
+ */
+export async function updateLinesInShopifyCart(cartId, lines) {
+  if (!cartId || !lines || lines.length === 0) {
+    console.warn("updateLinesInShopifyCart called with invalid parameters.");
+    return null;
+  }
+  return storeFront(CART_LINES_UPDATE_MUTATION, { cartId, lines });
+}
+
+/**
+ * Removes line items from an existing Shopify cart.
+ * @param {string} cartId - The ID of the cart.
+ * @param {Array<string>} lineIds - An array of line item IDs to remove.
+ * @returns {Promise<any>} The Shopify API response containing the updated cart.
+ */
+export async function removeLinesFromShopifyCart(cartId, lineIds) {
+  if (!cartId || !lineIds || lineIds.length === 0) {
+    console.warn("removeLinesFromShopifyCart called with invalid parameters.");
+    return null;
+  }
+  return storeFront(CART_LINES_REMOVE_MUTATION, { cartId, lineIds });
+}
