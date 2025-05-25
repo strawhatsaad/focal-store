@@ -600,7 +600,7 @@ const ManageAddressesPage = () => {
               <div className="text-center py-10 bg-white rounded-lg shadow-sm">
                 <Home className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600">
-                  You haven't added any addresses yet.
+                  You haven&apos;t added any addresses yet.
                 </p>
               </div>
             )}

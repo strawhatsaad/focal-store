@@ -1,7 +1,7 @@
 // File: src/app/auth/signin/page.tsx
-"use client";
+"use client"; // Keep this for the outer page component as well
 
-import { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import { useState, FormEvent, ChangeEvent, useEffect, Suspense } from "react"; // Added Suspense
 import {
   signIn,
   getProviders,
@@ -27,9 +27,10 @@ type Providers = Record<
   ClientSafeProvider
 > | null;
 
-export default function SignInPage() {
+// This component will contain the logic that uses useSearchParams
+function SignInFormContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // Now used inside this dedicated component
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const errorParam = searchParams.get("error");
 
@@ -44,9 +45,7 @@ export default function SignInPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(
-    errorParam ? decodeURIComponent(errorParam) : null
-  );
+  const [formError, setFormError] = useState<string | null>(null); // Initialize with null
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [providers, setProviders] = useState<Providers>(null);
@@ -60,20 +59,24 @@ export default function SignInPage() {
   }, []);
 
   useEffect(() => {
+    // Update formError when errorParam changes
     if (errorParam) {
-      // Map common NextAuth error codes to user-friendly messages
-      if (errorParam === "CredentialsSignin") {
+      let decodedError = decodeURIComponent(errorParam);
+      if (decodedError === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
-      } else if (errorParam === "OAuthAccountNotLinked") {
+      } else if (decodedError === "OAuthAccountNotLinked") {
         setFormError(
           "This email is already associated with another provider. Try signing in with that provider."
         );
-      } else if (errorParam === "Callback") {
+      } else if (decodedError === "Callback") {
         setFormError(
           "There was an issue with the sign-in provider. Please try again or use a different method."
         );
+      } else {
+        setFormError(decodedError); // Use the error message directly if it's custom
       }
-      // else, use the error message directly if it's custom from authorize
+    } else {
+      setFormError(null); // Clear error if no errorParam
     }
   }, [errorParam]);
 
@@ -84,7 +87,7 @@ export default function SignInPage() {
     setSuccessMessage(null);
 
     const result = await signIn("credentials", {
-      redirect: false, // Handle redirect manually
+      redirect: false,
       email,
       password,
       callbackUrl: callbackUrl,
@@ -92,15 +95,18 @@ export default function SignInPage() {
 
     setLoading(false);
     if (result?.error) {
+      // Error messages are now handled by the useEffect listening to errorParam
+      // but we can still set a generic one if needed, or rely on the redirect with error.
+      // For direct feedback without waiting for redirect and param parsing:
       if (result.error === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
       } else {
-        setFormError(result.error); // Show error from authorize function
+        setFormError(result.error);
       }
     } else if (result?.ok && result?.url) {
-      router.push(result.url); // Redirect to callbackUrl on success
+      router.push(result.url);
     } else if (result?.ok && !result.url) {
-      router.push(callbackUrl); // Fallback redirect
+      router.push(callbackUrl);
     }
   };
 
@@ -116,7 +122,6 @@ export default function SignInPage() {
 
     try {
       const response = await fetch("/api/auth/signup", {
-        // New API route for sign-up
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, firstName, lastName }),
@@ -129,8 +134,8 @@ export default function SignInPage() {
       }
 
       setSuccessMessage("Account created successfully! Please sign in.");
-      setIsSignUp(false); // Switch to sign-in form
-      setEmail(email); // Pre-fill email for convenience
+      setIsSignUp(false);
+      setEmail(email);
       setPassword("");
       setConfirmPassword("");
     } catch (err: any) {
@@ -324,6 +329,7 @@ export default function SignInPage() {
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm">
+            {/* TODO: Implement forgot password functionality */}
             <a href="#" className="font-medium text-black hover:text-gray-700">
               Forgot your password?
             </a>
@@ -410,7 +416,7 @@ export default function SignInPage() {
 
                 <div className="mt-6 grid grid-cols-1 gap-3">
                   {Object.values(providers).map((provider) => {
-                    if (provider.id === "credentials") return null; // Don't render button for credentials
+                    if (provider.id === "credentials") return null;
                     const Icon =
                       provider.id === "google"
                         ? Chrome
@@ -435,6 +441,25 @@ export default function SignInPage() {
             )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// The main page component now wraps SignInFormContent in Suspense
+export default function SignInPageContainer() {
+  return (
+    <Suspense fallback={<SignInPageLoadingFallback />}>
+      <SignInFormContent />
+    </Suspense>
+  );
+}
+
+// A simple fallback component to show while searchParams are loading
+function SignInPageLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
+      <Loader2 className="h-12 w-12 animate-spin text-black" />
+      <p className="mt-4 text-gray-600">Loading sign-in options...</p>
     </div>
   );
 }
