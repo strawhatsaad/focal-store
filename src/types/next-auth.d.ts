@@ -1,5 +1,4 @@
 // File: src/types/next-auth.d.ts
-// (Create this new directory and file if they don't exist)
 
 import { User as DefaultUser, Session as DefaultSession, JWT as DefaultJWT } from "next-auth";
 
@@ -9,14 +8,12 @@ declare module "next-auth/jwt" {
      * Extends the default JWT type.
      */
     interface JWT extends DefaultJWT {
-        id?: string; // Often 'sub' from provider, or your Shopify customer ID
-        shopifyCustomerId?: string;
-        shopifyAccessToken?: string;
+        id?: string; // NextAuth's internal ID, often 'sub' from provider, or Shopify Customer GID
+        shopifyCustomerId?: string; // Shopify Customer GID, e.g., "gid://shopify/Customer/12345"
+        shopifyAccessToken?: string; // Shopify Storefront API customer access token
         shopifyAccessTokenExpiresAt?: string;
-        error?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
-        // Default JWT properties (name, email, picture, sub etc.) are inherited from DefaultJWT
+        error?: string; // To pass errors from authorize/signIn to session
+        // Removed OAuth specific flags: shopifyLinkFailed, shopifyAccountExists, requiresPasswordUpdate, isNewOAuthUser
     }
 }
 
@@ -27,13 +24,11 @@ declare module "next-auth" {
      */
     interface User extends DefaultUser {
         // DefaultUser includes: id, name?, email?, image?
-        // Add your custom properties:
-        shopifyCustomerId?: string;
-        shopifyAccessToken?: string;
+        // 'id' here will be set to Shopify Customer GID by the authorize callback.
+        shopifyCustomerId?: string; // Shopify Customer GID
+        shopifyAccessToken?: string; // Shopify Storefront API customer access token
         shopifyAccessTokenExpiresAt?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
-        // You can add other properties that your authorize/signIn callbacks might add to the user object
+        // Removed OAuth specific flags: shopifyLinkFailed, shopifyAccountExists, requiresPasswordUpdate
     }
 
     /**
@@ -44,10 +39,9 @@ declare module "next-auth" {
         user: User; // Use our augmented User type
 
         // You can also add custom properties directly to the session if needed
-        shopifyAccessToken?: string;
+        shopifyAccessToken?: string; // Shopify Storefront API customer access token
         shopifyAccessTokenExpiresAt?: string;
-        error?: string;
-        shopifyLinkFailed?: boolean;
-        shopifyAccountExists?: boolean;
+        error?: string; // For displaying errors on client
+        // Removed OAuth specific flags
     }
 }
