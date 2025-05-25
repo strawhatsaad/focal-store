@@ -15,23 +15,14 @@ import {
 import Image from "next/image";
 
 const Hero = ({ product }: any) => {
-  useEffect(() => {
-    console.log(
-      "[Hero Init] Product data received:",
-      JSON.stringify(product, null, 2)
-    );
-    if (product?.variants && product.variants.length > 0) {
-      product.variants.forEach((v: any, index: number) => {
-        // Log the properties you expect to use, like 'name', 'title', and 'image' or 'imageSrc'
-        console.log(
-          `[Hero Init] Variant ${index}: Name='${v.name}', Title='${v.title}', Image Object:`,
-          JSON.stringify(v.image, null, 2),
-          "Direct imageSrc:",
-          v.imageSrc
-        );
-      });
-    }
-  }, [product]);
+  // useEffect(() => {
+  //   console.log("[Hero Init/Product Prop Change] Product data:", JSON.stringify(product, null, 2));
+  //   if (product?.variants && product.variants.length > 0) {
+  //     product.variants.forEach((v: any, index: number) => {
+  //       console.log(`[Hero Init/Product Prop Change] Variant ${index}: Name='${v.name}', Image Object:`, JSON.stringify(v.image, null, 2), "Direct imageSrc:", v.imageSrc);
+  //     });
+  //   }
+  // }, [product]);
 
   const {
     addLineItem,
@@ -43,63 +34,52 @@ const Hero = ({ product }: any) => {
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
 
-  const [selectedVariant, setSelectedVariant] = useState<any>(
-    () => product?.variants?.[0] || null
-  );
-
-  const [selectedImage, setSelectedImage] = useState<string>(() => {
-    const initialVar = product?.variants?.[0];
-    // Prioritize variant.image.src, then variant.imageSrc, then product's first image
-    return (
-      initialVar?.image?.src ||
-      initialVar?.imageSrc ||
-      product?.images?.[0]?.src ||
-      ""
-    );
-  });
-
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string>("");
   const [hasUserManuallySelectedImage, setHasUserManuallySelectedImage] =
     useState(false);
-  const [isEyeglassesModalOpen, setIsEyeglassesModalOpen] = useState(false);
 
+  const [isEyeglassesModalOpen, setIsEyeglassesModalOpen] = useState(false);
   const thumbContainerRef = useRef<HTMLDivElement>(null);
 
+  // Effect to set initial variant and image ONLY when the product prop itself changes
   useEffect(() => {
+    // console.log("[Hero Effect - Product Change] Product prop updated. Current product name:", product?.name);
     if (product?.variants?.length > 0) {
       const initialVariant = product.variants[0];
-      if (!selectedVariant || selectedVariant.product?.id !== product.id) {
-        setSelectedVariant(initialVariant);
-        const initialImageSrc =
-          initialVariant?.image?.src ||
-          initialVariant?.imageSrc ||
-          product.images?.[0]?.src ||
-          "";
-        setSelectedImage(initialImageSrc);
-        setHasUserManuallySelectedImage(false);
-      }
+      // console.log("[Hero Effect - Product Change] Setting initial selectedVariant:", JSON.stringify(initialVariant, null, 2));
+      setSelectedVariant(initialVariant);
+
+      const initialImageSrc =
+        initialVariant?.image?.src ||
+        initialVariant?.imageSrc ||
+        product.images?.[0]?.src ||
+        "";
+      // console.log("[Hero Effect - Product Change] Setting initial selectedImage:", initialImageSrc);
+      setSelectedImage(initialImageSrc);
+      setHasUserManuallySelectedImage(false);
+    } else {
+      setSelectedVariant(null);
+      setSelectedImage(product?.images?.[0]?.src || "");
+      setHasUserManuallySelectedImage(false);
     }
   }, [product]);
 
   const handleThumbnailClick = (src: string) => {
+    // console.log("[Hero Click] Thumbnail clicked, setting image to:", src);
     setSelectedImage(src);
     setHasUserManuallySelectedImage(true);
   };
 
   const handleFrameVariantClick = (variant: any) => {
-    console.log(
-      "[Hero Click] Frame variant clicked. Variant data:",
-      JSON.stringify(variant, null, 2)
-    );
+    // console.log("[Hero Click] Frame variant clicked. Variant data:", JSON.stringify(variant, null, 2));
     setSelectedVariant(variant);
-    // Correctly access variant's image: try variant.image.src, then variant.imageSrc
     const newImageSrc =
       variant?.image?.src ||
       variant?.imageSrc ||
       product?.images?.[0]?.src ||
       "";
-    console.log(
-      `[Hero Click] Setting selectedImage directly to new variant's image: ${newImageSrc}`
-    );
+    // console.log(`[Hero Click] Setting selectedImage from frame variant click to: ${newImageSrc}`);
     setSelectedImage(newImageSrc);
     setHasUserManuallySelectedImage(false);
   };
@@ -119,15 +99,10 @@ const Hero = ({ product }: any) => {
   const [leftEyeQty, setLeftEyeQty] = useState(1);
 
   const getDisplayedImage = () => {
-    let displaySrc = "";
-    if (hasUserManuallySelectedImage && selectedImage) {
-      displaySrc = selectedImage;
-    } else if (selectedVariant) {
-      displaySrc = selectedVariant.image?.src || selectedVariant.imageSrc || "";
-    }
-
+    // selectedImage is now the single source of truth for the main display,
+    // managed by handleFrameVariantClick and handleThumbnailClick.
     return (
-      displaySrc ||
+      selectedImage ||
       product?.images?.[0]?.src ||
       "https://placehold.co/400x400/F7F4EE/333333?text=No+Image"
     );
@@ -214,13 +189,19 @@ const Hero = ({ product }: any) => {
       thumbContainerRef.current.offsetWidth >=
       thumbContainerRef.current.scrollWidth - 5;
 
-  const showFrameVariants =
-    (product.collection === "Eyewear" ||
-      product.productType === "EYEGLASSES" ||
-      product.product_type?.toLowerCase() === "eyeglasses") &&
-    product.variants?.length > 1;
+  const isEyewearType =
+    product.collection === "Eyewear" ||
+    product.productType === "EYEGLASSES" ||
+    product.product_type?.toLowerCase() === "eyeglasses";
+  const showFrameVariants = isEyewearType && product.variants?.length > 1;
+  const showContactLensVariantSection =
+    !isEyewearType && product.variants?.length > 0;
 
-  const displayedVariantName = selectedVariant?.name || "N/A";
+  const displayedVariantName =
+    selectedVariant?.name || selectedVariant?.title || "N/A";
+  const displayedPrice = selectedVariant?.priceV2?.amount
+    ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
+    : selectedVariant?.price || product.price || "$0.00";
 
   return (
     <section className="py-8 bg-white md:py-16 antialiased">
@@ -231,7 +212,11 @@ const Hero = ({ product }: any) => {
             <div className="w-full h-[300px] md:h-[400px] flex justify-center items-center bg-transparent overflow-hidden border border-gray-200 rounded-lg p-2">
               <img
                 src={getDisplayedImage()}
-                alt={selectedVariant?.name || product.name || "Product Image"}
+                alt={
+                  displayedVariantName === "N/A"
+                    ? product?.name || "Product Image"
+                    : displayedVariantName
+                }
                 width={400}
                 height={400}
                 className="object-contain max-w-full max-h-full"
@@ -300,7 +285,7 @@ const Hero = ({ product }: any) => {
             <div className="hidden lg:block mt-8">
               <ProductFeatures
                 product={product}
-                selectedVariant={selectedVariant?.name}
+                selectedVariant={displayedVariantName}
               />
             </div>
           </div>
@@ -317,9 +302,7 @@ const Hero = ({ product }: any) => {
                 {product.name}
               </h1>
               <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
-                {selectedVariant?.priceV2?.amount
-                  ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
-                  : product.price || "$0.00"}
+                {displayedPrice}
               </p>
 
               {showFrameVariants && (
@@ -332,17 +315,13 @@ const Hero = ({ product }: any) => {
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
                     {product.variants.map((variant: any, index: number) => {
-                      const variantIdLastPart = variant.id
-                        ? variant.id.substring(variant.id.lastIndexOf("/") + 1)
-                        : index;
-                      // Use variant.name for button text, as per your data structure
                       const buttonText =
-                        variant.name || `Variant ${variantIdLastPart}`;
+                        variant.name || variant.title || `Variant ${index + 1}`;
                       return (
                         <button
                           key={variant.id || `variant-${index}`}
                           onClick={() => handleFrameVariantClick(variant)}
-                          title={variant.name || "Variant"}
+                          title={variant.name || variant.title || "Variant"}
                           className={twMerge(
                             "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
                             selectedVariant?.id === variant.id
@@ -358,38 +337,107 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {!showFrameVariants &&
-                product.variants &&
-                product.variants.length > 1 && (
-                  <div className="mt-5">
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">
-                      {selectedVariant?.optionNames?.[0] || "Select Option"}:{" "}
-                      <span className="font-semibold">
-                        {selectedVariant?.name || "N/A"}
-                      </span>
-                    </h3>
+              {showContactLensVariantSection && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    Pack Size:{" "}
+                    <span className="font-semibold">
+                      {selectedVariant?.name || selectedVariant?.title
+                        ? `${
+                            selectedVariant.name || selectedVariant.title
+                          } Pack`
+                        : "N/A"}
+                    </span>
+                  </h3>
+                  {product.variants.length > 1 && (
                     <div className="flex flex-wrap gap-2">
-                      {product.variants.map((variant: any, index: number) => (
-                        <button
-                          key={variant.id || `cl-variant-${index}`}
-                          onClick={() => handleFrameVariantClick(variant)}
-                          className={twMerge(
-                            "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
-                            selectedVariant?.id === variant.id
-                              ? "bg-black text-white border-black ring-black"
-                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
-                          )}
-                        >
-                          {variant.name || `Variant ${index + 1}`}
-                        </button>
-                      ))}
+                      {product.variants.map((variant: any, index: number) => {
+                        const packName = variant.name || variant.title;
+                        const buttonText = packName
+                          ? `${packName} Pack`
+                          : `Variant ${index + 1}`;
+                        return (
+                          <button
+                            key={variant.id || `cl-variant-${index}`}
+                            onClick={() => handleFrameVariantClick(variant)}
+                            className={twMerge(
+                              "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
+                              selectedVariant?.id === variant.id
+                                ? "bg-black text-white border-black ring-black"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                            )}
+                          >
+                            {buttonText}
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
 
-              {!showFrameVariants && (
+              {/* Quantity Selection for Contact Lenses - RESTORED AND ALWAYS VISIBLE FOR CONTACT LENSES */}
+              {!isEyewearType && (
                 <div className="mt-6 space-y-3">
-                  {/* ... quantity selection UI for contact lenses ... */}
+                  <h3 className="text-sm font-medium text-gray-900">
+                    Select quantity:
+                  </h3>
+                  {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
+                    >
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
+                          onChange={(e) =>
+                            idx === 0
+                              ? setRightEyeEnabled(e.target.checked)
+                              : setLeftEyeEnabled(e.target.checked)
+                          }
+                          className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                        />
+                        <span className="text-sm text-gray-700">{label}</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) => Math.max(1, prev - 1))
+                              : setLeftEyeQty((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={
+                            (idx === 0 &&
+                              (!rightEyeEnabled || rightEyeQty <= 1)) ||
+                            (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          −{" "}
+                        </button>
+                        <span className="w-8 text-center text-sm font-medium text-gray-800">
+                          {idx === 0 ? rightEyeQty : leftEyeQty}
+                        </span>
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) => prev + 1)
+                              : setLeftEyeQty((prev) => prev + 1)
+                          }
+                          disabled={
+                            (idx === 0 && !rightEyeEnabled) ||
+                            (idx === 1 && !leftEyeEnabled)
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          +{" "}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -404,11 +452,7 @@ const Hero = ({ product }: any) => {
                   ) : (
                     <ShoppingCart className="w-5 h-5" />
                   )}
-                  {product.collection === "Eyewear" ||
-                  product.productType === "EYEGLASSES" ||
-                  product.product_type?.toLowerCase() === "eyeglasses"
-                    ? "Select Lenses & Buy"
-                    : "Add to Cart"}
+                  {isEyewearType ? "Select Lenses & Buy" : "Add to Cart"}
                 </button>
               </div>
               {addToCartSuccess && (
@@ -431,18 +475,14 @@ const Hero = ({ product }: any) => {
             </div>
           </div>
         </div>
-        {isEyeglassesModalOpen &&
-          (product.collection === "Eyewear" ||
-            product.productType === "EYEGLASSES" ||
-            product.product_type?.toLowerCase() === "eyeglasses") &&
-          selectedVariant && (
-            <EyeglassesModal
-              product={product}
-              selectedVariant={selectedVariant}
-              isOpen={isEyeglassesModalOpen}
-              onClose={() => setIsEyeglassesModalOpen(false)}
-            />
-          )}
+        {isEyeglassesModalOpen && isEyewearType && selectedVariant && (
+          <EyeglassesModal
+            product={product}
+            selectedVariant={selectedVariant}
+            isOpen={isEyeglassesModalOpen}
+            onClose={() => setIsEyeglassesModalOpen(false)}
+          />
+        )}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}
