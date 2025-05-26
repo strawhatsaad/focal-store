@@ -11,9 +11,9 @@ import {
   UserCircle,
   Mail,
   LogOut,
-  ShoppingBag,
-  MapPin,
-  FileText, // Icon for prescriptions
+  // ShoppingBag, // Removed as Order History is removed
+  // MapPin, // Removed as Manage Addresses is removed
+  FileText,
 } from "lucide-react";
 
 const AccountPage = () => {
@@ -23,7 +23,7 @@ const AccountPage = () => {
   useEffect(() => {
     if (status === "loading") return;
     if (!session) {
-      router.push("/"); // Or to sign-in page: router.push("/auth/signin?callbackUrl=/account");
+      router.push("/auth/signin?callbackUrl=/account");
     }
   }, [session, status, router]);
 
@@ -39,7 +39,6 @@ const AccountPage = () => {
   }
 
   if (!session) {
-    // This ideally shouldn't be reached if useEffect redirects, but as a fallback:
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 text-center px-4">
         <UserCircle className="h-16 w-16 text-gray-400 mb-4" />
@@ -109,25 +108,16 @@ const AccountPage = () => {
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <AccountActionCard
-              icon={<ShoppingBag className="text-blue-600" size={28} />}
-              title="Order History"
-              description="View your past orders and track current shipments."
-              href="/account/orders"
-            />
-            <AccountActionCard
-              icon={<MapPin className="text-green-600" size={28} />}
-              title="Manage Addresses"
-              description="Update your shipping and billing addresses."
-              href="/account/addresses"
-            />
+            {/* Order History Card Removed */}
+            {/* Manage Addresses Card Removed */}
             <AccountActionCard
               icon={<FileText className="text-purple-600" size={28} />}
               title="Manage Prescriptions"
               description="Upload and view your eyewear or contact lens prescriptions."
-              href="/account/prescriptions" // Link to the new page
+              href="/account/prescriptions"
             />
-            {/* Add more cards as needed */}
+            {/* Add more cards as needed - ensure the grid looks balanced if only one item remains */}
+            {/* If only one item, you might want to change grid-cols-1 md:grid-cols-1 or adjust styling */}
           </section>
 
           <section className="pt-8 mt-8 border-t border-gray-200 flex justify-center">
@@ -143,7 +133,7 @@ const AccountPage = () => {
         <p className="text-center text-gray-500 text-sm mt-12">
           Need help?{" "}
           <Link
-            href="/contact-us" // Assuming you have a contact page
+            href="/contact-us"
             className="text-black hover:underline font-medium"
           >
             Contact Support
