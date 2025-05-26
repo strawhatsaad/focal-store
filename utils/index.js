@@ -89,7 +89,6 @@ export async function shopifyAdminRequest(query, variables = {}) {
   }
 
   const adminApiURL = `https://${shopName}.myshopify.com/admin/api/${adminApiVersion}/graphql.json`;
-  // console.log(`[shopifyAdminRequest] Using Admin API URL: ${adminApiURL}`); // Uncomment for debugging
 
   const headers = {
     "Content-Type": "application/json",
@@ -128,18 +127,19 @@ export async function shopifyAdminRequest(query, variables = {}) {
     }
 
     const result = await response.json();
+    // Check for top-level GraphQL errors first
     if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
       const errorMessages = result.errors.map((e) => e.message || "Unknown Shopify Admin GraphQL error").join("; ");
       console.error("[shopifyAdminRequest] Shopify Admin GraphQL Errors:", JSON.stringify(result.errors, null, 2));
+      // Throw these as they usually indicate a more fundamental issue with the query or API
       throw new Error(`Shopify Admin GraphQL error: ${errorMessages}`);
     }
     
+    // UserErrors are handled by the caller, but log them if present
     const mutationName = Object.keys(result.data || {})[0];
     if (mutationName && result.data?.[mutationName]?.userErrors?.length > 0) {
         const userErrors = result.data[mutationName].userErrors;
-        const errorMessages = userErrors.map((e) => e.message || "Unknown Shopify Admin user error").join("; ");
-        console.error(`[shopifyAdminRequest] Shopify Admin User Errors in ${mutationName}:`, JSON.stringify(userErrors, null, 2));
-        throw new Error(`Shopify Admin user error: ${errorMessages}`);
+        console.warn(`[shopifyAdminRequest] Shopify Admin User Errors in ${mutationName}:`, JSON.stringify(userErrors, null, 2));
     }
     return result;
   } catch (error) {
@@ -147,7 +147,7 @@ export async function shopifyAdminRequest(query, variables = {}) {
     if (error.message.toLowerCase().includes("failed to fetch")) {
         throw new Error(`Network error: Failed to fetch from ${adminApiURL}. Original error: ${error.message}`);
     }
-    throw error;
+    throw error; // Re-throw other errors
   }
 }
 
@@ -216,7 +216,7 @@ export const FILE_CREATE_MUTATION = `
     fileCreate(files: $files) {
       files {
         id 
-        alt # Query the alt text
+        alt 
         createdAt
         fileStatus
         ... on GenericFile {
@@ -224,17 +224,39 @@ export const FILE_CREATE_MUTATION = `
           originalFileSize 
         }
         ... on MediaImage {
-          alt # Alt text for MediaImage specifically if different from File.alt
+          alt 
           image {
-             originalSrc # Renamed to originalSrc as 'url' for image is a sub-field
-             # You could also query width, height, etc. here if needed
+             originalSrc 
+             # You might also want to query 'url' here if available for MediaImage context
+             # url(transform: {maxWidth: 2048, maxHeight: 2048}) # Example if you need a transformed URL
           }
         }
-        # ... other file types like Video { sources { url } }
+        ... on Video {
+          originalSource {
+            url
+            fileSize
+            mimeType
+          }
+          # other video fields
+        }
+        # ... other file types like ExternalVideo, Model3d
       }
       userErrors {
         field
         message
+      }
+    }
+  }
+`;
+
+export const FILE_DELETE_MUTATION = `
+  mutation fileDelete($fileIds: [ID!]!) {
+    fileDelete(fileIds: $fileIds) {
+      deletedFileIds
+      userErrors {
+        field
+        message
+        code
       }
     }
   }
@@ -409,4 +431,13 @@ export async function createShopifyFiles(filesInput) {
     throw new Error("Input for createShopifyFiles is required and must be an array.");
   }
   return shopifyAdminRequest(FILE_CREATE_MUTATION, { files: filesInput });
+}
+
+// Helper function to delete files from Shopify
+export async function deleteShopifyFile(fileIds) {
+    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+        console.warn("[deleteShopifyFile] fileIds array is required.");
+        throw new Error("File IDs are required for deletion.");
+    }
+    return shopifyAdminRequest(FILE_DELETE_MUTATION, { fileIds });
 }

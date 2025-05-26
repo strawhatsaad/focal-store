@@ -13,7 +13,7 @@ import {
   CheckCircle,
   ArrowLeft,
   Trash2,
-  ExternalLink, // For viewing the file if it's a direct URL
+  // DownloadCloud, // Removed DownloadCloud icon
 } from "lucide-react";
 
 interface PrescriptionEntry {
@@ -24,6 +24,7 @@ interface PrescriptionEntry {
   storageUrlOrId: string;
   label?: string;
   fileSize?: number;
+  shopifyFileId?: string;
 }
 
 const ManagePrescriptionsPage = () => {
@@ -64,15 +65,12 @@ const ManagePrescriptionsPage = () => {
       router.push("/api/auth/signin?callbackUrl=/account/prescriptions");
       return;
     }
-    // Set default file label when session is loaded and fileLabel is still empty
     if (session?.user?.name && !fileLabel && !selectedFile) {
       setFileLabel(session.user.name);
     }
     fetchPrescriptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, sessionStatus, router]); // Removed fileLabel and selectedFile from deps to avoid loops
+  }, [session, sessionStatus, router]);
 
-  // Effect to update default label if session loads after initial render and label is empty
   useEffect(() => {
     if (session?.user?.name && !fileLabel && !selectedFile) {
       setFileLabel(session.user.name);
@@ -83,8 +81,6 @@ const ManagePrescriptionsPage = () => {
     if (e.target.files && e.target.files[0]) {
       const currentFile = e.target.files[0];
       setSelectedFile(currentFile);
-      // If fileLabel is currently the default (user's name) or empty, update it to the new file's name (without extension).
-      // If the user has typed something custom, keep it.
       const currentFileNameWithoutExtension = currentFile.name.replace(
         /\.[^/.]+$/,
         ""
@@ -94,7 +90,6 @@ const ManagePrescriptionsPage = () => {
       }
     } else {
       setSelectedFile(null);
-      // If file is deselected and label was based on filename, revert to user's name or clear
       if (fileLabel !== session?.user?.name) {
         setFileLabel(session?.user?.name || "");
       }
@@ -113,7 +108,6 @@ const ManagePrescriptionsPage = () => {
 
     const formData = new FormData();
     formData.append("prescriptionFile", selectedFile);
-    // Use current fileLabel state, which might be user's name, filename, or custom input
     formData.append(
       "label",
       fileLabel || selectedFile.name.replace(/\.[^/.]+$/, "")
@@ -129,9 +123,12 @@ const ManagePrescriptionsPage = () => {
         throw new Error(result.message || "Failed to upload prescription.");
       }
       setSuccessMessage("Prescription uploaded successfully!");
-      setPrescriptions(result.allPrescriptions || []);
+      setPrescriptions((prev) => [
+        result.prescription,
+        ...prev.filter((p) => p.id !== result.prescription.id),
+      ]);
       setSelectedFile(null);
-      setFileLabel(session?.user?.name || ""); // Reset label to default (customer name) or empty
+      setFileLabel(session?.user?.name || "");
       const fileInput = document.getElementById(
         "prescriptionFile"
       ) as HTMLInputElement | null;
@@ -150,15 +147,18 @@ const ManagePrescriptionsPage = () => {
       setError("Authentication error. Please sign in again.");
       return;
     }
+    // Modern browsers have built-in confirm dialogs, but for a better UX,
+    // you might consider a custom modal component in a real app.
+    // For now, window.confirm is used.
     if (
-      !confirm(
+      !window.confirm(
         "Are you sure you want to delete this prescription? This action cannot be undone."
       )
     ) {
       return;
     }
 
-    setIsLoading(true); // Use general loading or a specific deleting state
+    setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
 
@@ -178,7 +178,6 @@ const ManagePrescriptionsPage = () => {
       }
 
       setSuccessMessage("Prescription deleted successfully!");
-      // Refresh prescriptions list
       setPrescriptions((prev) => prev.filter((p) => p.id !== prescriptionId));
     } catch (err: any) {
       setError(err.message);
@@ -187,15 +186,7 @@ const ManagePrescriptionsPage = () => {
     }
   };
 
-  const getFileViewUrl = (storageId: string): string | null => {
-    if (storageId.startsWith("gid://shopify/File/")) {
-      return null;
-    }
-    if (storageId.startsWith("http")) {
-      return storageId;
-    }
-    return null;
-  };
+  // Removed isDirectDownloadUrl function as it's no longer needed
 
   if (
     sessionStatus === "loading" ||
@@ -337,7 +328,7 @@ const ManagePrescriptionsPage = () => {
           ) : prescriptions.length > 0 ? (
             <ul className="space-y-4">
               {prescriptions.map((rx) => {
-                const viewUrl = getFileViewUrl(rx.storageUrlOrId);
+                // Removed canDownloadDirectly and related logic
                 return (
                   <li
                     key={rx.id}
@@ -357,7 +348,9 @@ const ManagePrescriptionsPage = () => {
                           {new Date(rx.uploadedAt).toLocaleDateString()} | Type:{" "}
                           {rx.fileType}{" "}
                           {rx.fileSize
-                            ? `| Size: ${(rx.fileSize / 1024).toFixed(1)} KB`
+                            ? `| Size: ${(rx.fileSize / 1024 / 1024).toFixed(
+                                2
+                              )} MB`
                             : ""}
                         </p>
                         <p
@@ -371,19 +364,8 @@ const ManagePrescriptionsPage = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      {viewUrl && (
-                        <a
-                          href={viewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="View/Download Prescription"
-                          download={rx.fileName} // Suggest original filename for download
-                          className="p-1.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full"
-                        >
-                          <ExternalLink size={18} />
-                        </a>
-                      )}
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                      {/* Download button and related logic removed */}
                       <button
                         onClick={() => handleDeletePrescription(rx.id)}
                         title="Delete Prescription"

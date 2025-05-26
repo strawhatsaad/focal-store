@@ -4,24 +4,26 @@ import { authOptions } from "@/lib/authOptions"; // Adjust path
 import {
     setShopifyMetafields,
     getShopifyCustomerMetafield,
-    createStagedUploads, // New import
-    createShopifyFiles   // New import
+    createStagedUploads,
+    createShopifyFiles,
+    deleteShopifyFile
 } from "../../../../../utils"; // Adjust path
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
-import path from 'path'; // Import path module for extension
+import path from 'path';
 
 const PRESCRIPTION_METAFIELD_NAMESPACE = "focal_rx";
 const PRESCRIPTION_METAFIELD_KEY = "uploaded_prescriptions";
 
 interface PrescriptionEntry {
-    id: string;
-    fileName: string; // This will store the original filename for display or the new one
+    id: string; // UUID for the metafield entry
+    fileName: string; // User-facing filename (original or generated)
     fileType: string;
     uploadedAt: string;
-    storageUrlOrId: string; // Will now be Shopify File GID or its CDN URL
+    storageUrlOrId: string; // Should be direct CDN URL if available, otherwise GID as fallback
     label?: string;
-    fileSize?: number; // Optional: store file size
+    fileSize?: number;
+    shopifyFileId?: string; // Explicitly store the Shopify File GID
 }
 
 const parsePrescriptionsMetafield = (metafieldValue: string | null | undefined): PrescriptionEntry[] => {
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
         if (!file) {
             return NextResponse.json({ message: "No prescription file provided." }, { status: 400 });
         }
-        if (file.size > 20 * 1024 * 1024) { // Example: Limit to 20MB
+        if (file.size > 20 * 1024 * 1024) { // Limit to 20MB
             return NextResponse.json({ message: "File size exceeds 20MB limit." }, { status: 400 });
         }
 
@@ -78,101 +80,83 @@ export async function POST(request: Request) {
         const customerName = session.user.name;
         const customerEmail = session.user.email;
 
-        // Generate a new filename
         const originalExtension = path.extname(file.name);
-        const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+        const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "_");
         const newFileName = `${safeCustomerName}_Prescription_${Date.now()}${originalExtension}`;
-        const altText = `${customerName} - ${customerEmail}`;
+        const altText = `${customerName} - ${customerEmail} - Prescription`;
 
-
-        // Step 1: Create a Staged Upload target on Shopify
-        console.log(`[API POST Prescription] Creating staged upload for: ${newFileName} (original: ${file.name})`);
         const stagedUploadInput = [{
-            filename: newFileName, // Use the new filename
+            filename: newFileName,
             mimeType: file.type,
             resource: "FILE",
             httpMethod: "POST",
         }];
         const stagedUploadsResponse = await createStagedUploads(stagedUploadInput);
 
+        if (stagedUploadsResponse.data?.stagedUploadsCreate?.userErrors?.length > 0) {
+            const errorMsg = stagedUploadsResponse.data.stagedUploadsCreate.userErrors.map((e: any) => e.message).join(", ");
+            throw new Error(`Failed to prepare file upload target on Shopify: ${errorMsg}`);
+        }
         if (!stagedUploadsResponse.data?.stagedUploadsCreate?.stagedTargets?.[0]) {
-            console.error("[API POST Prescription] Failed to create staged upload target. Response:", stagedUploadsResponse);
-            const errorMsg = stagedUploadsResponse.data?.stagedUploadsCreate?.userErrors?.[0]?.message || "Failed to prepare file upload target on Shopify.";
-            throw new Error(errorMsg);
+            throw new Error("Failed to prepare file upload target on Shopify (no target returned).");
         }
 
         const target = stagedUploadsResponse.data.stagedUploadsCreate.stagedTargets[0];
         const { url: uploadUrl, resourceUrl, parameters } = target;
 
-        // Step 2: Upload the file to the Shopify-provided URL
-        console.log(`[API POST Prescription] Uploading file to Shopify's staged target: ${uploadUrl}`);
         const fileBuffer = await file.arrayBuffer();
         const uploadFormData = new FormData();
         parameters.forEach(({ name, value }: { name: string; value: string }) => {
             uploadFormData.append(name, value);
         });
-        uploadFormData.append("file", new Blob([fileBuffer]), newFileName); // Use newFileName for the blob as well
+        uploadFormData.append("file", new Blob([fileBuffer]), newFileName);
 
-        const uploadResponse = await fetch(uploadUrl, {
-            method: "POST",
-            body: uploadFormData,
-        });
-
+        const uploadResponse = await fetch(uploadUrl, { method: "POST", body: uploadFormData });
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
-            console.error(`[API POST Prescription] Failed to upload file to Shopify staged target. Status: ${uploadResponse.status}, Response: ${errorText}`);
-            throw new Error(`Failed to upload file to Shopify's storage. Server responded with ${uploadResponse.status}.`);
+            throw new Error(`Failed to upload file to Shopify's storage. Server responded with ${uploadResponse.status}. Details: ${errorText}`);
         }
-        console.log("[API POST Prescription] File successfully uploaded to staged target.");
 
-        // Step 3: Create the File record in Shopify using the resourceUrl
-        console.log(`[API POST Prescription] Creating Shopify file record with resourceUrl: ${resourceUrl}`);
-        const fileCreateInput = [{
-            originalSource: resourceUrl,
-            contentType: "FILE", // Or "IMAGE", "VIDEO" matching the resource in stagedUploadsCreate
-            alt: altText, // Set the alt text
-        }];
+        const fileCreateInput = [{ originalSource: resourceUrl, contentType: "FILE", alt: altText }];
         const fileCreateResponse = await createShopifyFiles(fileCreateInput);
 
+        if (fileCreateResponse.data?.fileCreate?.userErrors?.length > 0) {
+            const errorMsg = fileCreateResponse.data.fileCreate.userErrors.map((e: any) => e.message).join(", ");
+            throw new Error(`Failed to finalize file on Shopify: ${errorMsg}`);
+        }
         if (!fileCreateResponse.data?.fileCreate?.files?.[0]?.id) {
-            console.error("[API POST Prescription] Failed to create Shopify file record. Response:", fileCreateResponse);
-            const errorMsg = fileCreateResponse.data?.fileCreate?.userErrors?.[0]?.message || "Failed to finalize file on Shopify.";
-            throw new Error(errorMsg);
+            throw new Error("Failed to finalize file on Shopify (no file ID returned).");
         }
 
         const createdShopifyFile = fileCreateResponse.data.fileCreate.files[0];
-        const shopifyFileId = createdShopifyFile.id;
+        const shopifyFileId = createdShopifyFile.id; // This is the GID
 
-        let finalStorageUrlOrId = `gid_ref:${shopifyFileId}`; // Default to GID
-        if (createdShopifyFile.url) { // For GenericFile
-            finalStorageUrlOrId = createdShopifyFile.url;
-        } else if (createdShopifyFile.image?.url) { // For MediaImage
-            finalStorageUrlOrId = createdShopifyFile.image.url;
-        } else if (createdShopifyFile.sources?.[0]?.url) { // For VideoFile (example)
-            finalStorageUrlOrId = createdShopifyFile.sources[0].url;
-        }
+        let directCdnUrl: string | null = null;
+        if (createdShopifyFile.__typename === "GenericFile" && createdShopifyFile.url) {
+            directCdnUrl = createdShopifyFile.url;
+        } else if (createdShopifyFile.__typename === "MediaImage" && createdShopifyFile.image?.originalSrc) {
+            directCdnUrl = createdShopifyFile.image.originalSrc;
+        } // Add other types like Video if needed: else if (createdShopifyFile.__typename === "Video" && createdShopifyFile.originalSource?.url) { directCdnUrl = createdShopifyFile.originalSource.url; }
 
-        console.log(`[API POST Prescription] Shopify file created successfully. ID: ${shopifyFileId}, Stored URL/Ref: ${finalStorageUrlOrId}`);
+        const finalStorageUrlOrId = directCdnUrl || shopifyFileId; // Prioritize direct URL, fallback to GID
 
-        // --- Now update metafield ---
+        console.log(`[API POST Prescription] Shopify file created. ID: ${shopifyFileId}, TypeName: ${createdShopifyFile.__typename}, Stored URL/Ref: ${finalStorageUrlOrId}, Direct CDN URL: ${directCdnUrl}`);
+
         let existingPrescriptions: PrescriptionEntry[] = [];
-        try {
-            const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
-            if (existingMetafieldResponse.data?.customer?.metafield?.value) {
-                existingPrescriptions = parsePrescriptionsMetafield(existingMetafieldResponse.data.customer.metafield.value);
-            }
-        } catch (fetchError) {
-            console.warn("[API POST Prescription] Could not fetch existing prescriptions meta, starting fresh. Error:", fetchError);
+        const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
+        if (existingMetafieldResponse.data?.customer?.metafield?.value) {
+            existingPrescriptions = parsePrescriptionsMetafield(existingMetafieldResponse.data.customer.metafield.value);
         }
 
         const newPrescription: PrescriptionEntry = {
             id: uuidv4(),
-            fileName: newFileName, // Store the new, customer-specific filename
+            fileName: newFileName,
             fileType: file.type,
             fileSize: file.size,
             uploadedAt: new Date().toISOString(),
-            storageUrlOrId: finalStorageUrlOrId, // Store the CDN URL or GID
-            label: userLabel || customerName, // Use customer name as default label if no userLabel
+            storageUrlOrId: finalStorageUrlOrId,
+            label: userLabel || customerName,
+            shopifyFileId: shopifyFileId, // Always store the GID
         };
 
         const updatedPrescriptions = [...existingPrescriptions, newPrescription];
@@ -186,8 +170,7 @@ export async function POST(request: Request) {
 
         const metafieldResponse = await setShopifyMetafields(metafieldsInput);
 
-        if (metafieldResponse.data?.metafieldsSet?.metafields) {
-            console.log("[API POST Prescription] Metafield updated successfully for customer:", customerId);
+        if (metafieldResponse.data?.metafieldsSet?.metafields || metafieldResponse.data?.metafieldsSet?.userErrors?.length === 0) {
             return NextResponse.json({
                 success: true,
                 prescription: newPrescription,
@@ -195,13 +178,92 @@ export async function POST(request: Request) {
             });
         } else {
             const userErrors = metafieldResponse.data?.metafieldsSet?.userErrors;
-            const errorMessage = userErrors?.map((e: any) => e.message).join(", ") || "Failed to save prescription metadata.";
-            console.error("[API POST Prescription] Error setting metafield:", errorMessage, userErrors);
+            throw new Error(userErrors?.map((e: any) => e.message).join(", ") || "Failed to save prescription metadata.");
+        }
+
+    } catch (error: any) {
+        console.error("[API POST Prescription] Error uploading prescription (outer catch):", error.message, error.stack);
+        return NextResponse.json({ message: error.message || "Failed to upload prescription." }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.shopifyCustomerId) {
+        return NextResponse.json({ message: "Not authenticated." }, { status: 401 });
+    }
+
+    try {
+        const { prescriptionId } = await request.json();
+        if (!prescriptionId) {
+            return NextResponse.json({ message: "Prescription ID (for metafield entry) is required." }, { status: 400 });
+        }
+
+        const customerId = session.user.shopifyCustomerId;
+
+        const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
+        let existingPrescriptions: PrescriptionEntry[] = [];
+        if (existingMetafieldResponse.data?.customer?.metafield?.value) {
+            existingPrescriptions = parsePrescriptionsMetafield(existingMetafieldResponse.data.customer.metafield.value);
+        }
+
+        const prescriptionToDelete = existingPrescriptions.find(p => p.id === prescriptionId);
+
+        if (!prescriptionToDelete) {
+            return NextResponse.json({ message: "Prescription entry not found in metafield." }, { status: 404 });
+        }
+
+        let shopifyFileToDeleteGid = prescriptionToDelete.shopifyFileId; // Prioritize explicitly stored GID
+
+        if (!shopifyFileToDeleteGid && prescriptionToDelete.storageUrlOrId.startsWith("gid://shopify/File/")) {
+            // Fallback for older entries that might only have GID in storageUrlOrId
+            shopifyFileToDeleteGid = prescriptionToDelete.storageUrlOrId;
+        }
+
+        if (shopifyFileToDeleteGid) {
+            try {
+                console.log(`[API DELETE Prescription] Attempting to delete Shopify file with GID: ${shopifyFileToDeleteGid}`);
+                const deleteFileResponse = await deleteShopifyFile([shopifyFileToDeleteGid]);
+
+                if (deleteFileResponse.data?.fileDelete?.userErrors?.length > 0) {
+                    const errorMessages = deleteFileResponse.data.fileDelete.userErrors.map((e: any) => e.message).join(", ");
+                    console.warn(`[API DELETE Prescription] User errors while deleting Shopify file ${shopifyFileToDeleteGid}: ${errorMessages}`);
+                    // If deletion fails, we might still want to remove from metafield, or handle error differently
+                    // For now, we log and proceed. If Shopify deletion is critical, throw new Error(errorMessages);
+                } else if (deleteFileResponse.data?.fileDelete?.deletedFileIds?.includes(shopifyFileToDeleteGid)) {
+                    console.log(`[API DELETE Prescription] Shopify file ${shopifyFileToDeleteGid} successfully marked for deletion.`);
+                } else {
+                    console.warn(`[API DELETE Prescription] Shopify file ${shopifyFileToDeleteGid} was not in deletedFileIds. Response:`, deleteFileResponse);
+                }
+            } catch (fileDeleteError: any) {
+                console.error(`[API DELETE Prescription] Error calling deleteShopifyFile for ${shopifyFileToDeleteGid}:`, fileDeleteError.message, fileDeleteError.stack);
+            }
+        } else {
+            console.warn(`[API DELETE Prescription] No Shopify File GID found for prescription entry ID ${prescriptionId} (UUID: ${prescriptionToDelete.id}). Cannot delete from Shopify storage.`);
+        }
+
+        const updatedPrescriptions = existingPrescriptions.filter(p => p.id !== prescriptionId);
+
+        const metafieldsInput = [{
+            ownerId: customerId,
+            namespace: PRESCRIPTION_METAFIELD_NAMESPACE,
+            key: PRESCRIPTION_METAFIELD_KEY,
+            type: "json_string",
+            value: JSON.stringify(updatedPrescriptions),
+        }];
+
+        const metafieldResponse = await setShopifyMetafields(metafieldsInput);
+
+        if (metafieldResponse.data?.metafieldsSet?.metafields || (metafieldResponse.data?.metafieldsSet?.userErrors && metafieldResponse.data.metafieldsSet.userErrors.length === 0)) {
+            return NextResponse.json({ success: true, message: "Prescription deleted successfully.", remainingPrescriptions: updatedPrescriptions });
+        } else {
+            const userErrors = metafieldResponse.data?.metafieldsSet?.userErrors;
+            const errorMessage = userErrors?.map((e: any) => e.message).join(", ") || "Failed to update prescription metadata after deletion.";
             throw new Error(errorMessage);
         }
 
     } catch (error: any) {
-        console.error("[API POST Prescription] Error uploading prescription (outer catch):", error);
-        return NextResponse.json({ message: error.message || "Failed to upload prescription." }, { status: 500 });
+        console.error("[API DELETE Prescription] Error deleting prescription (outer catch):", error.message, error.stack);
+        return NextResponse.json({ message: error.message || "Failed to delete prescription." }, { status: 500 });
     }
 }
