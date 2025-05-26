@@ -3,34 +3,47 @@ import LinkButton from "@/components/LinkButton";
 
 export const FAQ = () => {
   return (
-    <section className="bg-[#F8F2F2] mt-16">
-      <div className="container mx-auto px-4 py-16">
-        <div className="flex flex-col md:flex-row md:items-start gap-10">
-          {/* Left Column */}
-          <div className="w-full md:w-[40%] flex flex-col gap-5">
-            <h2 className="font-black text-2xl md:text-3xl lg:text-5xl tracking-tighter">
+    // Adjusted top margin and vertical padding for the section
+    <section className="bg-[#F8F2F2] mt-12 sm:mt-16 md:mt-16 py-10 sm:py-12 md:py-16">
+      <div className="container mx-auto px-4">
+        {/* Layout stacks on small, row on medium and up */}
+        <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-10">
+          {/* Left Column: Text content */}
+          <div className="w-full md:w-[40%] flex flex-col gap-4 sm:gap-5 text-center md:text-left">
+            {/* Responsive heading text sizes */}
+            <h2 className="font-black text-2xl sm:text-3xl md:text-3xl lg:text-5xl tracking-tighter">
               Frequently Asked Questions
             </h2>
-            <p className="text-sm md:text-base lg:text-lg font-medium">
+            {/* Responsive paragraph text sizes */}
+            <p className="text-sm sm:text-base lg:text-lg font-medium">
               Have any questions or doubts about choosing the right pair of
               glasses or contact lenses? Search for an appropriate answer!
             </p>
-            <LinkButton
-              title="All FAQs"
-              sectionId="faq-btn"
-              textStyles="md:text-sm lg:text-lg"
-              containerStyles="hidden md:block bg-black text-white px-4 py-2 lg:px-8 lg:py-2 w-fit rounded-lg font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-110 transition-all duration-300"
-            />
+            <div className="flex justify-center md:justify-start mt-2 sm:mt-0">
+              <LinkButton
+                title="All FAQs"
+                sectionId="faq-btn"
+                // Responsive text and padding for the button
+                textStyles="text-sm sm:text-base md:text-sm lg:text-lg"
+                containerStyles="bg-black text-white px-5 py-2.5 sm:px-6 md:px-4 lg:px-8 rounded-lg font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-300 w-auto"
+              />
+            </div>
           </div>
 
-          {/* Right Column */}
-          <div className="w-full md:w-[60%] space-y-6">
+          {/* Right Column: FAQ Items */}
+          <div className="w-full md:w-[60%] space-y-4 sm:space-y-5 md:space-y-6 mt-6 md:mt-0">
+            {/* FAQItem itself is already designed to be responsive with its internal title and content handling.
+                We ensure the container for these items has appropriate spacing.
+                The bgWhite prop and internal padding of FAQItem will handle individual item styling.
+            */}
             <FAQItem
               title="Do you offer free shipping?"
               openFlag={false}
               bgWhite={true}
             >
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {" "}
+                {/* Responsive text */}
                 You bet we do! Standard shipping is 100% on us—because who
                 doesn&apos;t love free delivery? If you&apos;re in a hurry to
                 get your new look, we also offer expedited shipping at checkout
@@ -43,7 +56,9 @@ export const FAQ = () => {
               openFlag={false}
               bgWhite={true}
             >
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {" "}
+                {/* Responsive text */}
                 Yes, we do! We work with most major vision insurance providers
                 across the U.S. You can either use your benefits directly at
                 checkout (if eligible) or submit your receipt for reimbursement.
@@ -56,7 +71,9 @@ export const FAQ = () => {
               openFlag={false}
               bgWhite={true}
             >
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {" "}
+                {/* Responsive text */}
                 Absolutely. A valid prescription isn’t just a legal
                 requirement—it ensures you get the right lenses for your eyes.
                 If you don’t have one handy, we can help guide you through how
@@ -69,7 +86,9 @@ export const FAQ = () => {
               openFlag={false}
               bgWhite={true}
             >
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {" "}
+                {/* Responsive text */}
                 Yep, and we love flexible spending! You can use your FSA or HSA
                 card at checkout to buy contacts, prescription glasses, or any
                 eligible eye care products. Don’t let those pre-tax dollars go
@@ -82,15 +101,15 @@ export const FAQ = () => {
               openFlag={false}
               bgWhite={true}
             >
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
+                {" "}
+                {/* Responsive text */}
                 Oh yes, and they add up fast! Every time you shop with us, you
                 rack up loyalty points—because rewarding you for looking good
                 just makes sense. The more you buy, the more perks you unlock.
                 Discounts, freebies, and more? Yes, please!
               </p>
             </FAQItem>
-
-            {/* Add more FAQItem components here as needed */}
           </div>
         </div>
       </div>

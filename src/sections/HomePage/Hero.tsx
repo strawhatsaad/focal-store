@@ -23,30 +23,30 @@ export const Hero = () => {
     <section
       id="hero"
       ref={heroRef}
-      className="lg:pt-5 md:pb-10 lg:pb-7 bg-[#F7F4EE] overflow-x-clip lg:-mt-28"
+      className="pt-8 pb-12 bg-[#F7F4EE] overflow-x-clip md:pt-5 md:pb-10 lg:pb-7 lg:-mt-28"
     >
       <div className="container">
-        <div className="md:flex items-center">
-          <div className="sm:pt-14 md:w-[320px] lg:w-[520px] lg:mt-32">
-            <h1 className="text-5xl md:text-[38px] lg:text-6xl font-bold tracking-tight md:tracking-tighter mt-6">
+        <div className="flex flex-col md:flex-row items-center">
+          <div className="text-center md:text-left w-full md:w-[320px] lg:w-[520px] lg:mt-32 order-2 md:order-1">
+            <h1 className="text-4xl sm:text-5xl md:text-[38px] lg:text-6xl font-bold tracking-tight mt-6">
               See Clearly, Change the World
             </h1>
-            <div className="lg:mt-6 flex flex-col gap-2">
-              <p className="md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-6">
+            <div className="mt-4 lg:mt-6 flex flex-col gap-2">
+              <p className="text-lg sm:text-xl md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-4 sm:mt-6">
                 Same price. Same brands. One Big Difference: We give sight to
                 someone who&apos;s lost it.
               </p>
-              <p className="md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-6">
+              <p className="text-lg sm:text-xl md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-4 sm:mt-6">
                 Every time you buy contact lenses or glasses, we donate a
                 cataract lens to someone in need.
               </p>
             </div>
-            <div className="flex flex-col gap-5 mt-8">
-              <div className="flex gap-3 items-center md:-mx-2">
+            <div className="flex flex-col items-center md:items-start gap-5 mt-6 sm:mt-8">
+              <div className="flex flex-col sm:flex-row gap-3 items-center md:-mx-2">
                 <Link href={"/pages/contact-lenses"}>
                   <LinkButton
                     title="Contact Lenses"
-                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-4 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
+                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2.5 px-5 sm:py-2 sm:px-4 text-sm sm:text-base hover:font-bold hover:scale-105 transition-all duration-[350ms]"
                     textStyles="text-white font-medium"
                     sectionId="cta"
                   />
@@ -54,27 +54,29 @@ export const Hero = () => {
                 <Link href={"/pages/eyewear"}>
                   <LinkButton
                     title="Eyewear"
-                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2 px-7 hover:font-bold hover:scale-110 transition-all duration-[350ms]"
+                    containerStyles="btn btn-primary bg-black text-white rounded-full py-2.5 px-6 sm:py-2 sm:px-7 text-sm sm:text-base hover:font-bold hover:scale-105 transition-all duration-[350ms]"
                     textStyles="text-white font-medium"
                     sectionId="cta"
                   />
                 </Link>
               </div>
               <div>
-                <button className="btn btn-text gap-1 flex items-center p-0 hover:font-bold hover:scale-105 transition-all duration-[350ms]">
+                <button className="btn btn-text gap-1 flex items-center p-0 hover:font-bold hover:scale-105 transition-all duration-[350ms] text-sm sm:text-base">
                   <span className="font-semibold">
                     Let&apos;s Fix The World&apos;s Vision Problem
                   </span>
-                  <ArrowIcon className="h-5 w-5" />
+                  <ArrowIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
             </div>
           </div>
-          <div className="sm:pb-8 mt-10 md:mt-0 md:h-[648px] md:flex-1 relative">
+          {/* Image section - adjustments for aspect ratio */}
+          <div className="w-full mt-8 md:mt-0 md:flex-1 relative order-1 md:order-2 flex justify-center items-center md:h-[648px]">
             <motion.img
               src={heroImage.src}
               alt="Hero Image"
-              className="md:absolute md:w-auto md:max-w-none md:-left-24 md:top-44 lg:-left-28 lg:top-0 md:h-[350px] lg:h-[460px] lg:mt-40"
+              // Use max-h and max-w to control size while object-contain preserves aspect ratio
+              className="max-h-[280px] w-auto sm:max-h-[320px] md:absolute md:w-auto md:max-w-none md:-left-24 md:top-44 lg:-left-28 lg:top-0 md:max-h-[350px] lg:max-h-[460px] lg:mt-40 object-contain"
               animate={{
                 translateY: [-10, 10],
               }}
@@ -84,6 +86,7 @@ export const Hero = () => {
                 duration: 3,
                 ease: "easeInOut",
               }}
+              style={{ translateY: translateY }}
             />
           </div>
         </div>

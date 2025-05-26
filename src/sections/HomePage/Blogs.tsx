@@ -5,10 +5,15 @@ import blogImage4 from "@/assets/How to Measure Your PD.png";
 import blogImage5 from "@/assets/How To Read a Prescription.png";
 import blogImage6 from "@/assets/How We're Fixing The Blindness Problem.png";
 import blogImage7 from "@/assets/How to use vision insurance.png";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image"; // Ensure StaticImageData is imported if you use it for type
 import Link from "next/link";
 
-const blogData = [
+interface BlogItem {
+  image: StaticImageData; // Or string if you pass URLs
+  title: string;
+}
+
+const blogData: BlogItem[] = [
   {
     image: blogImage1,
     title: "What it Takes to Create Quality Eyewear",
@@ -25,40 +30,6 @@ const blogData = [
     image: blogImage4,
     title: "How to Measure Your PD",
   },
-  {
-    image: blogImage5,
-    title: "How To Read a Prescription",
-  },
-  {
-    image: blogImage6,
-    title: "How We're Fixing The Blindness Problem",
-  },
-  {
-    image: blogImage7,
-    title: "How to use vision insurance",
-  },
-];
-
-const blogDataSplit1 = [
-  {
-    image: blogImage1,
-    title: "What it Takes to Create Quality Eyewear",
-  },
-  {
-    image: blogImage2,
-    title: "How to Buy Contacts Online",
-  },
-  {
-    image: blogImage3,
-    title: "How to Buy Glasses Online",
-  },
-  {
-    image: blogImage4,
-    title: "How to Measure Your PD",
-  },
-];
-
-const blogDataSplit2 = [
   {
     image: blogImage5,
     title: "How To Read a Prescription",
@@ -75,80 +46,46 @@ const blogDataSplit2 = [
 
 export const Blogs = () => {
   return (
-    <section className="mt-24">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col items-center md:gap-8 lg:gap-12">
-          <div className="flex flex-col items-center gap-1 md:gap-1 lg:gap-4 max-w-2xl">
-            <h2 className="text-3xl md:text-4xl lg:text-7xl font-black tracking-tighter text-center bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
+    // Adjusted top margin for different screen sizes
+    <section className="mt-16 sm:mt-20 md:mt-24">
+      <div className="container mx-auto px-4">
+        {" "}
+        {/* Changed max-w-7xl to container for consistency */}
+        <div className="flex flex-col items-center gap-4 sm:gap-6 md:gap-8 lg:gap-12">
+          <div className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 max-w-2xl text-center">
+            {/* Adjusted text sizes */}
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-7xl font-black tracking-tighter bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
               We know a thing or two about eyes
             </h2>
-            <p className="text-sm md:text-lg lg:text-xl font-medium text-center">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl font-medium">
               Eye-opening reads you&apos;ll actually want to see.
             </p>
           </div>
-          <div className="hidden md:flex md:flex-row justify-center md:gap-3 lg:gap-12">
+
+          {/* Responsive grid for blog items */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-5 md:gap-6 lg:gap-8 w-full mt-6 sm:mt-8">
             {blogData.map(({ image, title }, index) => (
               <Link
                 key={index}
-                href={"/"}
-                className="md:text-xs lg:text-lg font-semibold tracking-tighter text-center group"
+                href={"/"} // Update with actual blog link if available
+                className="group flex flex-col items-center text-center"
               >
-                <div className="flex flex-col items-center md:gap-1.5 lg:gap-2.5">
+                <div className="w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-square lg:aspect-[3/4] overflow-hidden rounded-lg mb-2 sm:mb-3 group-hover:-translate-y-1 transition-transform duration-300">
                   <Image
                     src={image}
-                    alt="Blog Image"
-                    className="group-hover:-translate-y-3 transition-all duration-300"
+                    alt={title}
+                    layout="responsive" // Use responsive layout for better scaling
+                    width={image.width} // Provide original width
+                    height={image.height} // Provide original height
+                    className="object-cover w-full h-full" // Ensure image covers its container
                   />
-                  <p className="group-hover:scale-105 group-hover:underline transition-all duration-300">
-                    {title}
-                  </p>
                 </div>
+                {/* Adjusted text sizes and line clamping for titles */}
+                <p className="text-[10px] xs:text-xs sm:text-sm font-semibold tracking-tight group-hover:underline line-clamp-2 sm:line-clamp-3">
+                  {title}
+                </p>
               </Link>
             ))}
-          </div>
-
-          {/* Mobile View */}
-          <div className="flex flex-col md:hidden gap-5 p-10">
-            <div className="grid grid-cols-4 gap-3">
-              {blogDataSplit1.map(({ image, title }, index) => (
-                <Link
-                  key={index}
-                  href={"/"}
-                  className="text-xs font-semibold tracking-tighter text-center group"
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <Image
-                      src={image}
-                      alt="Blog Image"
-                      className="group-hover:-translate-y-3 transition-all duration-300"
-                    />
-                    <p className="group-hover:scale-105 group-hover:underline transition-all duration-300">
-                      {title}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-6">
-              {blogDataSplit2.map(({ image, title }, index) => (
-                <Link
-                  key={index}
-                  href={"/"}
-                  className="text-xs font-semibold tracking-tighter text-center group"
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <Image
-                      src={image}
-                      alt="Blog Image"
-                      className="group-hover:-translate-y-3 transition-all duration-300"
-                    />
-                    <p className="group-hover:scale-105 group-hover:underline transition-all duration-300">
-                      {title}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
           </div>
         </div>
       </div>

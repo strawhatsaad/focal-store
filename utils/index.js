@@ -8,7 +8,6 @@
  * @returns {Promise<any>} The Shopify API response.
  */
 export async function storeFront(query, variables = {}, customerAccessToken = null) {
-  // ... (existing storeFront function code - no changes here)
   const headers = {
     "Content-Type": "application/json",
     "X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_STOREFRONT_ACCESS_TOKEN,
@@ -80,7 +79,6 @@ export async function storeFront(query, variables = {}, customerAccessToken = nu
  * @returns {Promise<any>} The Shopify Admin API response.
  */
 export async function shopifyAdminRequest(query, variables = {}) {
-  // ... (existing shopifyAdminRequest function code - ensure it's present and correct)
   const shopName = process.env.SHOPIFY_SHOP_NAME;
   const adminApiAccessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
   const adminApiVersion = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-07'; 
@@ -91,7 +89,6 @@ export async function shopifyAdminRequest(query, variables = {}) {
   }
 
   const adminApiURL = `https://${shopName}.myshopify.com/admin/api/${adminApiVersion}/graphql.json`;
-  console.log(`[shopifyAdminRequest] Using Admin API URL: ${adminApiURL}`);
 
   const headers = {
     "Content-Type": "application/json",
@@ -130,18 +127,19 @@ export async function shopifyAdminRequest(query, variables = {}) {
     }
 
     const result = await response.json();
+    // Check for top-level GraphQL errors first
     if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
       const errorMessages = result.errors.map((e) => e.message || "Unknown Shopify Admin GraphQL error").join("; ");
       console.error("[shopifyAdminRequest] Shopify Admin GraphQL Errors:", JSON.stringify(result.errors, null, 2));
+      // Throw these as they usually indicate a more fundamental issue with the query or API
       throw new Error(`Shopify Admin GraphQL error: ${errorMessages}`);
     }
     
+    // UserErrors are handled by the caller, but log them if present
     const mutationName = Object.keys(result.data || {})[0];
     if (mutationName && result.data?.[mutationName]?.userErrors?.length > 0) {
         const userErrors = result.data[mutationName].userErrors;
-        const errorMessages = userErrors.map((e) => e.message || "Unknown Shopify Admin user error").join("; ");
-        console.error(`[shopifyAdminRequest] Shopify Admin User Errors in ${mutationName}:`, JSON.stringify(userErrors, null, 2));
-        throw new Error(`Shopify Admin user error: ${errorMessages}`);
+        console.warn(`[shopifyAdminRequest] Shopify Admin User Errors in ${mutationName}:`, JSON.stringify(userErrors, null, 2));
     }
     return result;
   } catch (error) {
@@ -149,27 +147,60 @@ export async function shopifyAdminRequest(query, variables = {}) {
     if (error.message.toLowerCase().includes("failed to fetch")) {
         throw new Error(`Network error: Failed to fetch from ${adminApiURL}. Original error: ${error.message}`);
     }
-    throw error;
+    throw error; // Re-throw other errors
   }
 }
 
-// --- Customer Management (Storefront & Admin as needed) ---
-// ... (all existing customer mutations: CREATE_SHOPIFY_CUSTOMER_MUTATION, CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, GET_CUSTOMER_INFO_QUERY, CUSTOMER_UPDATE_MUTATION)
-
-// --- Draft Order (Admin API) ---
-export const DRAFT_ORDER_CREATE_MUTATION = `
-  mutation draftOrderCreate($input: DraftOrderInput!) {
-    draftOrderCreate(input: $input) {
-      draftOrder {
+// --- Customer Metafields (Admin API) ---
+export const METAFIELDS_SET_MUTATION = `
+  mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+    metafieldsSet(metafields: $metafields) {
+      metafields {
         id
-        invoiceUrl
-        name
-        status
-        totalPriceSet {
-          presentmentMoney {
-            amount
-            currencyCode
+        namespace
+        key
+        value
+        type
+        owner {
+          ... on Customer {
+            id
           }
+        }
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`;
+
+export const GET_CUSTOMER_METAFIELD_QUERY = `
+  query getCustomerWithMetafield($customerId: ID!, $metafieldNamespace: String!, $metafieldKey: String!) {
+    customer(id: $customerId) {
+      id
+      metafield(namespace: $metafieldNamespace, key: $metafieldKey) {
+        id
+        namespace
+        key
+        value
+        type
+      }
+    }
+  }
+`;
+
+// --- Shopify File Upload (Admin API) ---
+export const STAGED_UPLOADS_CREATE_MUTATION = `
+  mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+    stagedUploadsCreate(input: $input) {
+      stagedTargets {
+        url
+        resourceUrl # This will be used in fileCreate
+        parameters {
+          name
+          value
         }
       }
       userErrors {
@@ -180,29 +211,60 @@ export const DRAFT_ORDER_CREATE_MUTATION = `
   }
 `;
 
-// ... (all existing Order, Address, Cart Storefront API mutations and fragments)
-
-// --- Helper Functions ---
-// ... (all existing helper functions for Storefront API calls)
-
-/**
- * Creates a new Shopify draft order using the Admin API.
- * @param {object} draftOrderInput - The DraftOrderInput object.
- * @returns {Promise<any>} The Shopify Admin API response.
- */
-export async function createShopifyDraftOrder(draftOrderInput) {
-  if (!draftOrderInput) {
-    console.error("[createShopifyDraftOrder] draftOrderInput is required.");
-    throw new Error("Draft order input is required.");
+export const FILE_CREATE_MUTATION = `
+  mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id 
+        alt 
+        createdAt
+        fileStatus
+        ... on GenericFile {
+          url 
+          originalFileSize 
+        }
+        ... on MediaImage {
+          alt 
+          image {
+             originalSrc 
+             # You might also want to query 'url' here if available for MediaImage context
+             # url(transform: {maxWidth: 2048, maxHeight: 2048}) # Example if you need a transformed URL
+          }
+        }
+        ... on Video {
+          originalSource {
+            url
+            fileSize
+            mimeType
+          }
+          # other video fields
+        }
+        # ... other file types like ExternalVideo, Model3d
+      }
+      userErrors {
+        field
+        message
+      }
+    }
   }
-  return shopifyAdminRequest(DRAFT_ORDER_CREATE_MUTATION, { input: draftOrderInput });
-}
+`;
 
-// --- Make sure to keep other existing mutations and helpers:
-// CREATE_SHOPIFY_CUSTOMER_MUTATION, CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, GET_CUSTOMER_INFO_QUERY, CUSTOMER_UPDATE_MUTATION (if used for password)
-// GET_CUSTOMER_ORDERS_QUERY, GET_CUSTOMER_ADDRESSES_QUERY, and all address mutations
-// All CART_FRAGMENT and cart mutations (CART_CREATE_MUTATION, etc.)
-// All helper functions like createShopifyCustomer, createShopifyCart, etc.
+export const FILE_DELETE_MUTATION = `
+  mutation fileDelete($fileIds: [ID!]!) {
+    fileDelete(fileIds: $fileIds) {
+      deletedFileIds
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`;
+
+
+// ... (Keep all existing Storefront API mutations and helpers: CREATE_SHOPIFY_CUSTOMER_MUTATION, etc.)
+// --- Customer Management (Storefront API) ---
 export const CREATE_SHOPIFY_CUSTOMER_MUTATION = `
   mutation customerCreate($input: CustomerCreateInput!) {
     customerCreate(input: $input) {
@@ -224,7 +286,7 @@ export const GET_CUSTOMER_INFO_QUERY = `
     customer(customerAccessToken: $customerAccessToken) { id email firstName lastName }
   }
 `;
-// Assuming CUSTOMER_UPDATE_MUTATION is still needed for direct password set on Focal account page
+// --- Customer Update (Admin API - for password) ---
 export const CUSTOMER_UPDATE_MUTATION = `
 mutation customerUpdate($input: CustomerInput!) {
   customerUpdate(input: $input) {
@@ -233,7 +295,16 @@ mutation customerUpdate($input: CustomerInput!) {
   }
 }
 `;
-
+// --- Draft Order (Admin API) ---
+export const DRAFT_ORDER_CREATE_MUTATION = `
+  mutation draftOrderCreate($input: DraftOrderInput!) {
+    draftOrderCreate(input: $input) {
+      draftOrder { id invoiceUrl name status totalPriceSet { presentmentMoney { amount currencyCode } } }
+      userErrors { field message }
+    }
+  }
+`;
+// --- Order History (Storefront API) ---
 export const GET_CUSTOMER_ORDERS_QUERY = `
   query getCustomerOrders($customerAccessToken: String!, $first: Int!, $cursor: String) {
     customer(customerAccessToken: $customerAccessToken) {
@@ -244,6 +315,7 @@ export const GET_CUSTOMER_ORDERS_QUERY = `
     }
   }
 `;
+// --- Manage Addresses (Storefront API) ---
 export const GET_CUSTOMER_ADDRESSES_QUERY = `
   query getCustomerAddresses($customerAccessToken: String!) {
     customer(customerAccessToken: $customerAccessToken) {
@@ -272,41 +344,15 @@ export const CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION = `
     customerDefaultAddressUpdate(customerAccessToken: $customerAccessToken, addressId: $addressId) { customer { id defaultAddress { id } } customerUserErrors { code field message } }
   }
 `;
-
+// --- Cart Mutations and Queries (Storefront API) ---
 export const CART_FRAGMENT = `
   fragment CartFragment on Cart {
     id
     checkoutUrl
-    cost {
-      subtotalAmount { amount currencyCode }
-      totalAmount { amount currencyCode }
-      totalTaxAmount { amount currencyCode }
-    }
-    lines(first: 100) {
-      edges {
-        node {
-          id
-          quantity
-          merchandise {
-            ... on ProductVariant {
-              id
-              title
-              priceV2 { amount currencyCode }
-              image { url(transform: {maxWidth: 100, maxHeight: 100}) altText }
-              product { title handle }
-            }
-          }
-          attributes { key value }
-        }
-      }
-    }
+    cost { subtotalAmount { amount currencyCode } totalAmount { amount currencyCode } totalTaxAmount { amount currencyCode } }
+    lines(first: 100) { edges { node { id quantity merchandise { ... on ProductVariant { id title priceV2 { amount currencyCode } image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } product { title handle } } } attributes { key value } } } }
     totalQuantity
-    buyerIdentity { 
-      email
-      phone
-      customer { id }
-      countryCode
-    }
+    buyerIdentity { email phone customer { id } countryCode }
   }
 `;
 export const CART_CREATE_MUTATION = `mutation cartCreate($input: CartInput) { cartCreate(input: $input) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
@@ -324,6 +370,7 @@ export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
   ${CART_FRAGMENT}
 `;
 
+// --- Helper Functions ---
 export async function createShopifyCustomer(input) { return storeFront(CREATE_SHOPIFY_CUSTOMER_MUTATION, { input }); }
 export async function createShopifyCustomerAccessToken(input) { return storeFront(CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, { input }); }
 export async function getCustomerOrders(customerAccessToken, first, cursor = null) { return storeFront(GET_CUSTOMER_ORDERS_QUERY, { customerAccessToken, first, cursor }, customerAccessToken); }
@@ -345,4 +392,52 @@ export async function associateCartWithCustomer(cartId, customerAccessToken, cus
   }
   const buyerIdentity = { customerAccessToken: customerAccessToken, ...(customerEmail && { email: customerEmail }) };
   return storeFront(CART_BUYER_IDENTITY_UPDATE_MUTATION, { cartId, buyerIdentity });
+}
+
+export async function createShopifyDraftOrder(draftOrderInput) {
+  if (!draftOrderInput) {
+    console.error("[createShopifyDraftOrder] draftOrderInput is required.");
+    throw new Error("Draft order input is required.");
+  }
+  return shopifyAdminRequest(DRAFT_ORDER_CREATE_MUTATION, { input: draftOrderInput });
+}
+
+export async function setShopifyMetafields(metafieldsInput) {
+  if (!metafieldsInput || !Array.isArray(metafieldsInput) || metafieldsInput.length === 0) {
+    console.error("[setShopifyMetafields] metafieldsInput array is required.");
+    throw new Error("Metafields input is required.");
+  }
+  return shopifyAdminRequest(METAFIELDS_SET_MUTATION, { metafields: metafieldsInput });
+}
+
+export async function getShopifyCustomerMetafield(customerId, namespace, key) {
+    if (!customerId || !namespace || !key) {
+        throw new Error("Customer ID, namespace, and key are required to fetch a metafield.");
+    }
+    return shopifyAdminRequest(GET_CUSTOMER_METAFIELD_QUERY, { customerId, metafieldNamespace: namespace, metafieldKey: key });
+}
+
+// Helper function to create staged uploads
+export async function createStagedUploads(input) {
+  if (!input || !Array.isArray(input) || input.length === 0) {
+    throw new Error("Input for createStagedUploads is required and must be an array.");
+  }
+  return shopifyAdminRequest(STAGED_UPLOADS_CREATE_MUTATION, { input });
+}
+
+// Helper function to create files from staged uploads
+export async function createShopifyFiles(filesInput) {
+  if (!filesInput || !Array.isArray(filesInput) || filesInput.length === 0) {
+    throw new Error("Input for createShopifyFiles is required and must be an array.");
+  }
+  return shopifyAdminRequest(FILE_CREATE_MUTATION, { files: filesInput });
+}
+
+// Helper function to delete files from Shopify
+export async function deleteShopifyFile(fileIds) {
+    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+        console.warn("[deleteShopifyFile] fileIds array is required.");
+        throw new Error("File IDs are required for deletion.");
+    }
+    return shopifyAdminRequest(FILE_DELETE_MUTATION, { fileIds });
 }

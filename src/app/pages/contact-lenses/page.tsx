@@ -15,8 +15,8 @@ const ContactLensesPage = async () => {
   const products = data.map(({ node }: any) => ({
     id: node.id,
     name: node.title,
-    href: `/products/${node.handle}`,
-    price: `$${node.priceRange.minVariantPrice.amount}`,
+    href: `/products/${node.handle}`, // Assuming general product slug structure
+    price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(2)}`, // Format price
     imageSrc: node.featuredImage.url,
     imageAlt: node.featuredImage.altText,
   }));

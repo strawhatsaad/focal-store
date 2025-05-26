@@ -19,7 +19,7 @@ export default async function Home() {
     id: node.handle,
     name: node.title,
     href: `/products/${node.handle}`,
-    price: `$${node.priceRange.minVariantPrice.amount}`,
+    price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(2)}`, // Format price
     imageSrc: node.images.edges[0]?.node.transformedSrc || "",
     imageAlt: node.images.edges[0]?.node.altText || "",
   }));
@@ -53,9 +53,11 @@ const productQuery = gql`
           priceRange {
             minVariantPrice {
               amount
+              currencyCode # Added currencyCode for completeness
             }
             maxVariantPrice {
               amount
+              currencyCode # Added currencyCode for completeness
             }
           }
           images(first: 1) {
