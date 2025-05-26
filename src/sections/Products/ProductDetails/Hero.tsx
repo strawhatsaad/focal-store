@@ -1,40 +1,88 @@
+// File: src/sections/Products/ProductDetails/Hero.tsx
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
 import EyeglassesModal from "../EyeglassesModal";
+import { useCart } from "@/context/CartContext";
+import {
+  ShoppingCart,
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
+import Image from "next/image";
 
 const Hero = ({ product }: any) => {
-  const [selectedVariant, setSelectedVariant] = useState<any>(
-    product.variants[0]
-  );
-  const [selectedImage, setSelectedImage] = useState(
-    product.variants[0]?.images?.[0]?.src || product.images?.[0]?.src
-  );
+  // useEffect(() => {
+  //   console.log("[Hero Init/Product Prop Change] Product data:", JSON.stringify(product, null, 2));
+  //   if (product?.variants && product.variants.length > 0) {
+  //     product.variants.forEach((v: any, index: number) => {
+  //       console.log(`[Hero Init/Product Prop Change] Variant ${index}: Name='${v.name}', Image Object:`, JSON.stringify(v.image, null, 2), "Direct imageSrc:", v.imageSrc);
+  //     });
+  //   }
+  // }, [product]);
 
-  const [hasUserSelectedImage, setHasUserSelectedImage] = useState(false);
+  const {
+    addLineItem,
+    loading: cartLoading,
+    error: cartContextError,
+    clearCartError,
+  } = useCart();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
+  const [addToCartError, setAddToCartError] = useState<string | null>(null);
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string>("");
+  const [hasUserManuallySelectedImage, setHasUserManuallySelectedImage] =
+    useState(false);
 
-  const handleThumbnailClick = (src: string) => {
-    setSelectedImage(src);
-    setHasUserSelectedImage(true);
-  };
-
+  const [isEyeglassesModalOpen, setIsEyeglassesModalOpen] = useState(false);
   const thumbContainerRef = useRef<HTMLDivElement>(null);
 
+  // Effect to set initial variant and image ONLY when the product prop itself changes
   useEffect(() => {
-    if (!hasUserSelectedImage) {
-      if (selectedVariant?.images?.[0]?.src) {
-        setSelectedImage(selectedVariant.images[0].src);
-      } else if (selectedVariant?.imageSrc) {
-        setSelectedImage(selectedVariant.imageSrc);
-      } else {
-        setSelectedImage(product.images?.[0]?.src);
-      }
+    // console.log("[Hero Effect - Product Change] Product prop updated. Current product name:", product?.name);
+    if (product?.variants?.length > 0) {
+      const initialVariant = product.variants[0];
+      // console.log("[Hero Effect - Product Change] Setting initial selectedVariant:", JSON.stringify(initialVariant, null, 2));
+      setSelectedVariant(initialVariant);
+
+      const initialImageSrc =
+        initialVariant?.image?.src ||
+        initialVariant?.imageSrc ||
+        product.images?.[0]?.src ||
+        "";
+      // console.log("[Hero Effect - Product Change] Setting initial selectedImage:", initialImageSrc);
+      setSelectedImage(initialImageSrc);
+      setHasUserManuallySelectedImage(false);
+    } else {
+      setSelectedVariant(null);
+      setSelectedImage(product?.images?.[0]?.src || "");
+      setHasUserManuallySelectedImage(false);
     }
-  }, [selectedVariant, hasUserSelectedImage]);
+  }, [product]);
+
+  const handleThumbnailClick = (src: string) => {
+    // console.log("[Hero Click] Thumbnail clicked, setting image to:", src);
+    setSelectedImage(src);
+    setHasUserManuallySelectedImage(true);
+  };
+
+  const handleFrameVariantClick = (variant: any) => {
+    // console.log("[Hero Click] Frame variant clicked. Variant data:", JSON.stringify(variant, null, 2));
+    setSelectedVariant(variant);
+    const newImageSrc =
+      variant?.image?.src ||
+      variant?.imageSrc ||
+      product?.images?.[0]?.src ||
+      "";
+    // console.log(`[Hero Click] Setting selectedImage from frame variant click to: ${newImageSrc}`);
+    setSelectedImage(newImageSrc);
+    setHasUserManuallySelectedImage(false);
+  };
 
   const scrollThumbnails = (direction: "left" | "right") => {
     if (!thumbContainerRef.current) return;
@@ -45,23 +93,115 @@ const Hero = ({ product }: any) => {
     });
   };
 
-  const handleVariantClick = (variant: any) => {
-    setSelectedVariant(variant);
-    setHasUserSelectedImage(false); // reset when variant changes
-  };
-
   const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
   const [leftEyeEnabled, setLeftEyeEnabled] = useState(true);
   const [rightEyeQty, setRightEyeQty] = useState(1);
   const [leftEyeQty, setLeftEyeQty] = useState(1);
 
   const getDisplayedImage = () => {
+    // selectedImage is now the single source of truth for the main display,
+    // managed by handleFrameVariantClick and handleThumbnailClick.
     return (
       selectedImage ||
-      selectedVariant?.imageSrc ||
-      selectedVariant?.images?.[0]?.src
+      product?.images?.[0]?.src ||
+      "https://placehold.co/400x400/F7F4EE/333333?text=No+Image"
     );
   };
+
+  const handlePrimaryAction = async () => {
+    setAddToCartSuccess(false);
+    setAddToCartError(null);
+    if (cartContextError) clearCartError();
+
+    const isEyewearProduct =
+      product.collection === "Eyewear" ||
+      product.productType === "EYEGLASSES" ||
+      product.product_type?.toLowerCase() === "eyeglasses";
+
+    if (isEyewearProduct) {
+      if (!selectedVariant) {
+        setAddToCartError("Please select a frame style.");
+        setTimeout(() => setAddToCartError(null), 3000);
+        return;
+      }
+      setIsEyeglassesModalOpen(true);
+      return;
+    }
+
+    if (!selectedVariant?.id) {
+      setAddToCartError("Please select a product variant.");
+      setTimeout(() => setAddToCartError(null), 3000);
+      return;
+    }
+
+    if (
+      (!rightEyeEnabled || rightEyeQty <= 0) &&
+      (!leftEyeEnabled || leftEyeQty <= 0)
+    ) {
+      setAddToCartError("Please select a quantity for at least one eye.");
+      setTimeout(() => setAddToCartError(null), 3000);
+      return;
+    }
+
+    setIsAddingToCart(true);
+    let itemsAddedCount = 0;
+    let operationSucceeded = true;
+
+    try {
+      if (rightEyeEnabled && rightEyeQty > 0) {
+        const added = await addLineItem(selectedVariant.id, rightEyeQty, [
+          { key: "Eye", value: "Right (OD)" },
+        ]);
+        if (added) itemsAddedCount++;
+        else operationSucceeded = false;
+      }
+
+      if (operationSucceeded && leftEyeEnabled && leftEyeQty > 0) {
+        const added = await addLineItem(selectedVariant.id, leftEyeQty, [
+          { key: "Eye", value: "Left (OS)" },
+        ]);
+        if (added) itemsAddedCount++;
+        else operationSucceeded = false;
+      }
+    } catch (err: any) {
+      operationSucceeded = false;
+      setAddToCartError(err.message || "An unexpected error occurred.");
+      console.error("Add to cart error caught in component:", err);
+    }
+
+    setIsAddingToCart(false);
+    if (operationSucceeded && itemsAddedCount > 0) {
+      setAddToCartSuccess(true);
+      setTimeout(() => setAddToCartSuccess(false), 3000);
+    } else if (!operationSucceeded) {
+      setAddToCartError(
+        cartContextError || "Failed to add items to cart. Please try again."
+      );
+      setTimeout(() => setAddToCartError(null), 4000);
+    }
+  };
+
+  const isScrollLeftDisabled =
+    !thumbContainerRef.current || thumbContainerRef.current.scrollLeft === 0;
+  const isScrollRightDisabled =
+    !thumbContainerRef.current ||
+    thumbContainerRef.current.scrollLeft +
+      thumbContainerRef.current.offsetWidth >=
+      thumbContainerRef.current.scrollWidth - 5;
+
+  const isEyewearType =
+    product.collection === "Eyewear" ||
+    product.productType === "EYEGLASSES" ||
+    product.product_type?.toLowerCase() === "eyeglasses";
+  const showFrameVariants = isEyewearType && product.variants?.length > 1;
+  const showContactLensVariantSection =
+    !isEyewearType && product.variants?.length > 0;
+
+  const displayedVariantName =
+    selectedVariant?.name || selectedVariant?.title || "N/A";
+  const displayedPrice = selectedVariant?.priceV2?.amount
+    ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
+    : selectedVariant?.price || product.price || "$0.00";
 
   return (
     <section className="py-8 bg-white md:py-16 antialiased">
@@ -69,253 +209,285 @@ const Hero = ({ product }: any) => {
         <div className="lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-16">
           {/* Image Section */}
           <div className="shrink-0 max-w-md lg:max-w-lg mx-auto">
-            <div className="w-full h-[400px] flex justify-center items-center bg-transparent overflow-hidden border rounded-lg">
+            <div className="w-full h-[300px] md:h-[400px] flex justify-center items-center bg-transparent overflow-hidden border border-gray-200 rounded-lg p-2">
               <img
                 src={getDisplayedImage()}
-                alt={product.name}
+                alt={
+                  displayedVariantName === "N/A"
+                    ? product?.name || "Product Image"
+                    : displayedVariantName
+                }
+                width={400}
+                height={400}
                 className="object-contain max-w-full max-h-full"
+                key={selectedImage}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).onerror = null;
+                  (e.target as HTMLImageElement).src =
+                    "https://placehold.co/400x400/e2e8f0/4a5568?text=Image+Error";
+                }}
               />
             </div>
 
-            {/* Thumbnails */}
-            <div className="relative mt-4">
-              <button
-                onClick={() => scrollThumbnails("left")}
-                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-0 bg-white shadow p-2 rounded-full"
-              >
-                ←
-              </button>
-              <div
-                ref={thumbContainerRef}
-                className="flex overflow-x-hidden gap-2 px-8 scrollbar-hide"
-              >
-                {product.images.map((img: any, index: number) => (
-                  <img
-                    key={index}
-                    src={img.src}
-                    alt=""
-                    onClick={() => handleThumbnailClick(img.src)}
-                    className={`w-24 h-24 object-contain rounded border cursor-pointer flex-shrink-0 ${
-                      selectedImage === img.src
-                        ? "border-black"
-                        : "border-gray-300"
-                    }`}
-                  />
-                ))}
+            {product.images && product.images.length > 1 && (
+              <div className="relative mt-4">
+                <button
+                  onClick={() => scrollThumbnails("left")}
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
+                  disabled={isScrollLeftDisabled}
+                >
+                  {" "}
+                  ←{" "}
+                </button>
+                <div
+                  ref={thumbContainerRef}
+                  className="flex overflow-x-auto gap-2 px-10 scrollbar-hide py-1"
+                >
+                  {product.images.map((img: any, index: number) => (
+                    <div
+                      key={img.id || `thumb-${index}`}
+                      className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 cursor-pointer"
+                      onClick={() => handleThumbnailClick(img.src)}
+                    >
+                      <img
+                        src={
+                          img.src ||
+                          "https://placehold.co/96x96/e2e8f0/4a5568?text=N/A"
+                        }
+                        alt={img.altText || `Thumbnail ${index + 1}`}
+                        width={96}
+                        height={96}
+                        className={`w-full h-full object-contain rounded border transition-all duration-200 ${
+                          selectedImage === img.src &&
+                          hasUserManuallySelectedImage
+                            ? "border-black ring-2 ring-black"
+                            : "border-gray-300 hover:border-gray-500"
+                        }`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).onerror = null;
+                          (e.target as HTMLImageElement).src =
+                            "https://placehold.co/96x96/e2e8f0/4a5568?text=Error";
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => scrollThumbnails("right")}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
+                  disabled={isScrollRightDisabled}
+                >
+                  {" "}
+                  →{" "}
+                </button>
               </div>
-              <button
-                onClick={() => scrollThumbnails("right")}
-                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-0 bg-white shadow p-2 rounded-full"
-              >
-                →
-              </button>
-            </div>
-
-            <div className="hidden lg:block mt-4">
+            )}
+            <div className="hidden lg:block mt-8">
               <ProductFeatures
                 product={product}
-                selectedVariant={selectedVariant.name}
+                selectedVariant={displayedVariantName}
               />
             </div>
           </div>
 
-          {/* Product Details Section */}
+          {/* Details Section */}
           <div className="relative">
             <div
               className={twMerge(
-                "lg:sticky lg:top-48",
-                product.collection === "Eyewear" ? "lg:top-56" : ""
+                "lg:sticky lg:top-28",
+                showFrameVariants ? "lg:top-32" : ""
               )}
             >
-              <h1 className="text-xl font-semibold sm:text-2xl text-black mt-6 sm:mt-8 lg:mt-0">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-6 sm:mt-8 lg:mt-0">
                 {product.name}
               </h1>
+              <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
+                {displayedPrice}
+              </p>
 
-              <div className="mt-4 sm:items-center sm:gap-4 sm:flex">
-                <p className="text-2xl font-extrabold sm:text-3xl text-black">
-                  {selectedVariant.price}
-                </p>
-                <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                  <svg
-                    className="w-4 h-4 text-yellow-300"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z" />
-                  </svg>
-                  <p className="text-sm font-medium leading-none text-gray-400">
-                    (5.0)
-                  </p>
-                  <a
-                    href="#"
-                    className="text-sm font-medium underline text-gray-600"
-                  >
-                    345 Reviews
-                  </a>
+              {showFrameVariants && (
+                <div className="mt-6 mb-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    Style:{" "}
+                    <span className="font-semibold">
+                      {displayedVariantName}
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
+                    {product.variants.map((variant: any, index: number) => {
+                      const buttonText =
+                        variant.name || variant.title || `Variant ${index + 1}`;
+                      return (
+                        <button
+                          key={variant.id || `variant-${index}`}
+                          onClick={() => handleFrameVariantClick(variant)}
+                          title={variant.name || variant.title || "Variant"}
+                          className={twMerge(
+                            "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
+                            selectedVariant?.id === variant.id
+                              ? "bg-black text-white border-black ring-black"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                          )}
+                        >
+                          {buttonText}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Variant Selection */}
-              <div
-                className={twMerge(
-                  "flex gap-2 mt-5",
-                  product.collection === "Eyewear" && "hidden"
-                )}
-              >
-                {product.variants.map((variant: any) => (
-                  <button
-                    key={variant.id}
-                    onClick={() => handleVariantClick(variant)}
-                    className={twMerge(
-                      "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-300",
-                      selectedVariant.id === variant.id
-                        ? "bg-black text-white border-black"
-                        : "bg-transparent text-black border-black hover:bg-black hover:text-white"
-                    )}
-                  >
-                    {variant.name}
-                  </button>
-                ))}
-              </div>
+              {showContactLensVariantSection && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    Pack Size:{" "}
+                    <span className="font-semibold">
+                      {selectedVariant?.name || selectedVariant?.title
+                        ? `${
+                            selectedVariant.name || selectedVariant.title
+                          } Pack`
+                        : "N/A"}
+                    </span>
+                  </h3>
+                  {product.variants.length > 1 && (
+                    <div className="flex flex-wrap gap-2">
+                      {product.variants.map((variant: any, index: number) => {
+                        const packName = variant.name || variant.title;
+                        const buttonText = packName
+                          ? `${packName} Pack`
+                          : `Variant ${index + 1}`;
+                        return (
+                          <button
+                            key={variant.id || `cl-variant-${index}`}
+                            onClick={() => handleFrameVariantClick(variant)}
+                            className={twMerge(
+                              "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
+                              selectedVariant?.id === variant.id
+                                ? "bg-black text-white border-black ring-black"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                            )}
+                          >
+                            {buttonText}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Eyewear Variant Buttons */}
-              <div
-                className={twMerge(
-                  "mt-4",
-                  product.collection !== "Eyewear" && "hidden"
-                )}
-              >
-                <div className="flex flex-wrap gap-4">
-                  {product.variants.map((variant: any) => (
-                    <button
-                      key={variant.id}
-                      onClick={() => handleVariantClick(variant)}
-                      className={twMerge(
-                        "flex-1 min-w-[160px] max-w-[250px] py-4 px-5 text-sm font-medium text-center border rounded-lg transition-all duration-300",
-                        selectedVariant.id === variant.id
-                          ? "bg-black text-white border-black"
-                          : "bg-transparent text-black border-black hover:bg-black hover:text-white"
-                      )}
+              {/* Quantity Selection for Contact Lenses - RESTORED AND ALWAYS VISIBLE FOR CONTACT LENSES */}
+              {!isEyewearType && (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    Select quantity:
+                  </h3>
+                  {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
                     >
-                      {variant.name}
-                    </button>
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
+                          onChange={(e) =>
+                            idx === 0
+                              ? setRightEyeEnabled(e.target.checked)
+                              : setLeftEyeEnabled(e.target.checked)
+                          }
+                          className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                        />
+                        <span className="text-sm text-gray-700">{label}</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) => Math.max(1, prev - 1))
+                              : setLeftEyeQty((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={
+                            (idx === 0 &&
+                              (!rightEyeEnabled || rightEyeQty <= 1)) ||
+                            (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          −{" "}
+                        </button>
+                        <span className="w-8 text-center text-sm font-medium text-gray-800">
+                          {idx === 0 ? rightEyeQty : leftEyeQty}
+                        </span>
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) => prev + 1)
+                              : setLeftEyeQty((prev) => prev + 1)
+                          }
+                          disabled={
+                            (idx === 0 && !rightEyeEnabled) ||
+                            (idx === 1 && !leftEyeEnabled)
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          +{" "}
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
 
-              {/* Quantity Selection */}
-              <div
-                className={twMerge(
-                  "mt-6 space-y-2",
-                  product.collection === "Eyewear" && "hidden"
-                )}
-              >
-                <h3 className="text-sm font-medium">Select quantity:</h3>
-                {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between border rounded-lg px-4 py-3"
-                  >
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
-                        onChange={(e) =>
-                          idx === 0
-                            ? setRightEyeEnabled(e.target.checked)
-                            : setLeftEyeEnabled(e.target.checked)
-                        }
-                        className="form-checkbox h-4 w-4 text-blue-600"
-                      />
-                      <span>{label}</span>
-                    </label>
-
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() =>
-                          idx === 0
-                            ? setRightEyeQty((prev) => Math.max(1, prev - 1))
-                            : setLeftEyeQty((prev) => Math.max(1, prev - 1))
-                        }
-                        className="w-6 h-6 flex items-center justify-center border rounded"
-                      >
-                        −
-                      </button>
-                      <span className="w-6 text-center">
-                        {idx === 0 ? rightEyeQty : leftEyeQty}
-                      </span>
-                      <button
-                        onClick={() =>
-                          idx === 0
-                            ? setRightEyeQty((prev) => prev + 1)
-                            : setLeftEyeQty((prev) => prev + 1)
-                        }
-                        className="w-6 h-6 flex items-center justify-center border rounded"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Call To Action Buttons */}
-              <div className="mt-6 sm:gap-4 sm:flex sm:items-center sm:mt-8">
-                <a
-                  href="#"
-                  onClick={() => setModalOpen(true)}
-                  className={twMerge(
-                    "text-white bg-black rounded-lg text-sm px-5 py-2.5 flex items-center justify-center hover:scale-105 transition-all duration-300",
-                    product.collection !== "Eyewear" && "hidden"
+              <div className="mt-8">
+                <button
+                  onClick={handlePrimaryAction}
+                  disabled={isAddingToCart || cartLoading || !selectedVariant}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-white bg-black rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out"
+                >
+                  {isAddingToCart || cartLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="w-5 h-5" />
                   )}
-                >
-                  <svg
-                    className="w-5 h-5 -ms-2 me-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
-                    />
-                  </svg>
-                  Select Lenses and Buy
-                </a>
-
-                {modalOpen && (
-                  <EyeglassesModal
-                    product={product}
-                    onClose={() => setModalOpen(false)}
-                    isOpen={modalOpen}
-                    selectedVariant={selectedVariant}
-                  />
-                )}
-
-                <a
-                  href="#"
-                  className="mt-4 sm:mt-0 flex items-center justify-center py-2.5 px-5 text-sm font-medium text-white bg-black rounded-lg border hover:scale-105 transition-all duration-300"
-                >
-                  <svg
-                    className="w-5 h-5 -ms-2 me-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 6V18M6 12H18"
-                    />
-                  </svg>
-                  Add to Cart
-                </a>
+                  {isEyewearType ? "Select Lenses & Buy" : "Add to Cart"}
+                </button>
               </div>
+              {addToCartSuccess && (
+                <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
+                  <CheckCircle size={16} className="mr-1" /> Item(s) added to
+                  cart!
+                </p>
+              )}
+              {addToCartError && (
+                <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
+                  <AlertTriangle size={16} className="mr-1" /> {addToCartError}
+                </p>
+              )}
+              {cartContextError && !addToCartError && (
+                <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
+                  <AlertTriangle size={16} className="mr-1" /> Cart Error:{" "}
+                  {cartContextError}
+                </p>
+              )}
             </div>
           </div>
+        </div>
+        {isEyeglassesModalOpen && isEyewearType && selectedVariant && (
+          <EyeglassesModal
+            product={product}
+            selectedVariant={selectedVariant}
+            isOpen={isEyeglassesModalOpen}
+            onClose={() => setIsEyeglassesModalOpen(false)}
+          />
+        )}
+        <div className="lg:hidden mt-8">
+          <ProductFeatures
+            product={product}
+            selectedVariant={selectedVariant?.name}
+          />
         </div>
       </div>
     </section>

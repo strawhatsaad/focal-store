@@ -1,19 +1,18 @@
 // File: src/components/AuthButtons.tsx
 "use client";
 
-import { signIn } from "next-auth/react";
-import { Chrome, Apple } from "lucide-react"; // Using lucide-react for icons
+// This component previously held OAuth buttons.
+// Since OAuth is removed, this component might no longer be needed.
+// If you still use it elsewhere for other auth-related buttons, modify accordingly.
+// Otherwise, you can delete this file and remove its import from where it was used (e.g., signin page).
 
 const AuthButtons = () => {
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-center">
-      <button
-        onClick={() => signIn("google", { callbackUrl: "/" })}
-        className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 w-full sm:w-auto transition-colors duration-150 ease-in-out"
-      >
-        <Chrome size={20} />
-        Continue with Google
-      </button>
+      {/* OAuth buttons removed. Add other auth-related buttons here if needed. */}
+      {/* Example:
+      <button className="btn btn-secondary">Custom Auth Action</button>
+      */}
     </div>
   );
 };
