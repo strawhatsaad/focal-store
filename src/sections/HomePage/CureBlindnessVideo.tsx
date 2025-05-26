@@ -9,7 +9,7 @@ export const CureBlindnessVideo = () => {
               Aspect ratio can be maintained using padding-bottom trick on a wrapper if needed,
               but for a simple iframe, direct height adjustment is often sufficient. */}
           <iframe
-            src="https://www.youtube.com/embed/dQw4w9WgXcQ" // Example video, replace with actual
+            src="https://www.youtube.com/embed/imAOn6EZ7HM" // Example video, replace with actual
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
