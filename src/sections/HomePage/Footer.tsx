@@ -105,7 +105,7 @@ export const Footer = () => {
             <div className="flex flex-col gap-3 sm:gap-4 text-center sm:text-left">
               {/* Responsive text sizes */}
               <h2 className="font-bold text-xl sm:text-2xl md:text-2xl lg:text-3xl">
-                We're here to help.
+                We&apos;re here to help.
               </h2>
               <p className="font-medium text-sm sm:text-base md:text-sm lg:text-base">
                 Real people with real answers in real time, 24/7.
