@@ -378,6 +378,8 @@ export default function EyeglassesModal({
                       const buttonText =
                         optionNodeDetails?.optionDisplayName || optionKey;
 
+                      const price = optionNodeDetails?.basePrice ?? 0;
+
                       return (
                         <button
                           key={optionKey}
@@ -391,9 +393,7 @@ export default function EyeglassesModal({
                           onClick={() => handleOptionSelect(optionKey, stepIdx)}
                         >
                           {buttonText}
-                          {optionNodeDetails?.basePrice > 0
-                            ? ` (+$${optionNodeDetails.basePrice.toFixed(2)})`
-                            : ""}
+                          {price > 0 ? ` (+$${price.toFixed(2)})` : ""}
                         </button>
                       );
                     })}
