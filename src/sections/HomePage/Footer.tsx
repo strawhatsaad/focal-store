@@ -5,6 +5,7 @@ import ArrowIcon from "@/assets/arrow-right.svg";
 import {
   Facebook,
   InstagramIcon,
+  MailIcon,
   MessageSquareIcon,
   PhoneCall,
   Youtube,
@@ -113,8 +114,10 @@ export const Footer = () => {
               {/* Contact info: stacks on small, row on sm+ */}
               <div className="flex flex-col sm:flex-row justify-center sm:justify-start items-center sm:items-start gap-3 sm:gap-4 mt-1 sm:mt-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <PhoneCall size={16} className="sm:size-5" />
-                  <span>+1-123-456-7890</span>
+                  <MailIcon size={16} className="sm:size-5" />
+                  <a href="mailto::hello@focaloptical.com">
+                    <span>hello@focaloptical.com</span>
+                  </a>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <MessageSquareIcon size={16} className="sm:size-5" />
