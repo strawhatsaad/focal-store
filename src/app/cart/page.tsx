@@ -2,19 +2,27 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useCart } from "@/context/CartContext"; // Ensure this path is correct
-import { useSession } from "next-auth/react"; // For getting customer info
+import { useCart } from "@/context/CartContext";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation"; // Import useRouter
 import Link from "next/link";
-import Image from "next/image"; // Keep if you use Next Image elsewhere, otherwise remove
+// import Image from "next/image"; // Kept for reference, but standard img is used below
 import {
   Loader2,
   Trash2,
   ArrowLeft,
   ShoppingBag,
   AlertCircle,
-  CreditCard, // Added for checkout button
+  CreditCard,
+  UploadCloud, // For redirect message
+  LogIn, // For redirect message
 } from "lucide-react";
-// optionsTree import removed as price calculation should rely on _finalCalculatedPrice from modal
+
+// Define a simple type for prescription, adjust as needed
+interface PrescriptionEntry {
+  id: string;
+  // Add other relevant fields if needed for this page, e.g., fileName
+}
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
   if (priceInput === null || priceInput === undefined) return 0;
@@ -27,17 +35,18 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
 const CartPage = () => {
   const {
     cart,
-    loading: cartContextLoading, // Renamed to avoid conflict
+    loading: cartContextLoading,
     error: cartContextError,
     updateLineItem,
     removeLineItem,
     clearCartError,
   } = useCart();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter(); // Initialize useRouter
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
-  const [isCreatingDraftOrder, setIsCreatingDraftOrder] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); // Renamed for clarity
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); // For user feedback
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -54,7 +63,6 @@ const CartPage = () => {
 
   useEffect(() => {
     if (cartContextError && cart) {
-      // Use cartContextError
       const timer = setTimeout(() => clearCartError(), 5000);
       return () => clearTimeout(timer);
     }
@@ -64,9 +72,9 @@ const CartPage = () => {
     if (!cart?.lines?.edges) return [];
     return cart.lines.edges.map((edge) => {
       const line = edge.node;
-      let displayPrice = parsePrice(line.merchandise.priceV2.amount); // Default to variant price
+      let displayPrice = parsePrice(line.merchandise.priceV2.amount);
       let isCustomizedEyeglass = false;
-      let finalCalculatedPrice = displayPrice; // Initialize with base price
+      let finalCalculatedPrice = displayPrice;
 
       const finalPriceAttr = line.attributes.find(
         (attr) => attr.key === "_finalCalculatedPrice"
@@ -75,14 +83,14 @@ const CartPage = () => {
       if (finalPriceAttr) {
         const parsedFinalPrice = parsePrice(finalPriceAttr.value);
         if (parsedFinalPrice > 0) {
-          finalCalculatedPrice = parsedFinalPrice; // This is the unit price including customizations
+          finalCalculatedPrice = parsedFinalPrice;
           isCustomizedEyeglass = true;
         }
       }
       return {
         ...line,
-        merchandiseId: line.merchandise.id, // Expose merchandiseId (variant GID)
-        customizedUnitPrice: finalCalculatedPrice, // Unit price including customizations
+        merchandiseId: line.merchandise.id,
+        customizedUnitPrice: finalCalculatedPrice,
         displayTotalPrice: finalCalculatedPrice * line.quantity,
         isCustomizedEyeglass,
         title:
@@ -94,11 +102,6 @@ const CartPage = () => {
     });
   }, [cart]);
 
-  const shopifySubtotal = cart?.cost?.subtotalAmount
-    ? parsePrice(cart.cost.subtotalAmount.amount)
-    : 0;
-
-  // Calculate UI subtotal based on customized prices
   const uiCalculatedSubtotal = lineItemsWithDisplayPrice.reduce(
     (acc, item) => acc + item.displayTotalPrice,
     0
@@ -106,31 +109,76 @@ const CartPage = () => {
   const currencyCode = cart?.cost?.subtotalAmount?.currencyCode || "USD";
 
   const handleProceedToCheckout = async () => {
-    if (!lineItemsWithDisplayPrice || lineItemsWithDisplayPrice.length === 0) {
-      setCheckoutError("Your cart is empty.");
+    setCheckoutMessage(null); // Clear previous messages
+    setIsProcessingCheckout(true);
+
+    // 1. Check if user is logged in
+    if (sessionStatus === "loading") {
+      setCheckoutMessage("Verifying your session...");
+      // Wait for session status to resolve, or handle this state more gracefully
+      // setIsProcessingCheckout(false); // Potentially allow retry or show persistent message
       return;
     }
-    setIsCreatingDraftOrder(true);
-    setCheckoutError(null);
+
+    if (!session) {
+      setCheckoutMessage("Redirecting to sign in...");
+      router.push("/auth/signin?callbackUrl=/cart"); // Redirect to sign-in
+      // No need to set setIsProcessingCheckout(false) here as page will redirect
+      return;
+    }
+
+    // 2. Check if user has prescriptions (only if logged in)
+    try {
+      const prescriptionsResponse = await fetch("/api/account/prescriptions");
+      if (!prescriptionsResponse.ok) {
+        const errorData = await prescriptionsResponse.json();
+        throw new Error(errorData.message || "Failed to fetch prescriptions.");
+      }
+      const prescriptionsData = await prescriptionsResponse.json();
+      const userPrescriptions: PrescriptionEntry[] =
+        prescriptionsData.prescriptions || [];
+
+      if (userPrescriptions.length === 0) {
+        setCheckoutMessage("No prescriptions found. Redirecting to upload...");
+        router.push("/account/prescriptions?callbackUrl=/cart"); // Redirect to prescriptions page
+        // No need to set setIsProcessingCheckout(false) here
+        return;
+      }
+    } catch (err: any) {
+      console.error("Error fetching prescriptions:", err);
+      setCheckoutMessage(
+        `Error checking prescriptions: ${err.message}. Please try again.`
+      );
+      setIsProcessingCheckout(false);
+      return;
+    }
+
+    // 3. Proceed with draft order creation if all checks pass
+    if (!lineItemsWithDisplayPrice || lineItemsWithDisplayPrice.length === 0) {
+      setCheckoutMessage("Your cart is empty.");
+      setIsProcessingCheckout(false);
+      return;
+    }
 
     const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
-      variantId: item.merchandiseId, // This is the Product Variant GID
+      variantId: item.merchandiseId,
       quantity: item.quantity,
-      customizedPrice: item.customizedUnitPrice.toFixed(2), // Send the unit price with customizations
+      customizedPrice: item.customizedUnitPrice.toFixed(2),
       attributes: item.attributes.map((attr) => ({
         key: attr.key,
         value: attr.value,
       })),
-      title: item.title, // Send a descriptive title
+      title: item.title,
     }));
 
     const customerInfoPayload: any = {};
     if (session?.user?.email) {
+      // Should always be true if this point is reached
       customerInfoPayload.email = session.user.email;
     }
-    // Add more customer info if needed, like shipping address if you collect it pre-checkout
 
     try {
+      setCheckoutMessage("Processing your order...");
       const response = await fetch("/api/checkout/create-draft-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -147,26 +195,23 @@ const CartPage = () => {
       }
 
       if (result.invoiceUrl) {
-        // Optionally, clear the Storefront cart here if needed,
-        // though the user is moving to a Shopify-hosted checkout.
-        // Example: await clearCart(); // if you implement a clearCart function in CartContext
+        setCheckoutMessage("Redirecting to Shopify checkout...");
         window.location.href = result.invoiceUrl;
       } else {
         throw new Error("Invoice URL not received from draft order creation.");
       }
     } catch (err: any) {
       console.error("Error proceeding to draft order checkout:", err);
-      setCheckoutError(
+      setCheckoutMessage(
         err.message ||
           "An unexpected error occurred while preparing your order."
       );
-    } finally {
-      setIsCreatingDraftOrder(false);
+      setIsProcessingCheckout(false); // Ensure loading state is reset on error
     }
+    // Removed finally block to ensure setIsProcessingCheckout(false) is only called on non-redirect paths
   };
 
   if (cartContextLoading && !cart) {
-    // Use cartContextLoading
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
@@ -196,7 +241,7 @@ const CartPage = () => {
           </h1>
         </header>
 
-        {cartContextError && ( // Use cartContextError
+        {cartContextError && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md mb-6"
             role="alert"
@@ -212,19 +257,30 @@ const CartPage = () => {
             </div>
           </div>
         )}
-        {checkoutError && (
+        {checkoutMessage && (
           <div
-            className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md mb-6"
+            className={`p-4 rounded-md shadow-md mb-6 border-l-4 ${
+              checkoutMessage.toLowerCase().includes("error") ||
+              checkoutMessage.toLowerCase().includes("failed")
+                ? "bg-red-100 border-red-500 text-red-700"
+                : "bg-blue-100 border-blue-500 text-blue-700"
+            }`}
             role="alert"
           >
-            <div className="flex">
+            <div className="flex items-center">
               <div className="py-1">
-                <AlertCircle className="h-6 w-6 text-red-500 mr-3" />
+                {checkoutMessage.toLowerCase().includes("error") ||
+                checkoutMessage.toLowerCase().includes("failed") ? (
+                  <AlertCircle className="h-6 w-6 mr-3" />
+                ) : checkoutMessage.toLowerCase().includes("sign in") ? (
+                  <LogIn className="h-6 w-6 mr-3" />
+                ) : checkoutMessage.toLowerCase().includes("upload") ? (
+                  <UploadCloud className="h-6 w-6 mr-3" />
+                ) : (
+                  <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                )}
               </div>
-              <div>
-                <p className="font-bold">Checkout Error</p>
-                <p>{checkoutError}</p>
-              </div>
+              <p>{checkoutMessage}</p>
             </div>
           </div>
         )}
@@ -246,12 +302,15 @@ const CartPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="bg-white p-6 sm:p-8 rounded-xl shadow-xl">
+          <div className="bg-white p-4 sm:p-8 rounded-xl shadow-xl">
+            {" "}
+            {/* Base padding p-4, sm:p-8 */}
             <ul role="list" className="divide-y divide-gray-200">
               {lineItemsWithDisplayPrice.map((line) => (
                 <li key={line.id} className="flex py-6 sm:py-8">
-                  <div className="flex-shrink-0 w-24 h-24 sm:w-32 sm:h-32 border border-gray-200 rounded-md overflow-hidden">
-                    <img // Using standard img tag for simplicity, ensure src is valid
+                  {/* Base image size w-20 h-20, sm size w-32 h-32 */}
+                  <div className="flex-shrink-0 w-20 h-20 sm:w-32 sm:h-32 border border-gray-200 rounded-md overflow-hidden">
+                    <img
                       src={
                         line.merchandise.image?.url ||
                         "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"
@@ -260,13 +319,14 @@ const CartPage = () => {
                         line.merchandise.image?.altText ||
                         line.merchandise.product.title
                       }
-                      width={128} // These are for aspect ratio hint if using CSS for sizing
-                      height={128}
+                      width={128} // HTML attribute, CSS will control actual size via parent
+                      height={128} // HTML attribute, CSS will control actual size via parent
                       className="w-full h-full object-contain"
                     />
                   </div>
 
-                  <div className="ml-4 flex-1 flex flex-col">
+                  {/* Base margin ml-2, sm margin ml-4 */}
+                  <div className="ml-2 sm:ml-4 flex-1 flex flex-col">
                     <div>
                       <div className="flex justify-between text-base font-medium text-gray-900">
                         <h3>
@@ -281,14 +341,11 @@ const CartPage = () => {
                           ${line.displayTotalPrice.toFixed(2)}
                         </p>
                       </div>
-                      {/* <p className="mt-1 text-sm text-gray-500">
-                        {line.merchandise.title} {/* This might be redundant if title includes it *}
-                      </p> */}
                       {line.attributes && line.attributes.length > 0 && (
                         <div className="mt-1 space-y-0.5">
                           {line.attributes
                             .filter(
-                              (attr) => attr.key !== "_finalCalculatedPrice" // Don't display internal price attribute
+                              (attr) => attr.key !== "_finalCalculatedPrice"
                             )
                             .map((attr) => (
                               <p
@@ -317,7 +374,7 @@ const CartPage = () => {
                           disabled={
                             updatingItemId === line.id ||
                             line.quantity <= 0 ||
-                            isCreatingDraftOrder
+                            isProcessingCheckout
                           }
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
                           aria-label="Decrease quantity"
@@ -336,7 +393,7 @@ const CartPage = () => {
                             handleQuantityChange(line.id, line.quantity + 1)
                           }
                           disabled={
-                            updatingItemId === line.id || isCreatingDraftOrder
+                            updatingItemId === line.id || isProcessingCheckout
                           }
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
                           aria-label="Increase quantity"
@@ -350,7 +407,7 @@ const CartPage = () => {
                           type="button"
                           onClick={() => handleRemoveItem(line.id)}
                           disabled={
-                            updatingItemId === line.id || isCreatingDraftOrder
+                            updatingItemId === line.id || isProcessingCheckout
                           }
                           className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50"
                         >
@@ -367,7 +424,6 @@ const CartPage = () => {
                 </li>
               ))}
             </ul>
-
             <div className="border-t border-gray-200 pt-6 mt-6">
               <div className="flex justify-between text-base font-medium text-gray-900">
                 <p>Subtotal</p>
@@ -390,12 +446,13 @@ const CartPage = () => {
                 customizations will be shown on the Shopify payment page.
               </p>
               <div className="mt-6">
+                {/* Base button padding px-4 py-2.5, sm padding px-6 py-3 */}
                 <button
                   onClick={handleProceedToCheckout}
-                  disabled={isCreatingDraftOrder || cartContextLoading}
-                  className="w-full flex items-center justify-center rounded-md border border-transparent bg-black px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-gray-800 transition-colors duration-150 ease-in-out disabled:opacity-50"
+                  disabled={isProcessingCheckout || cartContextLoading}
+                  className="w-full flex items-center justify-center rounded-md border border-transparent bg-black px-4 py-2.5 sm:px-6 sm:py-3 text-base font-medium text-white shadow-sm hover:bg-gray-800 transition-colors duration-150 ease-in-out disabled:opacity-50"
                 >
-                  {isCreatingDraftOrder ? (
+                  {isProcessingCheckout ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
                     <CreditCard className="w-5 h-5 mr-2" />
