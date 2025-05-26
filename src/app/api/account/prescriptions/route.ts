@@ -9,13 +9,14 @@ import {
 } from "../../../../../utils"; // Adjust path
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path'; // Import path module for extension
 
 const PRESCRIPTION_METAFIELD_NAMESPACE = "focal_rx";
 const PRESCRIPTION_METAFIELD_KEY = "uploaded_prescriptions";
 
 interface PrescriptionEntry {
     id: string;
-    fileName: string;
+    fileName: string; // This will store the original filename for display or the new one
     fileType: string;
     uploadedAt: string;
     storageUrlOrId: string; // Will now be Shopify File GID or its CDN URL
@@ -57,8 +58,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.shopifyCustomerId) {
-        return NextResponse.json({ message: "Not authenticated." }, { status: 401 });
+    if (!session?.user?.shopifyCustomerId || !session?.user?.name || !session?.user?.email) {
+        return NextResponse.json({ message: "User details not found in session. Cannot process prescription." }, { status: 401 });
     }
 
     try {
@@ -74,13 +75,22 @@ export async function POST(request: Request) {
         }
 
         const customerId = session.user.shopifyCustomerId;
+        const customerName = session.user.name;
+        const customerEmail = session.user.email;
+
+        // Generate a new filename
+        const originalExtension = path.extname(file.name);
+        const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+        const newFileName = `${safeCustomerName}_Prescription_${Date.now()}${originalExtension}`;
+        const altText = `${customerName} - ${customerEmail}`;
+
 
         // Step 1: Create a Staged Upload target on Shopify
-        console.log(`[API POST Prescription] Creating staged upload for: ${file.name}`);
+        console.log(`[API POST Prescription] Creating staged upload for: ${newFileName} (original: ${file.name})`);
         const stagedUploadInput = [{
-            filename: file.name,
+            filename: newFileName, // Use the new filename
             mimeType: file.type,
-            resource: "FILE", // For generic files; use "IMAGE" or "VIDEO" if specific
+            resource: "FILE",
             httpMethod: "POST",
         }];
         const stagedUploadsResponse = await createStagedUploads(stagedUploadInput);
@@ -94,19 +104,18 @@ export async function POST(request: Request) {
         const target = stagedUploadsResponse.data.stagedUploadsCreate.stagedTargets[0];
         const { url: uploadUrl, resourceUrl, parameters } = target;
 
-        // Step 2: Upload the file to the Shopify-provided URL (from your server)
+        // Step 2: Upload the file to the Shopify-provided URL
         console.log(`[API POST Prescription] Uploading file to Shopify's staged target: ${uploadUrl}`);
         const fileBuffer = await file.arrayBuffer();
         const uploadFormData = new FormData();
         parameters.forEach(({ name, value }: { name: string; value: string }) => {
             uploadFormData.append(name, value);
         });
-        uploadFormData.append("file", new Blob([fileBuffer]), file.name); // 'file' is usually the required key
+        uploadFormData.append("file", new Blob([fileBuffer]), newFileName); // Use newFileName for the blob as well
 
         const uploadResponse = await fetch(uploadUrl, {
             method: "POST",
             body: uploadFormData,
-            // Do NOT set Content-Type header here, let fetch do it for FormData
         });
 
         if (!uploadResponse.ok) {
@@ -121,7 +130,7 @@ export async function POST(request: Request) {
         const fileCreateInput = [{
             originalSource: resourceUrl,
             contentType: "FILE", // Or "IMAGE", "VIDEO" matching the resource in stagedUploadsCreate
-            // alt: userLabel || file.name, // Optionally set alt text if it's an image
+            alt: altText, // Set the alt text
         }];
         const fileCreateResponse = await createShopifyFiles(fileCreateInput);
 
@@ -132,13 +141,20 @@ export async function POST(request: Request) {
         }
 
         const createdShopifyFile = fileCreateResponse.data.fileCreate.files[0];
-        const shopifyFileId = createdShopifyFile.id; // This is the GID, e.g., "gid://shopify/File/12345"
-        // Try to get URL from common structures
-        const cdnUrl = (createdShopifyFile as any).url || (createdShopifyFile as any).image?.url || `gid_ref:${shopifyFileId}`;
+        const shopifyFileId = createdShopifyFile.id;
 
-        console.log(`[API POST Prescription] Shopify file created successfully. ID: ${shopifyFileId}, URL/Ref: ${cdnUrl}`);
+        let finalStorageUrlOrId = `gid_ref:${shopifyFileId}`; // Default to GID
+        if (createdShopifyFile.url) { // For GenericFile
+            finalStorageUrlOrId = createdShopifyFile.url;
+        } else if (createdShopifyFile.image?.url) { // For MediaImage
+            finalStorageUrlOrId = createdShopifyFile.image.url;
+        } else if (createdShopifyFile.sources?.[0]?.url) { // For VideoFile (example)
+            finalStorageUrlOrId = createdShopifyFile.sources[0].url;
+        }
 
-        // --- Now update metafield with the Shopify File GID or URL ---
+        console.log(`[API POST Prescription] Shopify file created successfully. ID: ${shopifyFileId}, Stored URL/Ref: ${finalStorageUrlOrId}`);
+
+        // --- Now update metafield ---
         let existingPrescriptions: PrescriptionEntry[] = [];
         try {
             const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
@@ -151,12 +167,12 @@ export async function POST(request: Request) {
 
         const newPrescription: PrescriptionEntry = {
             id: uuidv4(),
-            fileName: file.name,
+            fileName: newFileName, // Store the new, customer-specific filename
             fileType: file.type,
             fileSize: file.size,
             uploadedAt: new Date().toISOString(),
-            storageUrlOrId: shopifyFileId, // Store the Shopify File GID for future reference/retrieval
-            label: userLabel || file.name.replace(/\.[^/.]+$/, ""),
+            storageUrlOrId: finalStorageUrlOrId, // Store the CDN URL or GID
+            label: userLabel || customerName, // Use customer name as default label if no userLabel
         };
 
         const updatedPrescriptions = [...existingPrescriptions, newPrescription];
@@ -181,8 +197,6 @@ export async function POST(request: Request) {
             const userErrors = metafieldResponse.data?.metafieldsSet?.userErrors;
             const errorMessage = userErrors?.map((e: any) => e.message).join(", ") || "Failed to save prescription metadata.";
             console.error("[API POST Prescription] Error setting metafield:", errorMessage, userErrors);
-            // Note: At this point, the file is uploaded to Shopify, but linking it via metafield failed.
-            // You might want to implement cleanup logic for the uploaded Shopify file if metafield saving fails.
             throw new Error(errorMessage);
         }
 

@@ -215,23 +215,22 @@ export const FILE_CREATE_MUTATION = `
   mutation fileCreate($files: [FileCreateInput!]!) {
     fileCreate(files: $files) {
       files {
-        id # The GID of the created file, e.g., "gid://shopify/File/123"
-        # alt # You could set an alt text here if it's an image
+        id 
+        alt # Query the alt text
         createdAt
         fileStatus
         ... on GenericFile {
-          url # The CDN URL of the file
-          originalFileSize # This is valid for GenericFile
+          url 
+          originalFileSize 
         }
         ... on MediaImage {
-          url: image {
-             url: originalSrc # For images, the URL might be nested
+          alt # Alt text for MediaImage specifically if different from File.alt
+          image {
+             originalSrc # Renamed to originalSrc as 'url' for image is a sub-field
+             # You could also query width, height, etc. here if needed
           }
-          # originalFileSize # REMOVE THIS LINE for MediaImage
-          # If you need file size for images, it might be part of 'image { ... }' or not directly available here.
-          # You might need to fetch it separately if critical or rely on GenericFile's size for non-image file types.
         }
-        # ... other file types like Video
+        # ... other file types like Video { sources { url } }
       }
       userErrors {
         field

@@ -21,7 +21,7 @@ interface PrescriptionEntry {
   fileName: string;
   fileType: string;
   uploadedAt: string;
-  storageUrlOrId: string; // Now a Shopify File GID or CDN URL if available
+  storageUrlOrId: string;
   label?: string;
   fileSize?: number;
 }
@@ -64,18 +64,40 @@ const ManagePrescriptionsPage = () => {
       router.push("/api/auth/signin?callbackUrl=/account/prescriptions");
       return;
     }
+    // Set default file label when session is loaded and fileLabel is still empty
+    if (session?.user?.name && !fileLabel && !selectedFile) {
+      setFileLabel(session.user.name);
+    }
     fetchPrescriptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, sessionStatus, router]);
+  }, [session, sessionStatus, router]); // Removed fileLabel and selectedFile from deps to avoid loops
+
+  // Effect to update default label if session loads after initial render and label is empty
+  useEffect(() => {
+    if (session?.user?.name && !fileLabel && !selectedFile) {
+      setFileLabel(session.user.name);
+    }
+  }, [session, fileLabel, selectedFile]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-      if (!fileLabel) {
-        setFileLabel(e.target.files[0].name.replace(/\.[^/.]+$/, ""));
+      const currentFile = e.target.files[0];
+      setSelectedFile(currentFile);
+      // If fileLabel is currently the default (user's name) or empty, update it to the new file's name (without extension).
+      // If the user has typed something custom, keep it.
+      const currentFileNameWithoutExtension = currentFile.name.replace(
+        /\.[^/.]+$/,
+        ""
+      );
+      if (!fileLabel || fileLabel === session?.user?.name) {
+        setFileLabel(currentFileNameWithoutExtension);
       }
     } else {
       setSelectedFile(null);
+      // If file is deselected and label was based on filename, revert to user's name or clear
+      if (fileLabel !== session?.user?.name) {
+        setFileLabel(session?.user?.name || "");
+      }
     }
   };
 
@@ -91,6 +113,7 @@ const ManagePrescriptionsPage = () => {
 
     const formData = new FormData();
     formData.append("prescriptionFile", selectedFile);
+    // Use current fileLabel state, which might be user's name, filename, or custom input
     formData.append(
       "label",
       fileLabel || selectedFile.name.replace(/\.[^/.]+$/, "")
@@ -108,7 +131,7 @@ const ManagePrescriptionsPage = () => {
       setSuccessMessage("Prescription uploaded successfully!");
       setPrescriptions(result.allPrescriptions || []);
       setSelectedFile(null);
-      setFileLabel("");
+      setFileLabel(session?.user?.name || ""); // Reset label to default (customer name) or empty
       const fileInput = document.getElementById(
         "prescriptionFile"
       ) as HTMLInputElement | null;
@@ -123,22 +146,51 @@ const ManagePrescriptionsPage = () => {
   };
 
   const handleDeletePrescription = async (prescriptionId: string) => {
-    alert(
-      `Delete functionality for ID ${prescriptionId} not yet implemented. This would involve a new API DELETE endpoint.`
-    );
+    if (!session?.user?.shopifyCustomerId) {
+      setError("Authentication error. Please sign in again.");
+      return;
+    }
+    if (
+      !confirm(
+        "Are you sure you want to delete this prescription? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setIsLoading(true); // Use general loading or a specific deleting state
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch(`/api/account/prescriptions`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prescriptionId: prescriptionId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to delete prescription.");
+      }
+
+      setSuccessMessage("Prescription deleted successfully!");
+      // Refresh prescriptions list
+      setPrescriptions((prev) => prev.filter((p) => p.id !== prescriptionId));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Function to get a viewable URL (this is a placeholder for actual implementation)
-  // You might need another API endpoint to get a temporary signed URL for a Shopify File GID
-  // or if the file is public, the GID might be part of a direct link structure (less common).
   const getFileViewUrl = (storageId: string): string | null => {
     if (storageId.startsWith("gid://shopify/File/")) {
-      // For GIDs, direct linking is usually not possible for customers.
-      // You'd typically use this GID in your Shopify Admin or a custom app to view the file.
-      // Or, for display to customer, you might need a backend proxy or signed URL generator.
-      return null; // Or a link to an internal tool if applicable
+      return null;
     }
-    // If it was a direct CDN URL (less likely with Shopify Files API for private files)
     if (storageId.startsWith("http")) {
       return storageId;
     }
@@ -212,14 +264,16 @@ const ManagePrescriptionsPage = () => {
               className="block text-sm font-medium text-gray-700 mb-1"
             >
               Prescription Label{" "}
-              <span className="text-xs text-gray-500">(Optional)</span>
+              <span className="text-xs text-gray-500">
+                (Optional, defaults to your name or filename)
+              </span>
             </label>
             <input
               type="text"
               id="fileLabel"
               value={fileLabel}
               onChange={(e) => setFileLabel(e.target.value)}
-              placeholder="e.g., Dr. Smith - Jan 2024"
+              placeholder={session?.user?.name || "e.g., Dr. Smith - Jan 2024"}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm"
             />
           </div>
@@ -310,7 +364,10 @@ const ManagePrescriptionsPage = () => {
                           className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
                           title={rx.storageUrlOrId}
                         >
-                          Ref: {rx.storageUrlOrId}
+                          Ref:{" "}
+                          {rx.storageUrlOrId.startsWith("http")
+                            ? "CDN Link"
+                            : rx.storageUrlOrId}
                         </p>
                       </div>
                     </div>
@@ -321,6 +378,7 @@ const ManagePrescriptionsPage = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           title="View/Download Prescription"
+                          download={rx.fileName} // Suggest original filename for download
                           className="p-1.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full"
                         >
                           <ExternalLink size={18} />
@@ -329,7 +387,8 @@ const ManagePrescriptionsPage = () => {
                       <button
                         onClick={() => handleDeletePrescription(rx.id)}
                         title="Delete Prescription"
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
+                        disabled={isLoading}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full disabled:opacity-50"
                       >
                         <Trash2 size={18} />
                       </button>
