@@ -13,8 +13,9 @@ import {
   CheckCircle,
   ArrowLeft,
   Trash2,
-  // DownloadCloud, // Removed DownloadCloud icon
 } from "lucide-react";
+
+type PrescriptionCategory = "ContactLenses" | "Eyeglasses";
 
 interface PrescriptionEntry {
   id: string;
@@ -25,6 +26,7 @@ interface PrescriptionEntry {
   label?: string;
   fileSize?: number;
   shopifyFileId?: string;
+  category?: PrescriptionCategory;
 }
 
 const ManagePrescriptionsPage = () => {
@@ -38,12 +40,15 @@ const ManagePrescriptionsPage = () => {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileLabel, setFileLabel] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState<PrescriptionCategory>("Eyeglasses"); // Default to Eyeglasses
   const [isUploading, setIsUploading] = useState(false);
 
   const fetchPrescriptions = async () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Fetch all prescriptions for this page display
       const response = await fetch("/api/account/prescriptions");
       if (!response.ok) {
         const errorData = await response.json();
@@ -66,7 +71,7 @@ const ManagePrescriptionsPage = () => {
       return;
     }
     if (session?.user?.name && !fileLabel && !selectedFile) {
-      setFileLabel(session.user.name);
+      setFileLabel(session.user.name); // Default label
     }
     fetchPrescriptions();
   }, [session, sessionStatus, router]);
@@ -102,6 +107,10 @@ const ManagePrescriptionsPage = () => {
       setError("Please select a file to upload.");
       return;
     }
+    if (!selectedCategory) {
+      setError("Please select a prescription category.");
+      return;
+    }
     setIsUploading(true);
     setError(null);
     setSuccessMessage(null);
@@ -112,6 +121,7 @@ const ManagePrescriptionsPage = () => {
       "label",
       fileLabel || selectedFile.name.replace(/\.[^/.]+$/, "")
     );
+    formData.append("category", selectedCategory); // Add category to form data
 
     try {
       const response = await fetch("/api/account/prescriptions", {
@@ -129,12 +139,11 @@ const ManagePrescriptionsPage = () => {
       ]);
       setSelectedFile(null);
       setFileLabel(session?.user?.name || "");
+      setSelectedCategory("Eyeglasses"); // Reset category to default
       const fileInput = document.getElementById(
         "prescriptionFile"
       ) as HTMLInputElement | null;
-      if (fileInput) {
-        fileInput.value = "";
-      }
+      if (fileInput) fileInput.value = "";
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -147,9 +156,6 @@ const ManagePrescriptionsPage = () => {
       setError("Authentication error. Please sign in again.");
       return;
     }
-    // Modern browsers have built-in confirm dialogs, but for a better UX,
-    // you might consider a custom modal component in a real app.
-    // For now, window.confirm is used.
     if (
       !window.confirm(
         "Are you sure you want to delete this prescription? This action cannot be undone."
@@ -157,26 +163,18 @@ const ManagePrescriptionsPage = () => {
     ) {
       return;
     }
-
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
-
     try {
       const response = await fetch(`/api/account/prescriptions`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prescriptionId: prescriptionId }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(result.message || "Failed to delete prescription.");
-      }
-
       setSuccessMessage("Prescription deleted successfully!");
       setPrescriptions((prev) => prev.filter((p) => p.id !== prescriptionId));
     } catch (err: any) {
@@ -186,13 +184,12 @@ const ManagePrescriptionsPage = () => {
     }
   };
 
-  // Removed isDirectDownloadUrl function as it's no longer needed
-
   if (
     sessionStatus === "loading" ||
     (isLoading && prescriptions.length === 0 && !error)
   ) {
     return (
+      /* ... loading spinner ... */
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
         <p className="mt-4 text-lg font-medium text-gray-700">Loading...</p>
@@ -219,25 +216,27 @@ const ManagePrescriptionsPage = () => {
           </h1>
         </header>
 
-        {error && (
+        {error /* ... error display ... */ && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-sm mb-6"
             role="alert"
           >
             <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
-              <p>{error}</p>
+              {" "}
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />{" "}
+              <p>{error}</p>{" "}
             </div>
           </div>
         )}
-        {successMessage && (
+        {successMessage /* ... success display ... */ && (
           <div
             className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md shadow-sm mb-6"
             role="alert"
           >
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-              <p>{successMessage}</p>
+              {" "}
+              <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />{" "}
+              <p>{successMessage}</p>{" "}
             </div>
           </div>
         )}
@@ -247,8 +246,31 @@ const ManagePrescriptionsPage = () => {
           className="bg-white p-6 rounded-lg shadow-md space-y-6 mb-8"
         >
           <h3 className="text-xl font-semibold text-gray-700 mb-1">
-            Upload New Prescription
+            {" "}
+            Upload New Prescription{" "}
           </h3>
+
+          <div>
+            <label
+              htmlFor="prescriptionCategory"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Prescription Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="prescriptionCategory"
+              value={selectedCategory}
+              onChange={(e) =>
+                setSelectedCategory(e.target.value as PrescriptionCategory)
+              }
+              required
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-black focus:border-black sm:text-sm rounded-md"
+            >
+              <option value="Eyeglasses">Eyeglasses</option>
+              <option value="ContactLenses">Contact Lenses</option>
+            </select>
+          </div>
+
           <div>
             <label
               htmlFor="fileLabel"
@@ -275,7 +297,8 @@ const ManagePrescriptionsPage = () => {
             >
               Choose File{" "}
               <span className="text-xs text-gray-500">
-                (PDF, JPG, PNG) Max 20MB
+                {" "}
+                (PDF, JPG, PNG) Max 20MB{" "}
               </span>
             </label>
             <input
@@ -289,8 +312,9 @@ const ManagePrescriptionsPage = () => {
             />
             {selectedFile && (
               <p className="text-xs text-gray-500 mt-1">
+                {" "}
                 Selected: {selectedFile.name} (
-                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB){" "}
               </p>
             )}
           </div>
@@ -312,72 +336,87 @@ const ManagePrescriptionsPage = () => {
 
         <div>
           <h2 className="text-2xl font-semibold text-gray-700 mb-4 mt-10">
-            Your Uploaded Prescriptions
+            {" "}
+            Your Uploaded Prescriptions{" "}
           </h2>
-          {isLoading && prescriptions.length === 0 && !error ? (
+          {isLoading &&
+          prescriptions.length === 0 &&
+          !error /* ... loader ... */ ? (
             <div className="text-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
+              {" "}
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />{" "}
             </div>
-          ) : !isLoading && prescriptions.length === 0 && !error ? (
+          ) : !isLoading &&
+            prescriptions.length === 0 &&
+            !error /* ... no prescriptions message ... */ ? (
             <div className="text-center py-10 bg-white rounded-lg shadow-sm">
-              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              {" "}
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />{" "}
               <p className="text-gray-600">
-                You haven&apos;t uploaded any prescriptions yet.
-              </p>
+                {" "}
+                You haven&apos;t uploaded any prescriptions yet.{" "}
+              </p>{" "}
             </div>
           ) : prescriptions.length > 0 ? (
             <ul className="space-y-4">
-              {prescriptions.map((rx) => {
-                // Removed canDownloadDirectly and related logic
-                return (
-                  <li
-                    key={rx.id}
-                    className="bg-white p-4 rounded-lg shadow flex items-center justify-between hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center overflow-hidden">
-                      <FileText className="h-8 w-8 text-black mr-3 flex-shrink-0" />
-                      <div className="overflow-hidden">
-                        <p
-                          className="font-medium text-gray-800 truncate"
-                          title={rx.label || rx.fileName}
-                        >
-                          {rx.label || rx.fileName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Uploaded:{" "}
-                          {new Date(rx.uploadedAt).toLocaleDateString()} | Type:{" "}
-                          {rx.fileType}{" "}
-                          {rx.fileSize
-                            ? `| Size: ${(rx.fileSize / 1024 / 1024).toFixed(
-                                2
-                              )} MB`
-                            : ""}
-                        </p>
-                        <p
-                          className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
-                          title={rx.storageUrlOrId}
-                        >
-                          Ref:{" "}
-                          {rx.storageUrlOrId.startsWith("http")
-                            ? "CDN Link"
-                            : rx.storageUrlOrId}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-                      {/* Download button and related logic removed */}
-                      <button
-                        onClick={() => handleDeletePrescription(rx.id)}
-                        title="Delete Prescription"
-                        disabled={isLoading}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full disabled:opacity-50"
+              {prescriptions.map((rx) => (
+                <li
+                  key={rx.id}
+                  className="bg-white p-4 rounded-lg shadow flex items-center justify-between hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center overflow-hidden">
+                    <FileText className="h-8 w-8 text-black mr-3 flex-shrink-0" />
+                    <div className="overflow-hidden">
+                      <p
+                        className="font-medium text-gray-800 truncate"
+                        title={rx.label || rx.fileName}
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        {" "}
+                        {rx.label || rx.fileName}{" "}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Uploaded: {new Date(rx.uploadedAt).toLocaleDateString()}{" "}
+                        | Type: {rx.fileType}
+                        {rx.category && (
+                          <span className="italic">
+                            {" "}
+                            (
+                            {rx.category === "ContactLenses"
+                              ? "Contacts"
+                              : "Eyeglasses"}
+                            )
+                          </span>
+                        )}
+                        {rx.fileSize
+                          ? ` | Size: ${(rx.fileSize / 1024 / 1024).toFixed(
+                              2
+                            )} MB`
+                          : ""}
+                      </p>
+                      <p
+                        className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
+                        title={rx.storageUrlOrId}
+                      >
+                        Ref:{" "}
+                        {rx.storageUrlOrId.startsWith("http")
+                          ? "CDN Link"
+                          : rx.storageUrlOrId}
+                      </p>
                     </div>
-                  </li>
-                );
-              })}
+                  </div>
+                  <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                    <button
+                      onClick={() => handleDeletePrescription(rx.id)}
+                      title="Delete Prescription"
+                      disabled={isLoading}
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full disabled:opacity-50"
+                    >
+                      {" "}
+                      <Trash2 size={18} />{" "}
+                    </button>
+                  </div>
+                </li>
+              ))}
             </ul>
           ) : null}
         </div>

@@ -1,10 +1,13 @@
 // File: src/sections/Products/ProductDetails/Hero.tsx
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
 import EyeglassesModal from "../EyeglassesModal";
+import ContactLensPrescriptionModal, {
+  ContactLensPrescriptionData,
+} from "@/components/ContactLensPrescriptionModal";
 import { useCart } from "@/context/CartContext";
 import {
   ShoppingCart,
@@ -12,27 +15,18 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import Image from "next/image";
 
 const Hero = ({ product }: any) => {
-  // useEffect(() => {
-  //   console.log("[Hero Init/Product Prop Change] Product data:", JSON.stringify(product, null, 2));
-  //   if (product?.variants && product.variants.length > 0) {
-  //     product.variants.forEach((v: any, index: number) => {
-  //       console.log(`[Hero Init/Product Prop Change] Variant ${index}: Name='${v.name}', Image Object:`, JSON.stringify(v.image, null, 2), "Direct imageSrc:", v.imageSrc);
-  //     });
-  //   }
-  // }, [product]);
-
   const {
     addLineItem,
     loading: cartLoading,
     error: cartContextError,
     clearCartError,
   } = useCart();
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
-  const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
+  const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<string>("");
@@ -40,50 +34,255 @@ const Hero = ({ product }: any) => {
     useState(false);
 
   const [isEyeglassesModalOpen, setIsEyeglassesModalOpen] = useState(false);
+  const [isClModalOpen, setIsClModalOpen] = useState(false);
+
+  const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
+  const [leftEyeEnabled, setLeftEyeEnabled] = useState(true);
+  const [rightEyeQty, setRightEyeQty] = useState(4);
+  const [leftEyeQty, setLeftEyeQty] = useState(4);
+  const maxQty = 4;
+
   const thumbContainerRef = useRef<HTMLDivElement>(null);
 
-  // Effect to set initial variant and image ONLY when the product prop itself changes
+  const isContactLensProduct = useMemo(() => {
+    const collectionName = product?.collection?.toLowerCase() || "";
+    // console.log("[Hero.tsx] Checking product type. Collection:", collectionName, "Product Name:", product?.name);
+    return collectionName === "contacts";
+  }, [product]);
+
   useEffect(() => {
-    // console.log("[Hero Effect - Product Change] Product prop updated. Current product name:", product?.name);
     if (product?.variants?.length > 0) {
       const initialVariant = product.variants[0];
-      // console.log("[Hero Effect - Product Change] Setting initial selectedVariant:", JSON.stringify(initialVariant, null, 2));
       setSelectedVariant(initialVariant);
-
-      const initialImageSrc =
+      setSelectedImage(
         initialVariant?.image?.src ||
-        initialVariant?.imageSrc ||
-        product.images?.[0]?.src ||
-        "";
-      // console.log("[Hero Effect - Product Change] Setting initial selectedImage:", initialImageSrc);
-      setSelectedImage(initialImageSrc);
-      setHasUserManuallySelectedImage(false);
+          initialVariant?.imageSrc ||
+          product.images?.[0]?.src ||
+          ""
+      );
     } else {
       setSelectedVariant(null);
       setSelectedImage(product?.images?.[0]?.src || "");
-      setHasUserManuallySelectedImage(false);
     }
-  }, [product]);
+    setHasUserManuallySelectedImage(false);
+    setActionSuccess(false);
+    setActionError(null);
+
+    if (isContactLensProduct) {
+      setRightEyeQty(4);
+      setLeftEyeQty(4);
+      setRightEyeEnabled(true);
+      setLeftEyeEnabled(true);
+    } else {
+      setRightEyeQty(1);
+      setLeftEyeQty(1);
+    }
+  }, [product, isContactLensProduct]);
+
+  const handlePrimaryAction = async () => {
+    setActionSuccess(false);
+    setActionError(null);
+    if (cartContextError) clearCartError();
+
+    if (!selectedVariant?.id) {
+      setActionError("Please select a product variant or style.");
+      setTimeout(() => setActionError(null), 3000);
+      return;
+    }
+
+    if (isContactLensProduct) {
+      if (
+        (!rightEyeEnabled || rightEyeQty <= 0) &&
+        (!leftEyeEnabled || leftEyeQty <= 0)
+      ) {
+        setActionError(
+          "Please select a quantity greater than 0 for at least one eye."
+        );
+        setTimeout(() => setActionError(null), 3000);
+        return;
+      }
+      if (!rightEyeEnabled && !leftEyeEnabled) {
+        setActionError(
+          "Please enable at least one eye for prescription entry."
+        );
+        setTimeout(() => setActionError(null), 3000);
+        return;
+      }
+      setIsClModalOpen(true);
+    } else {
+      setIsEyeglassesModalOpen(true);
+    }
+  };
+
+  const handleClPrescriptionComplete = async (
+    prescriptionData: ContactLensPrescriptionData
+  ) => {
+    setIsClModalOpen(false);
+    setIsProcessingPageAction(true);
+    setActionSuccess(false);
+    setActionError(null);
+
+    let finalPrescriptionReference =
+      prescriptionData.prescriptionReferenceValue;
+
+    if (
+      prescriptionData.prescriptionReferenceType === "new" &&
+      prescriptionData.uploadedFile
+    ) {
+      const formData = new FormData();
+      formData.append("prescriptionFile", prescriptionData.uploadedFile);
+      formData.append("label", prescriptionData.prescriptionReferenceValue);
+      formData.append("category", "ContactLenses");
+
+      try {
+        // console.log("[Hero] Uploading new prescription from modal data...");
+        const uploadRes = await fetch("/api/account/prescriptions", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(
+            uploadResult.message ||
+              "Failed to upload new prescription from modal."
+          );
+        }
+        finalPrescriptionReference = `Uploaded: ${
+          uploadResult.prescription?.fileName ||
+          prescriptionData.uploadedFile.name
+        }`;
+        // console.log("[Hero] New prescription uploaded successfully from modal:", finalPrescriptionReference);
+      } catch (e: any) {
+        setActionError(`Prescription Upload Error: ${e.message}`);
+        setIsProcessingPageAction(false);
+        return;
+      }
+    } else if (prescriptionData.prescriptionReferenceType === "existing") {
+      // The prescriptionReferenceValue from modal for 'existing' is already the label/fileName
+      finalPrescriptionReference = `Existing Rx: ${prescriptionData.prescriptionReferenceValue}`;
+    }
+
+    const baseAttributes = [
+      { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
+      { key: "Prescription Ref", value: finalPrescriptionReference },
+    ];
+    let itemsSuccessfullyAdded = 0;
+    let anyError = false;
+
+    try {
+      if (rightEyeEnabled && rightEyeQty > 0) {
+        const odAttributes = [
+          ...baseAttributes,
+          { key: "Eye", value: "Right (OD)" },
+          { key: "SPH (OD)", value: prescriptionData.odValues.sph || "N/A" },
+          { key: "BC (OD)", value: prescriptionData.odValues.bc || "N/A" },
+          { key: "DIA (OD)", value: prescriptionData.odValues.dia || "N/A" },
+        ];
+        if (prescriptionData.odValues.cyl)
+          odAttributes.push({
+            key: "CYL (OD)",
+            value: prescriptionData.odValues.cyl,
+          });
+        if (prescriptionData.odValues.axis)
+          odAttributes.push({
+            key: "Axis (OD)",
+            value: prescriptionData.odValues.axis,
+          });
+        if (prescriptionData.odValues.add)
+          odAttributes.push({
+            key: "ADD (OD)",
+            value: prescriptionData.odValues.add,
+          });
+
+        const successOD = await addLineItem(
+          selectedVariant.id,
+          rightEyeQty,
+          odAttributes
+        );
+        if (successOD) itemsSuccessfullyAdded++;
+        else anyError = true;
+      }
+
+      if (leftEyeEnabled && leftEyeQty > 0) {
+        const osAttributes = [
+          ...baseAttributes,
+          { key: "Eye", value: "Left (OS)" },
+          { key: "SPH (OS)", value: prescriptionData.osValues.sph || "N/A" },
+          { key: "BC (OS)", value: prescriptionData.osValues.bc || "N/A" },
+          { key: "DIA (OS)", value: prescriptionData.osValues.dia || "N/A" },
+        ];
+        if (prescriptionData.osValues.cyl)
+          osAttributes.push({
+            key: "CYL (OS)",
+            value: prescriptionData.osValues.cyl,
+          });
+        if (prescriptionData.osValues.axis)
+          osAttributes.push({
+            key: "Axis (OS)",
+            value: prescriptionData.osValues.axis,
+          });
+        if (prescriptionData.osValues.add)
+          osAttributes.push({
+            key: "ADD (OS)",
+            value: prescriptionData.osValues.add,
+          });
+
+        const successOS = await addLineItem(
+          selectedVariant.id,
+          leftEyeQty,
+          osAttributes
+        );
+        if (successOS) itemsSuccessfullyAdded++;
+        else anyError = true;
+      }
+
+      const totalEyesSelected =
+        (rightEyeEnabled && rightEyeQty > 0 ? 1 : 0) +
+        (leftEyeEnabled && leftEyeQty > 0 ? 1 : 0);
+
+      if (
+        itemsSuccessfullyAdded === totalEyesSelected &&
+        totalEyesSelected > 0
+      ) {
+        setActionSuccess(true);
+        setTimeout(() => setActionSuccess(false), 3000);
+      } else if (
+        anyError ||
+        (totalEyesSelected > 0 && itemsSuccessfullyAdded < totalEyesSelected)
+      ) {
+        setActionError(
+          cartContextError ||
+            "One or more items could not be added to cart. Please check cart."
+        );
+        setTimeout(() => setActionError(null), 5000);
+      } else if (totalEyesSelected === 0) {
+        setActionError("No quantity selected for either eye.");
+        setTimeout(() => setActionError(null), 3000);
+      }
+    } catch (e: any) {
+      setActionError(
+        e.message || "An error occurred while adding items to cart."
+      );
+      setTimeout(() => setActionError(null), 4000);
+    } finally {
+      setIsProcessingPageAction(false);
+    }
+  };
 
   const handleThumbnailClick = (src: string) => {
-    // console.log("[Hero Click] Thumbnail clicked, setting image to:", src);
     setSelectedImage(src);
     setHasUserManuallySelectedImage(true);
   };
-
   const handleFrameVariantClick = (variant: any) => {
-    // console.log("[Hero Click] Frame variant clicked. Variant data:", JSON.stringify(variant, null, 2));
     setSelectedVariant(variant);
     const newImageSrc =
       variant?.image?.src ||
       variant?.imageSrc ||
       product?.images?.[0]?.src ||
       "";
-    // console.log(`[Hero Click] Setting selectedImage from frame variant click to: ${newImageSrc}`);
     setSelectedImage(newImageSrc);
     setHasUserManuallySelectedImage(false);
   };
-
   const scrollThumbnails = (direction: "left" | "right") => {
     if (!thumbContainerRef.current) return;
     const scrollAmount = thumbContainerRef.current.clientWidth / 2;
@@ -92,93 +291,12 @@ const Hero = ({ product }: any) => {
       behavior: "smooth",
     });
   };
-
-  const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
-  const [leftEyeEnabled, setLeftEyeEnabled] = useState(true);
-  const [rightEyeQty, setRightEyeQty] = useState(1);
-  const [leftEyeQty, setLeftEyeQty] = useState(1);
-
   const getDisplayedImage = () => {
-    // selectedImage is now the single source of truth for the main display,
-    // managed by handleFrameVariantClick and handleThumbnailClick.
     return (
       selectedImage ||
       product?.images?.[0]?.src ||
       "https://placehold.co/400x400/F7F4EE/333333?text=No+Image"
     );
-  };
-
-  const handlePrimaryAction = async () => {
-    setAddToCartSuccess(false);
-    setAddToCartError(null);
-    if (cartContextError) clearCartError();
-
-    const isEyewearProduct =
-      product.collection === "Eyewear" ||
-      product.productType === "EYEGLASSES" ||
-      product.product_type?.toLowerCase() === "eyeglasses";
-
-    if (isEyewearProduct) {
-      if (!selectedVariant) {
-        setAddToCartError("Please select a frame style.");
-        setTimeout(() => setAddToCartError(null), 3000);
-        return;
-      }
-      setIsEyeglassesModalOpen(true);
-      return;
-    }
-
-    if (!selectedVariant?.id) {
-      setAddToCartError("Please select a product variant.");
-      setTimeout(() => setAddToCartError(null), 3000);
-      return;
-    }
-
-    if (
-      (!rightEyeEnabled || rightEyeQty <= 0) &&
-      (!leftEyeEnabled || leftEyeQty <= 0)
-    ) {
-      setAddToCartError("Please select a quantity for at least one eye.");
-      setTimeout(() => setAddToCartError(null), 3000);
-      return;
-    }
-
-    setIsAddingToCart(true);
-    let itemsAddedCount = 0;
-    let operationSucceeded = true;
-
-    try {
-      if (rightEyeEnabled && rightEyeQty > 0) {
-        const added = await addLineItem(selectedVariant.id, rightEyeQty, [
-          { key: "Eye", value: "Right (OD)" },
-        ]);
-        if (added) itemsAddedCount++;
-        else operationSucceeded = false;
-      }
-
-      if (operationSucceeded && leftEyeEnabled && leftEyeQty > 0) {
-        const added = await addLineItem(selectedVariant.id, leftEyeQty, [
-          { key: "Eye", value: "Left (OS)" },
-        ]);
-        if (added) itemsAddedCount++;
-        else operationSucceeded = false;
-      }
-    } catch (err: any) {
-      operationSucceeded = false;
-      setAddToCartError(err.message || "An unexpected error occurred.");
-      console.error("Add to cart error caught in component:", err);
-    }
-
-    setIsAddingToCart(false);
-    if (operationSucceeded && itemsAddedCount > 0) {
-      setAddToCartSuccess(true);
-      setTimeout(() => setAddToCartSuccess(false), 3000);
-    } else if (!operationSucceeded) {
-      setAddToCartError(
-        cartContextError || "Failed to add items to cart. Please try again."
-      );
-      setTimeout(() => setAddToCartError(null), 4000);
-    }
   };
 
   const isScrollLeftDisabled =
@@ -189,19 +307,16 @@ const Hero = ({ product }: any) => {
       thumbContainerRef.current.offsetWidth >=
       thumbContainerRef.current.scrollWidth - 5;
 
-  const isEyewearType =
-    product.collection === "Eyewear" ||
-    product.productType === "EYEGLASSES" ||
-    product.product_type?.toLowerCase() === "eyeglasses";
-  const showFrameVariants = isEyewearType && product.variants?.length > 1;
+  const showFrameVariants =
+    !isContactLensProduct && product?.variants?.length > 1;
   const showContactLensVariantSection =
-    !isEyewearType && product.variants?.length > 0;
+    isContactLensProduct && product?.variants?.length > 0;
 
   const displayedVariantName =
     selectedVariant?.name || selectedVariant?.title || "N/A";
   const displayedPrice = selectedVariant?.priceV2?.amount
     ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
-    : selectedVariant?.price || product.price || "$0.00";
+    : selectedVariant?.price || product?.price || "$0.00";
 
   return (
     <section className="py-8 bg-white md:py-16 antialiased">
@@ -228,13 +343,12 @@ const Hero = ({ product }: any) => {
                 }}
               />
             </div>
-
-            {product.images && product.images.length > 1 && (
+            {product?.images && product.images.length > 1 && (
               <div className="relative mt-4">
                 <button
                   onClick={() => scrollThumbnails("left")}
-                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
                   disabled={isScrollLeftDisabled}
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
                 >
                   {" "}
                   ←{" "}
@@ -274,8 +388,8 @@ const Hero = ({ product }: any) => {
                 </div>
                 <button
                   onClick={() => scrollThumbnails("right")}
-                  className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
                   disabled={isScrollRightDisabled}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow p-2 rounded-full disabled:opacity-50"
                 >
                   {" "}
                   →{" "}
@@ -290,199 +404,228 @@ const Hero = ({ product }: any) => {
             </div>
           </div>
 
-          {/* Details Section */}
+          {/* Product Details & Actions Section */}
           <div className="relative">
             <div
               className={twMerge(
-                "lg:sticky lg:top-28",
-                showFrameVariants ? "lg:top-32" : ""
+                "lg:sticky",
+                showFrameVariants ? "lg:top-32" : "lg:top-28"
               )}
             >
               <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-6 sm:mt-8 lg:mt-0">
-                {product.name}
+                {product?.name}
               </h1>
               <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
                 {displayedPrice}
               </p>
 
-              {showFrameVariants && (
+              {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    {" "}
                     Style:{" "}
                     <span className="font-semibold">
                       {displayedVariantName}
-                    </span>
+                    </span>{" "}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
-                    {product.variants.map((variant: any, index: number) => {
-                      const buttonText =
-                        variant.name || variant.title || `Variant ${index + 1}`;
-                      return (
+                    {product.variants.map((variant: any, index: number) => (
+                      <button
+                        key={variant.id || `variant-${index}`}
+                        onClick={() => handleFrameVariantClick(variant)}
+                        title={variant.name || variant.title || "Variant"}
+                        className={twMerge(
+                          "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
+                          selectedVariant?.id === variant.id
+                            ? "bg-black text-white border-black ring-black"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                        )}
+                      >
+                        {" "}
+                        {variant.name ||
+                          variant.title ||
+                          `Variant ${index + 1}`}{" "}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {showContactLensVariantSection && product?.variants && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    {" "}
+                    Pack Size:{" "}
+                    <span className="font-semibold">
+                      {" "}
+                      {selectedVariant?.name || selectedVariant?.title
+                        ? `${selectedVariant.name || selectedVariant.title}`
+                        : "N/A"}{" "}
+                    </span>{" "}
+                  </h3>
+                  {product.variants.length > 1 && (
+                    <div className="flex flex-wrap gap-2">
+                      {product.variants.map((variant: any, index: number) => (
                         <button
-                          key={variant.id || `variant-${index}`}
+                          key={variant.id || `cl-variant-${index}`}
                           onClick={() => handleFrameVariantClick(variant)}
-                          title={variant.name || variant.title || "Variant"}
                           className={twMerge(
-                            "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
+                            "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
                             selectedVariant?.id === variant.id
                               ? "bg-black text-white border-black ring-black"
                               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
                           )}
                         >
-                          {buttonText}
+                          {" "}
+                          {variant.name ||
+                            variant.title ||
+                            `Variant ${index + 1}`}{" "}
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {showContactLensVariantSection && (
-                <div className="mt-5">
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">
-                    Pack Size:{" "}
-                    <span className="font-semibold">
-                      {selectedVariant?.name || selectedVariant?.title
-                        ? `${
-                            selectedVariant.name || selectedVariant.title
-                          } Pack`
-                        : "N/A"}
-                    </span>
-                  </h3>
-                  {product.variants.length > 1 && (
-                    <div className="flex flex-wrap gap-2">
-                      {product.variants.map((variant: any, index: number) => {
-                        const packName = variant.name || variant.title;
-                        const buttonText = packName
-                          ? `${packName} Pack`
-                          : `Variant ${index + 1}`;
-                        return (
-                          <button
-                            key={variant.id || `cl-variant-${index}`}
-                            onClick={() => handleFrameVariantClick(variant)}
-                            className={twMerge(
-                              "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
-                              selectedVariant?.id === variant.id
-                                ? "bg-black text-white border-black ring-black"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
-                            )}
-                          >
-                            {buttonText}
-                          </button>
-                        );
-                      })}
+                      ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Quantity Selection for Contact Lenses - RESTORED AND ALWAYS VISIBLE FOR CONTACT LENSES */}
-              {!isEyewearType && (
-                <div className="mt-6 space-y-3">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    Select quantity:
-                  </h3>
-                  {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
-                    >
-                      <label className="flex items-center space-x-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
-                          onChange={(e) =>
-                            idx === 0
-                              ? setRightEyeEnabled(e.target.checked)
-                              : setLeftEyeEnabled(e.target.checked)
-                          }
-                          className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
-                        />
-                        <span className="text-sm text-gray-700">{label}</span>
-                      </label>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() =>
-                            idx === 0
-                              ? setRightEyeQty((prev) => Math.max(1, prev - 1))
-                              : setLeftEyeQty((prev) => Math.max(1, prev - 1))
-                          }
-                          disabled={
-                            (idx === 0 &&
-                              (!rightEyeEnabled || rightEyeQty <= 1)) ||
-                            (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
-                          }
-                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
-                        >
-                          {" "}
-                          −{" "}
-                        </button>
-                        <span className="w-8 text-center text-sm font-medium text-gray-800">
-                          {idx === 0 ? rightEyeQty : leftEyeQty}
-                        </span>
-                        <button
-                          onClick={() =>
-                            idx === 0
-                              ? setRightEyeQty((prev) => prev + 1)
-                              : setLeftEyeQty((prev) => prev + 1)
-                          }
-                          disabled={
-                            (idx === 0 && !rightEyeEnabled) ||
-                            (idx === 1 && !leftEyeEnabled)
-                          }
-                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
-                        >
-                          {" "}
-                          +{" "}
-                        </button>
-                      </div>
+              <div className="mt-6 space-y-3">
+                <h3 className="text-sm font-medium text-gray-900">
+                  {" "}
+                  Select quantity (boxes per eye):{" "}
+                </h3>
+                {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
+                  >
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
+                        onChange={(e) =>
+                          idx === 0
+                            ? setRightEyeEnabled(e.target.checked)
+                            : setLeftEyeEnabled(e.target.checked)
+                        }
+                        className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                      />
+                      <span className="text-sm text-gray-700">{label}</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() =>
+                          idx === 0
+                            ? setRightEyeQty((prev) => Math.max(1, prev - 1))
+                            : setLeftEyeQty((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={
+                          (idx === 0 &&
+                            (!rightEyeEnabled || rightEyeQty <= 1)) ||
+                          (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
+                        }
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        {" "}
+                        −{" "}
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium text-gray-800">
+                        {" "}
+                        {idx === 0 ? rightEyeQty : leftEyeQty}{" "}
+                      </span>
+                      <button
+                        onClick={() =>
+                          idx === 0
+                            ? setRightEyeQty((prev) =>
+                                Math.min(maxQty, prev + 1)
+                              )
+                            : setLeftEyeQty((prev) =>
+                                Math.min(maxQty, prev + 1)
+                              )
+                        }
+                        disabled={
+                          (idx === 0 &&
+                            (!rightEyeEnabled || rightEyeQty >= maxQty)) ||
+                          (idx === 1 &&
+                            (!leftEyeEnabled || leftEyeQty >= maxQty))
+                        }
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        {" "}
+                        +{" "}
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
 
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
-                  disabled={isAddingToCart || cartLoading || !selectedVariant}
+                  disabled={
+                    isProcessingPageAction || cartLoading || !selectedVariant
+                  }
                   className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-white bg-black rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out"
                 >
-                  {isAddingToCart || cartLoading ? (
+                  {isProcessingPageAction || cartLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ShoppingCart className="w-5 h-5" />
+                    <ShoppingCart className="w-5 w-5" />
                   )}
-                  {isEyewearType ? "Select Lenses & Buy" : "Add to Cart"}
+                  {isContactLensProduct
+                    ? "Enter Prescription & Add to Cart"
+                    : "Select Lenses & Buy"}
                 </button>
               </div>
-              {addToCartSuccess && (
+              {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
+                  {" "}
                   <CheckCircle size={16} className="mr-1" /> Item(s) added to
-                  cart!
+                  cart!{" "}
                 </p>
               )}
-              {addToCartError && (
+              {actionError && (
                 <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
-                  <AlertTriangle size={16} className="mr-1" /> {addToCartError}
+                  {" "}
+                  <AlertTriangle size={16} className="mr-1" /> {actionError}{" "}
                 </p>
               )}
-              {cartContextError && !addToCartError && (
+              {cartContextError && !actionError && (
                 <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
+                  {" "}
                   <AlertTriangle size={16} className="mr-1" /> Cart Error:{" "}
-                  {cartContextError}
+                  {cartContextError}{" "}
                 </p>
               )}
             </div>
           </div>
         </div>
-        {isEyeglassesModalOpen && isEyewearType && selectedVariant && (
-          <EyeglassesModal
-            product={product}
-            selectedVariant={selectedVariant}
-            isOpen={isEyeglassesModalOpen}
-            onClose={() => setIsEyeglassesModalOpen(false)}
-          />
-        )}
+
+        {isEyeglassesModalOpen &&
+          !isContactLensProduct &&
+          selectedVariant &&
+          product && (
+            <EyeglassesModal
+              product={product}
+              selectedVariant={selectedVariant}
+              isOpen={isEyeglassesModalOpen}
+              onClose={() => setIsEyeglassesModalOpen(false)}
+            />
+          )}
+        {isClModalOpen &&
+          isContactLensProduct &&
+          selectedVariant &&
+          product && (
+            <ContactLensPrescriptionModal
+              product={product}
+              selectedVariant={selectedVariant}
+              isOpen={isClModalOpen}
+              onClose={() => {
+                setIsClModalOpen(false);
+                setIsProcessingPageAction(false);
+              }}
+              onComplete={handleClPrescriptionComplete}
+            />
+          )}
+
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}

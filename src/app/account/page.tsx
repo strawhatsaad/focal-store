@@ -77,7 +77,7 @@ const AccountPage = () => {
           <section className="pb-8 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               {user?.image ? (
-                <Image
+                <img
                   src={user.image}
                   alt={user.name || "User profile picture"}
                   width={100}

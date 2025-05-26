@@ -16,6 +16,90 @@ const ProductDetails = async ({ params }: PageProps) => {
 
   console.log("Fetching product (generic) with slug:", slug);
 
+  // Use the GraphQL query provided by the user
+  const singleProductQuery = gql`
+    query GetProductByHandle($handle: String!) {
+      productByHandle(handle: $handle) {
+        title
+        handle
+        description
+        productType
+        tags
+        collections(first: 1) {
+          edges {
+            node {
+              title
+              handle # Added handle for collection
+            }
+          }
+        }
+        priceRange {
+          minVariantPrice {
+            amount
+            currencyCode
+          }
+          maxVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        images(first: 10) {
+          edges {
+            node {
+              id
+              url
+              transformedSrc
+              altText
+            }
+          }
+        }
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              title
+              sku
+              availableForSale
+              priceV2 {
+                amount
+                currencyCode
+              }
+              selectedOptions {
+                name
+                value
+              }
+              image {
+                id
+                url
+                transformedSrc
+                altText
+              }
+            }
+          }
+        }
+        metafields(
+          identifiers: [
+            { namespace: "custom", key: "lens_type" }
+            { namespace: "custom", key: "material" }
+            { namespace: "custom", key: "manufacturer" }
+            { namespace: "custom", key: "frame_width1" }
+            { namespace: "custom", key: "frame_size" }
+            { namespace: "custom", key: "diameter_dia" }
+            { namespace: "custom", key: "base_curve_b_c" }
+            { namespace: "custom", key: "add" }
+            { namespace: "custom", key: "axis" }
+            { namespace: "custom", key: "cylinder_cyl" }
+          ]
+        ) {
+          namespace
+          key
+          value
+          type
+        }
+      }
+    }
+  `;
+
   const variables = {
     handle: slug,
   };
@@ -42,7 +126,8 @@ const ProductDetails = async ({ params }: PageProps) => {
   }
 
   const data = result.data.productByHandle;
-  console.log("Product data received (generic):", data);
+  // Log the raw metafields data to ensure it's coming through as expected
+  console.log("Raw product data from Shopify:", JSON.stringify(data, null, 2));
 
   // Helper function to safely access metafields
   const getMetafieldValue = (
@@ -56,6 +141,7 @@ const ProductDetails = async ({ params }: PageProps) => {
     return "";
   };
 
+  // Construct the product object as specified
   const product = {
     id: data.handle,
     name: data.title,
@@ -71,7 +157,7 @@ const ProductDetails = async ({ params }: PageProps) => {
       })) || [],
     description: data.description,
     collection: data.collections?.edges?.[0]?.node.title || "",
-    collectionHandle: data.collections?.edges?.[0]?.node.handle || "frontpage", // For related products
+    collectionHandle: data.collections?.edges?.[0]?.node.handle || "frontpage",
     product_type: data.productType || "",
     variants:
       data.variants?.edges?.map(({ node }: any) => ({
@@ -93,14 +179,30 @@ const ProductDetails = async ({ params }: PageProps) => {
             }
           : null,
       })) || [],
+    metafields: data.metafields || [], // Pass the whole metafields array
     type: getMetafieldValue("lens_type", data.metafields),
     material: getMetafieldValue("material", data.metafields),
     manufacturer: getMetafieldValue("manufacturer", data.metafields),
-    frame_width: getMetafieldValue("frame_width1", data.metafields), // Assuming frame_width1 is correct key
+    frame_width: getMetafieldValue("frame_width1", data.metafields),
     frame_size: getMetafieldValue("frame_size", data.metafields),
+    // Add individual access for CL metafields if needed directly on product page,
+    // but modal will use the `product.metafields` array
+    diameter_dia: getMetafieldValue("diameter_dia", data.metafields),
+    base_curve_b_c: getMetafieldValue("base_curve_b_c", data.metafields),
+    add_power: getMetafieldValue("add", data.metafields),
+    axis_is_astigmatism: getMetafieldValue("axis", data.metafields),
+    cylinder_cyl_is_astigmatism: getMetafieldValue(
+      "cylinder_cyl",
+      data.metafields
+    ),
   };
 
-  // For Related Products, use the fetched collection handle or a fallback
+  // Log the constructed product object to verify its structure
+  console.log(
+    "Constructed product object for props:",
+    JSON.stringify(product, null, 2)
+  );
+
   const relatedProductCollectionHandle = product.collectionHandle;
   let relatedProductsResult;
   try {
@@ -165,94 +267,15 @@ const ProductDetails = async ({ params }: PageProps) => {
 
 export default ProductDetails;
 
-const gql = String.raw;
+const gql = String.raw; // Keep this if not already defined, or ensure it's imported
 
-const singleProductQuery = gql`
-  query GetProductByHandle($handle: String!) {
-    productByHandle(handle: $handle) {
-      title
-      handle
-      description
-      productType
-      tags
-      collections(first: 1) {
-        edges {
-          node {
-            title
-            handle # Added handle for collection
-          }
-        }
-      }
-      priceRange {
-        minVariantPrice {
-          amount
-          currencyCode
-        }
-        maxVariantPrice {
-          amount
-          currencyCode
-        }
-      }
-      images(first: 10) {
-        edges {
-          node {
-            id
-            url
-            transformedSrc
-            altText
-          }
-        }
-      }
-      variants(first: 10) {
-        edges {
-          node {
-            id
-            title
-            sku
-            availableForSale
-            priceV2 {
-              amount
-              currencyCode
-            }
-            selectedOptions {
-              name
-              value
-            }
-            image {
-              id
-              url
-              transformedSrc
-              altText
-            }
-          }
-        }
-      }
-      # Ensure you are requesting the metafields with correct identifiers
-      metafields(
-        identifiers: [
-          { namespace: "custom", key: "lens_type" }
-          { namespace: "custom", key: "material" }
-          { namespace: "custom", key: "manufacturer" }
-          { namespace: "custom", key: "frame_width1" } # Verify this key if it's correct
-          { namespace: "custom", key: "frame_size" }
-        ]
-      ) {
-        namespace # Included for debugging if needed
-        key
-        value
-        type # Included for debugging if needed
-      }
-    }
-  }
-`;
-
+// allProductsQuery remains the same as your last provided version for this file
 const allProductsQuery = gql`
   query GetCollectionProducts($handle: String!) {
     collectionByHandle(handle: $handle) {
       title
       description
       products(first: 5) {
-        # Fetch a few more than 4 for filtering
         edges {
           node {
             id
