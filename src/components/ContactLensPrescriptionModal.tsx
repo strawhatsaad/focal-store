@@ -17,9 +17,8 @@ export interface ContactLensPrescriptionData {
   odValues: PrescriptionValues;
   osValues: PrescriptionValues;
   prescriptionReferenceType: "existing" | "new" | "none";
-  // For 'existing', this will be the label/fileName. For 'new', it's the uploadLabel.
   prescriptionReferenceValue: string;
-  uploadedFile?: File | null; // Pass the file object if newly uploaded for Hero to handle
+  uploadedFile?: File | null;
 }
 
 interface PrescriptionValues {
@@ -32,7 +31,7 @@ interface PrescriptionValues {
 }
 
 interface PrescriptionEntry {
-  id: string; // UUID of the prescription entry
+  id: string;
   fileName: string;
   label?: string;
   category?: "ContactLenses" | "Eyeglasses";
@@ -44,13 +43,12 @@ interface ContactLensPrescriptionModalProps {
   onClose: () => void;
   product: any;
   selectedVariant: any;
-  onComplete: (data: ContactLensPrescriptionData) => void; // Passes all data back
+  onComplete: (data: ContactLensPrescriptionData) => void;
 }
 
-// Helper to generate SPH options
 const generateSphOptions = (isAstigmatismProduct: boolean): string[] => {
   const options: string[] = [];
-  const negativeLimit = isAstigmatismProduct ? -9.0 : -12.0; // Use isAstigmatismProduct
+  const negativeLimit = isAstigmatismProduct ? -9.0 : -12.0;
   const positiveLimit = 8.0;
   const step = 0.25;
   options.push("0.00");
@@ -63,7 +61,6 @@ const generateSphOptions = (isAstigmatismProduct: boolean): string[] => {
   return options.sort((a, b) => parseFloat(a) - parseFloat(b));
 };
 
-// Helper to generate CYL options
 const generateCylOptions = (): string[] => {
   const options: string[] = [];
   for (let i = -0.75; i >= -2.25; i -= 0.5) {
@@ -72,21 +69,56 @@ const generateCylOptions = (): string[] => {
   return options.sort((a, b) => parseFloat(a) - parseFloat(b));
 };
 
-// Helper to generate Axis options
 const generateAxisOptions = (): string[] => {
   const options: string[] = [];
   for (let i = 10; i <= 180; i += 10) {
-    options.push(`${i}°`); // Added degree sign
+    options.push(`${i}°`);
   }
   return options;
 };
 
-// Helper to parse metafield string (e.g., "8.5,8.6" or "Low,Medium,High") into array
+const cleanOptionString = (str: string): string => {
+  let cleaned = str.trim();
+  // Remove surrounding quotes
+  if (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  // Remove surrounding square brackets (though less likely for individual items after split/parse)
+  if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned.trim(); // Trim again after potential modifications
+};
+
 const parseMetafieldOptions = (metafieldValue?: string): string[] => {
-  if (!metafieldValue) return [];
-  return metafieldValue
+  if (!metafieldValue || metafieldValue.trim() === "") return [];
+
+  const trimmedValue = metafieldValue.trim();
+
+  // Attempt to parse as JSON array first
+  if (trimmedValue.startsWith("[") && trimmedValue.endsWith("]")) {
+    try {
+      const parsedArray = JSON.parse(trimmedValue);
+      if (Array.isArray(parsedArray)) {
+        return parsedArray
+          .map((item) => cleanOptionString(String(item)))
+          .filter((s) => s.length > 0);
+      }
+    } catch (e) {
+      // Not a valid JSON array string, proceed to comma splitting
+      console.warn(
+        `Metafield value looked like JSON array but failed to parse: "${trimmedValue}". Falling back to comma split. Error: ${e}`
+      );
+    }
+  }
+
+  // Fallback to comma splitting for non-JSON strings or if JSON parsing failed
+  return trimmedValue
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => cleanOptionString(s))
     .filter((s) => s.length > 0);
 };
 
@@ -125,13 +157,10 @@ const ContactLensPrescriptionModal: React.FC<
     const cylMetafield = product.metafields?.find(
       (mf: any) => mf && mf.key === "cylinder_cyl"
     );
-
     const isAxisTrue =
       axisMetafield?.value?.toString().toLowerCase() === "true";
     const isCylTrue = cylMetafield?.value?.toString().toLowerCase() === "true";
-
-    // console.log(`[Modal] isAstigmatismProduct check: axisValue='${axisMetafield?.value}', isAxisTrue=${isAxisTrue}; cylValue='${cylMetafield?.value}', isCylTrue=${isCylTrue}`);
-    return isAxisTrue || isCylTrue; // It's an astigmatism product if either metafield is explicitly "true"
+    return isAxisTrue || isCylTrue;
   }, [product.metafields]);
 
   const isMultifocalProduct = useMemo(() => {
@@ -139,7 +168,6 @@ const ContactLensPrescriptionModal: React.FC<
       (mf: any) => mf && mf.key === "add"
     );
     const result = !!addMetafield?.value && addMetafield.value.trim() !== "";
-    // console.log(`[Modal] isMultifocalProduct check: addMetafieldValue='${addMetafield?.value}', result=${result}`);
     return result;
   }, [product.metafields]);
 
@@ -184,7 +212,6 @@ const ContactLensPrescriptionModal: React.FC<
         setIsLoadingExistingRx(true);
         setError(null);
         try {
-          // console.log("[Modal] Fetching existing ContactLenses prescriptions...");
           const res = await fetch(
             "/api/account/prescriptions?category=ContactLenses"
           );
@@ -193,7 +220,6 @@ const ContactLensPrescriptionModal: React.FC<
             throw new Error(errData.message || "Failed to fetch prescriptions");
           }
           const data = await res.json();
-          // console.log("[Modal] Fetched prescriptions:", data.prescriptions);
           setExistingPrescriptions(data.prescriptions || []);
         } catch (e: any) {
           setError(`Could not load existing prescriptions: ${e.message}`);
@@ -357,7 +383,6 @@ const ContactLensPrescriptionModal: React.FC<
           </option>
         ))}
       </select>
-      {/* Basic validation message, can be enhanced */}
       {isRequired &&
         options.length > 0 &&
         (!value || value === "") &&
