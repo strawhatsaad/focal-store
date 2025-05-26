@@ -8,6 +8,7 @@
  * @returns {Promise<any>} The Shopify API response.
  */
 export async function storeFront(query, variables = {}, customerAccessToken = null) {
+  // ... (existing storeFront function code - no changes here)
   const headers = {
     "Content-Type": "application/json",
     "X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_STOREFRONT_ACCESS_TOKEN,
@@ -55,7 +56,6 @@ export async function storeFront(query, variables = {}, customerAccessToken = nu
     }
 
     const result = await response.json();
-    // It's important to check for GraphQL errors even if the HTTP status is OK
     if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
       const errorMessages = result.errors.map((e) => e.message || "Unknown Shopify GraphQL error").join("; ");
       console.error("[storeFront] Shopify GraphQL Errors:", JSON.stringify(result.errors, null, 2));
@@ -67,109 +67,142 @@ export async function storeFront(query, variables = {}, customerAccessToken = nu
     if (error.message.toLowerCase().includes("failed to fetch")) {
         throw new Error(`Network error or CORS issue: Failed to fetch from ${apiURL}. Check browser console. Original error: ${error.message}`);
     }
-    throw error; // Re-throw the error to be caught by the caller
+    throw error;
   }
 }
 
-// ... (keep all your existing mutations and helper functions for customer, orders, addresses, etc.)
 
-// --- Cart Mutations and Queries (Storefront API) ---
-export const CART_FRAGMENT = `
-  fragment CartFragment on Cart {
-    id
-    checkoutUrl
-    cost {
-      subtotalAmount { amount currencyCode }
-      totalAmount { amount currencyCode }
-      totalTaxAmount { amount currencyCode }
-    }
-    lines(first: 100) { # Adjust count as needed
-      edges {
-        node {
-          id
-          quantity
-          merchandise {
-            ... on ProductVariant {
-              id
-              title
-              priceV2 { amount currencyCode }
-              image { url(transform: {maxWidth: 100, maxHeight: 100}) altText }
-              product { title handle }
-            }
-          }
-          attributes { key value }
-        }
-      }
-    }
-    totalQuantity
-    buyerIdentity { # Corrected: customerAccessToken is not a field on the returned CartBuyerIdentity
-      email
-      phone
-      customer {
-        id # Shopify Customer GID
-      }
-      countryCode
-      # deliveryAddressPreferences { # if you need this
-      #   ... on MailingAddress {
-      #     address1
-      #   }
-      # }
-    }
+/**
+ * Makes a request to the Shopify Admin API.
+ * IMPORTANT: This function should ONLY be called from server-side code.
+ * @param {string} query The GraphQL query string.
+ * @param {Record<string, any>} [variables={}] The variables for the GraphQL query.
+ * @returns {Promise<any>} The Shopify Admin API response.
+ */
+export async function shopifyAdminRequest(query, variables = {}) {
+  // ... (existing shopifyAdminRequest function code - ensure it's present and correct)
+  const shopName = process.env.SHOPIFY_SHOP_NAME;
+  const adminApiAccessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
+  const adminApiVersion = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-07'; 
+
+  if (!shopName || !adminApiAccessToken) {
+    console.error("Shopify Admin API credentials are not configured.");
+    throw new Error("Shopify Admin API credentials are not configured.");
   }
-`;
 
-export const CART_CREATE_MUTATION = `mutation cartCreate($input: CartInput) { cartCreate(input: $input) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_ADD_MUTATION = `mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) { cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_UPDATE_MUTATION = `mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) { cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_REMOVE_MUTATION = `mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) { cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const GET_CART_QUERY = `query getCart($id: ID!) { cart(id: $id) { ...CartFragment } } ${CART_FRAGMENT}`;
+  const adminApiURL = `https://${shopName}.myshopify.com/admin/api/${adminApiVersion}/graphql.json`;
+  console.log(`[shopifyAdminRequest] Using Admin API URL: ${adminApiURL}`);
 
-// NEW MUTATION for associating a cart with a customer
-export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
-  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
-    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
-      cart {
-        ...CartFragment
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Shopify-Access-Token": adminApiAccessToken,
+  };
+
+  try {
+    const response = await fetch(adminApiURL, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`[shopifyAdminRequest] Shopify Admin API HTTP Error (${response.status}) for URL ${adminApiURL}: ${errorBody}`);
+      let errorMessage = `Shopify Admin API request failed: ${response.statusText} (Status: ${response.status})`;
+       try {
+        const jsonError = JSON.parse(errorBody);
+        if (jsonError && jsonError.errors) {
+          if (Array.isArray(jsonError.errors)) {
+            errorMessage += ` - Details: ${jsonError.errors.map((e) => e.message || "Unknown Shopify Admin error").join(", ")}`;
+          } else if (typeof jsonError.errors === 'string') {
+             errorMessage += ` - Details: ${jsonError.errors}`;
+          } else if (typeof jsonError.errors === 'object') {
+            errorMessage += ` - Details: ${JSON.stringify(jsonError.errors)}`;
+          }
+        }
+      } catch (e) {
+        errorMessage += ` - Raw Response Body: ${errorBody.substring(0, 300)}${errorBody.length > 300 ? "..." : ""}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
+      const errorMessages = result.errors.map((e) => e.message || "Unknown Shopify Admin GraphQL error").join("; ");
+      console.error("[shopifyAdminRequest] Shopify Admin GraphQL Errors:", JSON.stringify(result.errors, null, 2));
+      throw new Error(`Shopify Admin GraphQL error: ${errorMessages}`);
+    }
+    
+    const mutationName = Object.keys(result.data || {})[0];
+    if (mutationName && result.data?.[mutationName]?.userErrors?.length > 0) {
+        const userErrors = result.data[mutationName].userErrors;
+        const errorMessages = userErrors.map((e) => e.message || "Unknown Shopify Admin user error").join("; ");
+        console.error(`[shopifyAdminRequest] Shopify Admin User Errors in ${mutationName}:`, JSON.stringify(userErrors, null, 2));
+        throw new Error(`Shopify Admin user error: ${errorMessages}`);
+    }
+    return result;
+  } catch (error) {
+    console.error("[shopifyAdminRequest] Error during Shopify Admin API call execution:", error.message);
+    if (error.message.toLowerCase().includes("failed to fetch")) {
+        throw new Error(`Network error: Failed to fetch from ${adminApiURL}. Original error: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+// --- Customer Management (Storefront & Admin as needed) ---
+// ... (all existing customer mutations: CREATE_SHOPIFY_CUSTOMER_MUTATION, CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, GET_CUSTOMER_INFO_QUERY, CUSTOMER_UPDATE_MUTATION)
+
+// --- Draft Order (Admin API) ---
+export const DRAFT_ORDER_CREATE_MUTATION = `
+  mutation draftOrderCreate($input: DraftOrderInput!) {
+    draftOrderCreate(input: $input) {
+      draftOrder {
+        id
+        invoiceUrl
+        name
+        status
+        totalPriceSet {
+          presentmentMoney {
+            amount
+            currencyCode
+          }
+        }
       }
       userErrors {
         field
         message
-        code # Include code for better error handling
       }
     }
   }
-  ${CART_FRAGMENT}
 `;
 
+// ... (all existing Order, Address, Cart Storefront API mutations and fragments)
 
-// --- Cart Helper Functions ---
-export async function createShopifyCart(input = {}) { return storeFront(CART_CREATE_MUTATION, { input }); }
-export async function getShopifyCart(cartId) { if (!cartId) { console.warn("getShopifyCart called without cartId"); return null; } return storeFront(GET_CART_QUERY, { id: cartId }); }
-export async function addLinesToShopifyCart(cartId, lines) { if (!cartId || !lines || lines.length === 0) { console.warn("addLinesToShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_ADD_MUTATION, { cartId, lines }); }
-export async function updateLinesInShopifyCart(cartId, lines) { if (!cartId || !lines || lines.length === 0) { console.warn("updateLinesInShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_UPDATE_MUTATION, { cartId, lines }); }
-export async function removeLinesFromShopifyCart(cartId, lineIds) { if (!cartId || !lineIds || lineIds.length === 0) { console.warn("removeLinesFromShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_REMOVE_MUTATION, { cartId, lineIds }); }
+// --- Helper Functions ---
+// ... (all existing helper functions for Storefront API calls)
 
 /**
- * Associates a cart with a customer using their access token.
- * @param {string} cartId The ID of the cart to update.
- * @param {string} customerAccessToken The customer's access token.
- * @param {string | null} [customerEmail] The customer's email (optional but good to include).
- * @returns {Promise<any>} The Shopify API response.
+ * Creates a new Shopify draft order using the Admin API.
+ * @param {object} draftOrderInput - The DraftOrderInput object.
+ * @returns {Promise<any>} The Shopify Admin API response.
  */
-export async function associateCartWithCustomer(cartId, customerAccessToken, customerEmail = null) {
-  if (!cartId || !customerAccessToken) {
-    console.warn("associateCartWithCustomer called with invalid parameters.");
-    throw new Error("Cart ID and Customer Access Token are required for association.");
+export async function createShopifyDraftOrder(draftOrderInput) {
+  if (!draftOrderInput) {
+    console.error("[createShopifyDraftOrder] draftOrderInput is required.");
+    throw new Error("Draft order input is required.");
   }
-  const buyerIdentity = { // This is CartBuyerIdentityInput!
-    customerAccessToken: customerAccessToken,
-    ...(customerEmail && { email: customerEmail }),
-    // countryCode: "US", // Example: If you collect/require this
-  };
-  return storeFront(CART_BUYER_IDENTITY_UPDATE_MUTATION, { cartId, buyerIdentity });
+  return shopifyAdminRequest(DRAFT_ORDER_CREATE_MUTATION, { input: draftOrderInput });
 }
 
-// Ensure other mutations and helpers are present as they were
+// --- Make sure to keep other existing mutations and helpers:
+// CREATE_SHOPIFY_CUSTOMER_MUTATION, CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, GET_CUSTOMER_INFO_QUERY, CUSTOMER_UPDATE_MUTATION (if used for password)
+// GET_CUSTOMER_ORDERS_QUERY, GET_CUSTOMER_ADDRESSES_QUERY, and all address mutations
+// All CART_FRAGMENT and cart mutations (CART_CREATE_MUTATION, etc.)
+// All helper functions like createShopifyCustomer, createShopifyCart, etc.
 export const CREATE_SHOPIFY_CUSTOMER_MUTATION = `
   mutation customerCreate($input: CustomerCreateInput!) {
     customerCreate(input: $input) {
@@ -191,6 +224,16 @@ export const GET_CUSTOMER_INFO_QUERY = `
     customer(customerAccessToken: $customerAccessToken) { id email firstName lastName }
   }
 `;
+// Assuming CUSTOMER_UPDATE_MUTATION is still needed for direct password set on Focal account page
+export const CUSTOMER_UPDATE_MUTATION = `
+mutation customerUpdate($input: CustomerInput!) {
+  customerUpdate(input: $input) {
+    customer { id email }
+    userErrors { field message }
+  }
+}
+`;
+
 export const GET_CUSTOMER_ORDERS_QUERY = `
   query getCustomerOrders($customerAccessToken: String!, $first: Int!, $cursor: String) {
     customer(customerAccessToken: $customerAccessToken) {
@@ -230,6 +273,57 @@ export const CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION = `
   }
 `;
 
+export const CART_FRAGMENT = `
+  fragment CartFragment on Cart {
+    id
+    checkoutUrl
+    cost {
+      subtotalAmount { amount currencyCode }
+      totalAmount { amount currencyCode }
+      totalTaxAmount { amount currencyCode }
+    }
+    lines(first: 100) {
+      edges {
+        node {
+          id
+          quantity
+          merchandise {
+            ... on ProductVariant {
+              id
+              title
+              priceV2 { amount currencyCode }
+              image { url(transform: {maxWidth: 100, maxHeight: 100}) altText }
+              product { title handle }
+            }
+          }
+          attributes { key value }
+        }
+      }
+    }
+    totalQuantity
+    buyerIdentity { 
+      email
+      phone
+      customer { id }
+      countryCode
+    }
+  }
+`;
+export const CART_CREATE_MUTATION = `mutation cartCreate($input: CartInput) { cartCreate(input: $input) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_ADD_MUTATION = `mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) { cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_UPDATE_MUTATION = `mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) { cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_REMOVE_MUTATION = `mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) { cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const GET_CART_QUERY = `query getCart($id: ID!) { cart(id: $id) { ...CartFragment } } ${CART_FRAGMENT}`;
+export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
+  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart { ...CartFragment }
+      userErrors { field message code }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
 export async function createShopifyCustomer(input) { return storeFront(CREATE_SHOPIFY_CUSTOMER_MUTATION, { input }); }
 export async function createShopifyCustomerAccessToken(input) { return storeFront(CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, { input }); }
 export async function getCustomerOrders(customerAccessToken, first, cursor = null) { return storeFront(GET_CUSTOMER_ORDERS_QUERY, { customerAccessToken, first, cursor }, customerAccessToken); }
@@ -238,3 +332,17 @@ export async function createCustomerAddress(customerAccessToken, addressInput) {
 export async function updateCustomerAddress(customerAccessToken, addressId, addressInput) { return storeFront(CUSTOMER_ADDRESS_UPDATE_MUTATION, { customerAccessToken, id: addressId, address: addressInput }, customerAccessToken); }
 export async function deleteCustomerAddress(customerAccessToken, addressId) { return storeFront(CUSTOMER_ADDRESS_DELETE_MUTATION, { customerAccessToken, id: addressId }, customerAccessToken); }
 export async function updateCustomerDefaultAddress(customerAccessToken, addressId) { return storeFront(CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION, { customerAccessToken, addressId }, customerAccessToken); }
+
+export async function createShopifyCart(input = {}) { return storeFront(CART_CREATE_MUTATION, { input }); }
+export async function getShopifyCart(cartId) { if (!cartId) { console.warn("getShopifyCart called without cartId"); return null; } return storeFront(GET_CART_QUERY, { id: cartId }); }
+export async function addLinesToShopifyCart(cartId, lines) { if (!cartId || !lines || lines.length === 0) { console.warn("addLinesToShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_ADD_MUTATION, { cartId, lines }); }
+export async function updateLinesInShopifyCart(cartId, lines) { if (!cartId || !lines || lines.length === 0) { console.warn("updateLinesInShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_UPDATE_MUTATION, { cartId, lines }); }
+export async function removeLinesFromShopifyCart(cartId, lineIds) { if (!cartId || !lineIds || lineIds.length === 0) { console.warn("removeLinesFromShopifyCart called with invalid parameters."); return null; } return storeFront(CART_LINES_REMOVE_MUTATION, { cartId, lineIds }); }
+export async function associateCartWithCustomer(cartId, customerAccessToken, customerEmail = null) {
+  if (!cartId || !customerAccessToken) {
+    console.warn("associateCartWithCustomer called with invalid parameters.");
+    throw new Error("Cart ID and Customer Access Token are required for association.");
+  }
+  const buyerIdentity = { customerAccessToken: customerAccessToken, ...(customerEmail && { email: customerEmail }) };
+  return storeFront(CART_BUYER_IDENTITY_UPDATE_MUTATION, { cartId, buyerIdentity });
+}
