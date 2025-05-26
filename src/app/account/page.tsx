@@ -13,7 +13,8 @@ import {
   LogOut,
   ShoppingBag,
   MapPin,
-} from "lucide-react"; // Removed CreditCard
+  FileText, // Icon for prescriptions
+} from "lucide-react";
 
 const AccountPage = () => {
   const { data: session, status } = useSession();
@@ -22,7 +23,7 @@ const AccountPage = () => {
   useEffect(() => {
     if (status === "loading") return;
     if (!session) {
-      router.push("/");
+      router.push("/"); // Or to sign-in page: router.push("/auth/signin?callbackUrl=/account");
     }
   }, [session, status, router]);
 
@@ -38,6 +39,7 @@ const AccountPage = () => {
   }
 
   if (!session) {
+    // This ideally shouldn't be reached if useEffect redirects, but as a fallback:
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 text-center px-4">
         <UserCircle className="h-16 w-16 text-gray-400 mb-4" />
@@ -48,7 +50,7 @@ const AccountPage = () => {
           Please sign in to view your account details.
         </p>
         <button
-          onClick={() => router.push("/api/auth/signin")}
+          onClick={() => router.push("/auth/signin?callbackUrl=/account")}
           className="px-6 py-2.5 bg-black text-white font-medium text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors duration-150 ease-in-out"
         >
           Sign In
@@ -67,8 +69,8 @@ const AccountPage = () => {
             My Account
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Welcome back, {user?.name || "Valued Customer"}! Manage your profile
-            and view your activity.
+            Welcome back, {user?.name || user?.email || "Valued Customer"}!
+            Manage your profile and view your activity.
           </p>
         </header>
 
@@ -96,7 +98,10 @@ const AccountPage = () => {
                 </p>
                 {user?.shopifyCustomerId && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Shopify Customer ID: {user.shopifyCustomerId}
+                    Shopify Customer ID:{" "}
+                    {user.shopifyCustomerId.substring(
+                      user.shopifyCustomerId.lastIndexOf("/") + 1
+                    )}
                   </p>
                 )}
               </div>
@@ -116,7 +121,13 @@ const AccountPage = () => {
               description="Update your shipping and billing addresses."
               href="/account/addresses"
             />
-            {/* Payment Methods card removed */}
+            <AccountActionCard
+              icon={<FileText className="text-purple-600" size={28} />}
+              title="Manage Prescriptions"
+              description="Upload and view your eyewear or contact lens prescriptions."
+              href="/account/prescriptions" // Link to the new page
+            />
+            {/* Add more cards as needed */}
           </section>
 
           <section className="pt-8 mt-8 border-t border-gray-200 flex justify-center">
@@ -132,7 +143,7 @@ const AccountPage = () => {
         <p className="text-center text-gray-500 text-sm mt-12">
           Need help?{" "}
           <Link
-            href="/contact-us"
+            href="/contact-us" // Assuming you have a contact page
             className="text-black hover:underline font-medium"
           >
             Contact Support
