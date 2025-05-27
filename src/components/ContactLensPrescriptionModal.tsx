@@ -1,7 +1,7 @@
 // src/components/ContactLensPrescriptionModal.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   X,
   ArrowRight,
@@ -10,6 +10,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -46,19 +47,36 @@ interface ContactLensPrescriptionModalProps {
   onComplete: (data: ContactLensPrescriptionData) => void;
 }
 
-const generateSphOptions = (isAstigmatismProduct: boolean): string[] => {
-  const options: string[] = [];
+interface SphOptionsSeparated {
+  negative: string[];
+  zero: string;
+  positive: string[];
+}
+
+// Generates SPH options separated into negative, zero, and positive
+const generateSphOptionsSeparated = (
+  isAstigmatismProduct: boolean
+): SphOptionsSeparated => {
+  const negativeOptions: string[] = [];
+  const positiveOptions: string[] = [];
+  const zeroOption = "0.00";
+
   const negativeLimit = isAstigmatismProduct ? -9.0 : -12.0;
   const positiveLimit = 8.0;
   const step = 0.25;
-  options.push("0.00");
+
   for (let i = -step; i >= negativeLimit; i -= step) {
-    options.unshift(i.toFixed(2));
+    negativeOptions.unshift(i.toFixed(2));
   }
   for (let i = step; i <= positiveLimit; i += step) {
-    options.push(`+${i.toFixed(2)}`);
+    positiveOptions.push(`+${i.toFixed(2)}`);
   }
-  return options.sort((a, b) => parseFloat(a) - parseFloat(b));
+
+  return {
+    negative: negativeOptions.sort((a, b) => parseFloat(b) - parseFloat(a)),
+    zero: zeroOption,
+    positive: positiveOptions.sort((a, b) => parseFloat(a) - parseFloat(b)),
+  };
 };
 
 const generateCylOptions = (): string[] => {
@@ -79,26 +97,21 @@ const generateAxisOptions = (): string[] => {
 
 const cleanOptionString = (str: string): string => {
   let cleaned = str.trim();
-  // Remove surrounding quotes
   if (
     (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
     (cleaned.startsWith("'") && cleaned.endsWith("'"))
   ) {
     cleaned = cleaned.substring(1, cleaned.length - 1);
   }
-  // Remove surrounding square brackets (though less likely for individual items after split/parse)
   if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
     cleaned = cleaned.substring(1, cleaned.length - 1);
   }
-  return cleaned.trim(); // Trim again after potential modifications
+  return cleaned.trim();
 };
 
 const parseMetafieldOptions = (metafieldValue?: string): string[] => {
   if (!metafieldValue || metafieldValue.trim() === "") return [];
-
   const trimmedValue = metafieldValue.trim();
-
-  // Attempt to parse as JSON array first
   if (trimmedValue.startsWith("[") && trimmedValue.endsWith("]")) {
     try {
       const parsedArray = JSON.parse(trimmedValue);
@@ -108,14 +121,11 @@ const parseMetafieldOptions = (metafieldValue?: string): string[] => {
           .filter((s) => s.length > 0);
       }
     } catch (e) {
-      // Not a valid JSON array string, proceed to comma splitting
       console.warn(
         `Metafield value looked like JSON array but failed to parse: "${trimmedValue}". Falling back to comma split. Error: ${e}`
       );
     }
   }
-
-  // Fallback to comma splitting for non-JSON strings or if JSON parsing failed
   return trimmedValue
     .split(",")
     .map((s) => cleanOptionString(s))
@@ -142,6 +152,9 @@ const ContactLensPrescriptionModal: React.FC<
   const [isLoadingExistingRx, setIsLoadingExistingRx] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isSphSelectOpen, setIsSphSelectOpen] = useState(false);
+  const sphSelectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && product) {
@@ -171,8 +184,8 @@ const ContactLensPrescriptionModal: React.FC<
     return result;
   }, [product.metafields]);
 
-  const sphOptions = useMemo(
-    () => generateSphOptions(isAstigmatismProduct),
+  const sphOptionsSeparated = useMemo(
+    () => generateSphOptionsSeparated(isAstigmatismProduct),
     [isAstigmatismProduct]
   );
   const cylOptions = useMemo(
@@ -205,6 +218,25 @@ const ContactLensPrescriptionModal: React.FC<
     );
     return parseMetafieldOptions(diaMetafield?.value);
   }, [product.metafields]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sphSelectRef.current &&
+        !sphSelectRef.current.contains(event.target as Node)
+      ) {
+        setIsSphSelectOpen(false);
+      }
+    };
+    if (isSphSelectOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSphSelectOpen]);
 
   useEffect(() => {
     if (isOpen && session) {
@@ -242,6 +274,7 @@ const ContactLensPrescriptionModal: React.FC<
       );
       setError(null);
       setIsSubmitting(false);
+      setIsSphSelectOpen(false);
     }
   }, [isOpen, session]);
 
@@ -253,6 +286,7 @@ const ContactLensPrescriptionModal: React.FC<
     const setter = eye === "OD" ? setOdValues : setOsValues;
     setter((prev) => ({ ...prev, [field]: value }));
     setError(null);
+    if (field === "sph") setIsSphSelectOpen(false);
   };
 
   const isStepComplete = (values: PrescriptionValues): boolean => {
@@ -392,18 +426,84 @@ const ContactLensPrescriptionModal: React.FC<
     </div>
   );
 
+  const renderCustomSphSelect = (
+    eye: "OD" | "OS",
+    currentValue: string | undefined,
+    options: SphOptionsSeparated,
+    isRequired: boolean = true
+  ) => {
+    return (
+      <div className="mb-4 relative" ref={sphSelectRef}>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Sphere (SPH/PWR){" "}
+          {isRequired && <span className="text-red-500">*</span>}
+        </label>
+        <button
+          type="button"
+          onClick={() => setIsSphSelectOpen((prev) => !prev)}
+          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-sm text-left bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black rounded-md shadow-sm flex justify-between items-center"
+        >
+          <span>{currentValue || `Select Sphere`}</span>
+          <ChevronDown
+            size={16}
+            className={`text-gray-500 transition-transform ${
+              isSphSelectOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+        {isSphSelectOpen && (
+          // Main dropdown panel: Added flex, flex-col, and overflow-hidden
+          <div className="absolute z-20 mt-1 w-full max-h-60 bg-white border border-gray-300 rounded-md shadow-lg flex flex-col overflow-hidden">
+            <div
+              key={options.zero}
+              onClick={() => handleValueChange(eye, "sph", options.zero)}
+              // flex-shrink-0 prevents this "0.00" part from shrinking if content below is too large
+              className="col-span-2 px-3 py-2 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer text-center font-medium border-b flex-shrink-0"
+            >
+              {options.zero}
+            </div>
+            {/* Grid for +/- options: Added flex-grow to allow it to take available space and overflow-y-auto for scrolling */}
+            <div className="grid grid-cols-2 overflow-y-auto flex-grow">
+              <div className="border-r border-gray-200">
+                {options.negative.map((opt) => (
+                  <div
+                    key={`neg-${opt}`}
+                    onClick={() => handleValueChange(eye, "sph", opt)}
+                    className="px-3 py-2 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer text-center"
+                  >
+                    {opt}
+                  </div>
+                ))}
+              </div>
+              <div>
+                {options.positive.map((opt) => (
+                  <div
+                    key={`pos-${opt}`}
+                    onClick={() => handleValueChange(eye, "sph", opt)}
+                    className="px-3 py-2 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer text-center"
+                  >
+                    {opt}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {isRequired &&
+          (!currentValue || currentValue === "") &&
+          currentModalStep !== "VERIFY" && (
+            <p className="text-xs text-red-500 mt-1">This field is required.</p>
+          )}
+      </div>
+    );
+  };
+
   const renderEyeForm = (eye: "OD" | "OS", values: PrescriptionValues) => (
     <div className="space-y-3">
       <h3 className="text-xl font-semibold mb-4 text-gray-900 border-b pb-2">
         {eye === "OD" ? "Right Eye (OD)" : "Left Eye (OS)"} Prescription
       </h3>
-      {renderSelect(
-        "Sphere (SPH/PWR)",
-        values.sph,
-        (val) => handleValueChange(eye, "sph", val),
-        sphOptions,
-        true
-      )}
+      {renderCustomSphSelect(eye, values.sph, sphOptionsSeparated, true)}
       {isAstigmatismProduct &&
         renderSelect(
           "Cylinder (CYL)",
