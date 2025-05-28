@@ -2,26 +2,26 @@
 "use client";
 
 import { useState, FormEvent, useEffect, Suspense } from "react";
-import { signIn, getProviders } from "next-auth/react"; // getProviders might be removed if no OAuth
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import Logo from "@/assets/navBarLogo.png"; // Adjust path as necessary
+import Logo from "@/assets/navBarLogo.png";
 import { Eye, EyeOff, AlertTriangle, Loader2 } from "lucide-react";
 
-// SignInFormContent remains largely the same but will not render OAuth providers
 function SignInFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const errorParam = searchParams.get("error"); // Error from NextAuth (e.g., CredentialsSignin)
+  const errorParam = searchParams.get("error");
+  const reasonParam = searchParams.get("reason"); // Check for our custom reason
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState(""); // For sign-up
-  const [lastName, setLastName] = useState(""); // For sign-up
-  const [confirmPassword, setConfirmPassword] = useState(""); // For sign-up
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -29,11 +29,21 @@ function SignInFormContent() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [orderRedirectMessage, setOrderRedirectMessage] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
+    if (reasonParam === "orderAttempt") {
+      setOrderRedirectMessage(
+        "You need to be logged in to order Contacts and Glasses."
+      );
+    } else {
+      setOrderRedirectMessage(null);
+    }
+
     if (errorParam) {
       let decodedError = decodeURIComponent(errorParam);
-      // Customize messages for known NextAuth errors
       if (decodedError === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
       } else if (
@@ -42,22 +52,22 @@ function SignInFormContent() {
       ) {
         setFormError("Login failed. Please check your email and password.");
       } else {
-        // For other errors passed from authorize (like custom messages)
         setFormError(decodedError);
       }
     } else {
       setFormError(null);
     }
-  }, [errorParam]);
+  }, [errorParam, reasonParam]);
 
   const handleCredentialsSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setFormError(null);
+    setOrderRedirectMessage(null); // Clear order message on new attempt
     setSuccessMessage(null);
 
     const result = await signIn("credentials", {
-      redirect: false, // Handle redirect manually to show errors on this page
+      redirect: false,
       email,
       password,
       callbackUrl: callbackUrl,
@@ -65,18 +75,14 @@ function SignInFormContent() {
 
     setLoading(false);
     if (result?.error) {
-      // Error is already set by useEffect watching errorParam after redirect.
-      // If no redirect (e.g. network error before NextAuth handles it), result.error might be different.
-      // For direct feedback without waiting for redirect and param parsing:
       if (result.error === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
       } else {
-        setFormError(result.error); // Use the error message from signIn result
+        setFormError(result.error);
       }
     } else if (result?.ok && result?.url) {
-      router.push(result.url); // Successful sign-in, redirect
+      router.push(result.url);
     } else if (result?.ok && !result.url) {
-      // Should not happen with redirect: false if callbackUrl is provided, but as a fallback:
       router.push(callbackUrl);
     }
   };
@@ -88,37 +94,31 @@ function SignInFormContent() {
       return;
     }
     if (password.length < 5) {
-      // Shopify's minimum
       setFormError("Password must be at least 5 characters long.");
       return;
     }
     setLoading(true);
     setFormError(null);
+    setOrderRedirectMessage(null); // Clear order message
     setSuccessMessage(null);
 
     try {
-      // Call your existing sign-up API route
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, firstName, lastName }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
-        // data.message should contain the error from your signup API
         throw new Error(
           data.message || "Sign up failed due to an unknown error."
         );
       }
-
       setSuccessMessage(
         "Account created successfully! Please sign in with your new credentials."
       );
-      setIsSignUp(false); // Switch to sign-in form
-      // Optionally clear form fields, or prefill email for sign-in
-      setEmail(email); // Keep email for convenience
+      setIsSignUp(false);
+      setEmail(email);
       setPassword("");
       setConfirmPassword("");
       setFirstName("");
@@ -141,7 +141,8 @@ function SignInFormContent() {
               htmlFor="firstName"
               className="block text-sm font-medium text-gray-700"
             >
-              First Name
+              {" "}
+              First Name{" "}
             </label>
             <input
               id="firstName"
@@ -158,7 +159,8 @@ function SignInFormContent() {
               htmlFor="lastName"
               className="block text-sm font-medium text-gray-700"
             >
-              Last Name
+              {" "}
+              Last Name{" "}
             </label>
             <input
               id="lastName"
@@ -175,7 +177,8 @@ function SignInFormContent() {
               htmlFor="email-signup"
               className="block text-sm font-medium text-gray-700"
             >
-              Email address
+              {" "}
+              Email address{" "}
             </label>
             <input
               id="email-signup"
@@ -193,7 +196,8 @@ function SignInFormContent() {
               htmlFor="password-signup"
               className="block text-sm font-medium text-gray-700"
             >
-              Password
+              {" "}
+              Password{" "}
             </label>
             <input
               id="password-signup"
@@ -219,7 +223,8 @@ function SignInFormContent() {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-gray-700"
             >
-              Confirm Password
+              {" "}
+              Confirm Password{" "}
             </label>
             <input
               id="confirmPassword"
@@ -260,7 +265,6 @@ function SignInFormContent() {
         </form>
       );
     }
-    // Sign In form
     return (
       <form onSubmit={handleCredentialsSignIn} className="space-y-5">
         <div>
@@ -268,7 +272,8 @@ function SignInFormContent() {
             htmlFor="email-signin"
             className="block text-sm font-medium text-gray-700"
           >
-            Email address
+            {" "}
+            Email address{" "}
           </label>
           <input
             id="email-signin"
@@ -286,7 +291,8 @@ function SignInFormContent() {
             htmlFor="password-signin"
             className="block text-sm font-medium text-gray-700"
           >
-            Password
+            {" "}
+            Password{" "}
           </label>
           <input
             id="password-signin"
@@ -309,9 +315,9 @@ function SignInFormContent() {
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm">
-            {/* TODO: Implement forgot password functionality - this would typically link to Shopify's password reset */}
             <a href="#" className="font-medium text-black hover:text-gray-700">
-              Forgot your password?
+              {" "}
+              Forgot your password?{" "}
             </a>
           </div>
         </div>
@@ -349,8 +355,9 @@ function SignInFormContent() {
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
-              setFormError(null); // Clear errors when toggling
-              setSuccessMessage(null); // Clear success messages
+              setFormError(null);
+              setSuccessMessage(null);
+              setOrderRedirectMessage(null);
             }}
             className="font-medium text-black hover:text-gray-700"
           >
@@ -359,6 +366,13 @@ function SignInFormContent() {
               : "create a new account"}
           </button>
         </p>
+        {/* Display order redirect message here */}
+        {orderRedirectMessage && !formError && !successMessage && (
+          <div className="mt-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-600 flex items-center rounded-md">
+            <AlertTriangle size={20} className="mr-2 flex-shrink-0" />
+            <p className="text-sm">{orderRedirectMessage}</p>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -374,17 +388,13 @@ function SignInFormContent() {
               <p className="text-sm">{successMessage}</p>
             </div>
           )}
-
           {renderForm()}
-
-          {/* OAuth buttons removed from here */}
         </div>
       </div>
     </div>
   );
 }
 
-// Main page component wraps SignInFormContent in Suspense for useSearchParams
 export default function SignInPageContainer() {
   return (
     <Suspense fallback={<SignInPageLoadingFallback />}>

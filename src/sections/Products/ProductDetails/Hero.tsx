@@ -31,7 +31,7 @@ const Hero = ({ product }: any) => {
   } = useCart();
 
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
-  const [actionSuccess, setActionSuccess] = useState(false); // For brief success message before redirect
+  const [actionSuccess, setActionSuccess] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
@@ -109,8 +109,11 @@ const Hero = ({ product }: any) => {
 
     if (!session) {
       const currentPath = window.location.pathname + window.location.search;
+      // Add reason=orderAttempt to the callbackUrl
       router.push(
-        `/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`
+        `/auth/signin?callbackUrl=${encodeURIComponent(
+          currentPath
+        )}&reason=orderAttempt`
       );
       return;
     }
@@ -300,8 +303,7 @@ const Hero = ({ product }: any) => {
         totalEyesSelected > 0
       ) {
         setActionSuccess(true);
-        // setTimeout(() => setActionSuccess(false), 3000); // Message will be short-lived due to redirect
-        router.push("/cart"); // Redirect to cart on success
+        router.push("/cart");
       } else if (
         anyError ||
         (totalEyesSelected > 0 && itemsSuccessfullyAdded < totalEyesSelected)
@@ -488,7 +490,6 @@ const Hero = ({ product }: any) => {
                 {displayedPrice}
               </p>
 
-              {/* Eyeglasses Style Selector */}
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -521,7 +522,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Contact Lens Pack Size Selector */}
               {showContactLensVariantSection && product?.variants && (
                 <div className="mt-5">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -558,7 +558,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Quantity Selection: Only for Contact Lenses on this page */}
               {isContactLensProduct && (
                 <div className="mt-6 space-y-3">
                   <h3 className="text-sm font-medium text-gray-900">
@@ -631,7 +630,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -657,7 +655,6 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
-              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -682,7 +679,6 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
-        {/* Modals */}
         {isEyeglassesLensModalOpen &&
           isEyewearProduct &&
           selectedVariant &&
@@ -727,7 +723,6 @@ const Hero = ({ product }: any) => {
             />
           )}
 
-        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}
