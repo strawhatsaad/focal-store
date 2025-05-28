@@ -1,5 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.shopify.com',
+        port: '',
+        pathname: '/**', // Allow any path under this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co', // If you still use placeholder images
+        port: '',
+        pathname: '/**',
+      }
+      // You can add more patterns here for other image sources if needed
+    ],
+  },
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule) =>
@@ -23,12 +40,15 @@ const nextConfig = {
     );
 
     // Modify the file loader rule to ignore *.svg, since we have it handled now.
-    fileLoaderRule.exclude = /\.svg$/i;
+    if (fileLoaderRule) { // Add a check to ensure fileLoaderRule is found
+        fileLoaderRule.exclude = /\.svg$/i;
+    }
+
 
     return config;
   },
 
-  // ...other config
+  // ...other config (if you have any, they would go here)
 };
 
 export default nextConfig;

@@ -9,21 +9,21 @@ import {
   HeartIcon,
   SearchIcon,
   ShoppingCartIcon,
-  LogOut,
+  // LogOut, // Removed LogOut
   UserCircle,
   LogIn,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { X, Menu } from "lucide-react";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useCart } from "@/context/CartContext"; // Ensure this path is correct
+import { useSession, signIn } from "next-auth/react"; // signOut removed
+import { useCart } from "@/context/CartContext";
 
 export const Header = () => {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
   const { cart } = useCart();
   const [totalQuantity, setTotalQuantity] = useState(0);
-  const isLoading = status === "loading";
+  const isLoadingSession = status === "loading";
 
   useEffect(() => {
     if (cart) {
@@ -38,14 +38,12 @@ export const Header = () => {
   };
 
   const handleSignIn = () => {
-    // This will redirect to /auth/signin as configured in authOptions.pages
-    // signIn() without a provider argument will go to the sign-in page.
     signIn(undefined, { callbackUrl: "/" });
   };
 
   const handleMobileSignInClick = () => {
     setMobileMenuOpen(false);
-    handleSignIn(); // Use the same signIn logic
+    handleSignIn();
   };
 
   const navLinks = [
@@ -110,7 +108,7 @@ export const Header = () => {
                 </Link>
               ))}
 
-              {isLoading ? (
+              {isLoadingSession ? (
                 <div className="h-8 w-20 bg-gray-200 rounded-full animate-pulse"></div>
               ) : session?.user ? (
                 <>
@@ -120,17 +118,11 @@ export const Header = () => {
                       {session.user.name || session.user.email}
                     </span>
                   </Link>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
-                    className="flex items-center gap-1 bg-red-500 text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs lg:text-sm font-medium hover:bg-red-600 transition-all duration-200"
-                  >
-                    <LogOut size={16} />
-                    Sign Out
-                  </button>
+                  {/* Sign Out button removed from here */}
                 </>
               ) : (
                 <button
-                  onClick={handleSignIn} // This now correctly uses signIn()
+                  onClick={handleSignIn}
                   className="bg-black text-white px-4 py-1.5 lg:px-6 lg:py-2 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:bg-gray-800 hover:scale-105 transition-all duration-300 md:text-xs lg:text-sm"
                 >
                   Sign in
@@ -157,8 +149,6 @@ export const Header = () => {
                   className="relative"
                   aria-label="Shopping Cart"
                 >
-                  {" "}
-                  {/* Ensure /cart page exists */}
                   <ShoppingCartIcon
                     strokeWidth={2.5}
                     color="#374151"
@@ -196,7 +186,7 @@ export const Header = () => {
             </Link>
           ))}
           <hr className="my-4" />
-          {isLoading ? (
+          {isLoadingSession ? (
             <div className="h-8 w-32 bg-gray-200 rounded-md animate-pulse mb-4"></div>
           ) : session?.user ? (
             <>
@@ -207,19 +197,11 @@ export const Header = () => {
               >
                 My Account ({session.user.name || session.user.email})
               </Link>
-              <button
-                onClick={() => {
-                  signOut({ callbackUrl: "/" });
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-left text-lg font-semibold text-red-600 hover:text-red-700 transition-colors py-2 flex items-center gap-2"
-              >
-                <LogOut size={20} /> Sign Out
-              </button>
+              {/* Sign Out button removed from mobile menu */}
             </>
           ) : (
             <button
-              onClick={handleMobileSignInClick} // This now correctly uses signIn()
+              onClick={handleMobileSignInClick}
               className="w-full text-left text-lg font-semibold text-black hover:bg-gray-100 transition-colors py-3 px-2 rounded-md flex items-center gap-2"
             >
               <LogIn size={20} /> Sign In / Create Account
@@ -244,8 +226,6 @@ export const Header = () => {
               className="relative"
               onClick={() => setMobileMenuOpen(false)}
             >
-              {" "}
-              {/* Ensure /cart page exists */}
               <ShoppingCartIcon
                 strokeWidth={2.5}
                 size={26}
