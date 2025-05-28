@@ -10,7 +10,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Loader2,
-} from "lucide-react";
+  ClockFading,
+} from "lucide-react"; // Added ClockHistory
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
@@ -322,7 +323,7 @@ const EyeglassesPrescriptionModal: React.FC<
   };
 
   const handleFinalAddToCart = async (
-    prescriptionMethod: "manual" | "upload"
+    prescriptionMethod: "manual" | "upload" | "later"
   ) => {
     setIsProcessing(true);
     setError(null);
@@ -416,6 +417,11 @@ const EyeglassesPrescriptionModal: React.FC<
       setError("Please select a prescription file to upload.");
       setIsProcessing(false);
       return;
+    } else if (prescriptionMethod === "later") {
+      prescriptionAttributes.push({
+        key: "Rx Method",
+        value: "Will Provide Later",
+      });
     } else {
       setError("Invalid prescription method.");
       setIsProcessing(false);
@@ -445,7 +451,7 @@ const EyeglassesPrescriptionModal: React.FC<
     try {
       const success = await addLineItem(selectedVariant.id, 1, allAttributes);
       if (success) {
-        setSuccessMessage("Eyeglasses added to cart with your prescription!");
+        setSuccessMessage("Eyeglasses added to cart!");
         setTimeout(() => {
           onClose();
         }, 1500);
@@ -486,6 +492,18 @@ const EyeglassesPrescriptionModal: React.FC<
           className="w-full bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
         >
           Upload a Photo of Your Prescription
+        </button>
+        <button
+          onClick={() => handleFinalAddToCart("later")}
+          disabled={isProcessing || cartLoading}
+          className="w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+        >
+          {isProcessing ? (
+            <Loader2 className="animate-spin h-4 w-4" />
+          ) : (
+            <ClockFading size={16} />
+          )}
+          Add Prescription Later & Add to Cart
         </button>
       </div>
     </div>
@@ -881,6 +899,8 @@ const EyeglassesPrescriptionModal: React.FC<
           )}
           <div className="flex-grow"></div>
 
+          {currentStep === "initialChoice" &&
+            /* No "Next" button here, choices lead to next step or add to cart */ null}
           {currentStep === "manualInput_patientInfo" && (
             <button
               onClick={handleNext}
@@ -902,7 +922,9 @@ const EyeglassesPrescriptionModal: React.FC<
           {currentStep === "manualInput_pd" && (
             <button
               onClick={handleNext}
-              disabled={isProcessing || !rxDetails.prescriptionConfirmed}
+              disabled={
+                isProcessing || !rxDetails.prescriptionConfirmed || cartLoading
+              }
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
               {" "}
