@@ -238,6 +238,44 @@ const ContactLensPrescriptionModal: React.FC<
     };
   }, [isSphSelectOpen]);
 
+  const handleValueChange = (
+    eye: "OD" | "OS",
+    field: keyof PrescriptionValues,
+    value: string
+  ) => {
+    const setter = eye === "OD" ? setOdValues : setOsValues;
+    setter((prev) => ({ ...prev, [field]: value }));
+    setError(null);
+    if (field === "sph") setIsSphSelectOpen(false);
+  };
+
+  useEffect(() => {
+    const currentEyeValues = currentModalStep === "OD" ? odValues : osValues;
+    const eyeSetter = currentModalStep === "OD" ? setOdValues : setOsValues;
+
+    if (bcOptions.length === 1 && currentEyeValues.bc !== bcOptions[0]) {
+      eyeSetter((prev) => ({ ...prev, bc: bcOptions[0] }));
+    }
+    if (diaOptions.length === 1 && currentEyeValues.dia !== diaOptions[0]) {
+      eyeSetter((prev) => ({ ...prev, dia: diaOptions[0] }));
+    }
+    if (
+      isMultifocalProduct &&
+      addPowerOptions.length === 1 &&
+      currentEyeValues.add !== addPowerOptions[0]
+    ) {
+      eyeSetter((prev) => ({ ...prev, add: addPowerOptions[0] }));
+    }
+  }, [
+    currentModalStep,
+    bcOptions,
+    diaOptions,
+    addPowerOptions,
+    isMultifocalProduct,
+    odValues,
+    osValues,
+  ]);
+
   useEffect(() => {
     if (isOpen && session) {
       const fetchExistingPrescriptions = async () => {
@@ -277,17 +315,6 @@ const ContactLensPrescriptionModal: React.FC<
       setIsSphSelectOpen(false);
     }
   }, [isOpen, session]);
-
-  const handleValueChange = (
-    eye: "OD" | "OS",
-    field: keyof PrescriptionValues,
-    value: string
-  ) => {
-    const setter = eye === "OD" ? setOdValues : setOsValues;
-    setter((prev) => ({ ...prev, [field]: value }));
-    setError(null);
-    if (field === "sph") setIsSphSelectOpen(false);
-  };
 
   const isStepComplete = (values: PrescriptionValues): boolean => {
     if (!values.sph || values.sph === "") return false;
@@ -387,44 +414,58 @@ const ContactLensPrescriptionModal: React.FC<
     onComplete(prescriptionData);
   };
 
-  const renderSelect = (
+  const renderSelectOrText = (
     label: string,
     value: string | undefined,
     onChange: (val: string) => void,
     options: string[],
     isRequired: boolean = true,
     disabled: boolean = false
-  ) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}{" "}
-        {isRequired && options.length > 0 && (
-          <span className="text-red-500">*</span>
-        )}
-      </label>
-      <select
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled || options.length === 0}
-        className="mt-1 block w-full pl-3 pr-10 py-2.5 text-sm border-gray-300 focus:outline-none focus:ring-black focus:border-black rounded-md shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-      >
-        <option value="" disabled>
-          {options.length === 0 ? "N/A for this product" : `Select ${label}`}
-        </option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
+  ) => {
+    if (options.length === 1) {
+      return (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {label}
+          </label>
+          <p className="mt-1 block w-full pl-3 py-2.5 text-sm text-gray-700 bg-gray-50 border border-gray-300 rounded-md shadow-sm">
+            {options[0]}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          {label}{" "}
+          {isRequired && options.length > 0 && (
+            <span className="text-red-500">*</span>
+          )}
+        </label>
+        <select
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled || options.length === 0}
+          className="mt-1 block w-full pl-3 pr-10 py-2.5 text-sm border-gray-300 focus:outline-none focus:ring-black focus:border-black rounded-md shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+        >
+          <option value="" disabled>
+            {options.length === 0 ? "N/A for this product" : `Select ${label}`}
           </option>
-        ))}
-      </select>
-      {isRequired &&
-        options.length > 0 &&
-        (!value || value === "") &&
-        currentModalStep !== "VERIFY" && (
-          <p className="text-xs text-red-500 mt-1">This field is required.</p>
-        )}
-    </div>
-  );
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        {isRequired &&
+          options.length > 0 &&
+          (!value || value === "") &&
+          currentModalStep !== "VERIFY" && (
+            <p className="text-xs text-red-500 mt-1">This field is required.</p>
+          )}
+      </div>
+    );
+  };
 
   const renderCustomSphSelect = (
     eye: "OD" | "OS",
@@ -452,17 +493,14 @@ const ContactLensPrescriptionModal: React.FC<
           />
         </button>
         {isSphSelectOpen && (
-          // Main dropdown panel: Added flex, flex-col, and overflow-hidden
           <div className="absolute z-20 mt-1 w-full max-h-60 bg-white border border-gray-300 rounded-md shadow-lg flex flex-col overflow-hidden">
             <div
               key={options.zero}
               onClick={() => handleValueChange(eye, "sph", options.zero)}
-              // flex-shrink-0 prevents this "0.00" part from shrinking if content below is too large
               className="col-span-2 px-3 py-2 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer text-center font-medium border-b flex-shrink-0"
             >
               {options.zero}
             </div>
-            {/* Grid for +/- options: Added flex-grow to allow it to take available space and overflow-y-auto for scrolling */}
             <div className="grid grid-cols-2 overflow-y-auto flex-grow">
               <div className="border-r border-gray-200">
                 {options.negative.map((opt) => (
@@ -505,7 +543,7 @@ const ContactLensPrescriptionModal: React.FC<
       </h3>
       {renderCustomSphSelect(eye, values.sph, sphOptionsSeparated, true)}
       {isAstigmatismProduct &&
-        renderSelect(
+        renderSelectOrText(
           "Cylinder (CYL)",
           values.cyl,
           (val) => handleValueChange(eye, "cyl", val),
@@ -513,7 +551,7 @@ const ContactLensPrescriptionModal: React.FC<
           isAstigmatismProduct
         )}
       {isAstigmatismProduct &&
-        renderSelect(
+        renderSelectOrText(
           "Axis",
           values.axis,
           (val) => handleValueChange(eye, "axis", val),
@@ -521,21 +559,21 @@ const ContactLensPrescriptionModal: React.FC<
           isAstigmatismProduct
         )}
       {isMultifocalProduct &&
-        renderSelect(
+        renderSelectOrText(
           "ADD Power",
           values.add,
           (val) => handleValueChange(eye, "add", val),
           addPowerOptions,
           isMultifocalProduct && addPowerOptions.length > 0
         )}
-      {renderSelect(
+      {renderSelectOrText(
         "Base Curve (BC)",
         values.bc,
         (val) => handleValueChange(eye, "bc", val),
         bcOptions,
         bcOptions.length > 0
       )}
-      {renderSelect(
+      {renderSelectOrText(
         "Diameter (DIA)",
         values.dia,
         (val) => handleValueChange(eye, "dia", val),
