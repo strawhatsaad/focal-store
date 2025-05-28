@@ -4,9 +4,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/context/CartContext";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-// import Image from "next/image"; // Kept for reference, but standard img is used below
+// import Image from "next/image"; // Standard img is used
 import {
   Loader2,
   Trash2,
@@ -14,15 +14,8 @@ import {
   ShoppingBag,
   AlertCircle,
   CreditCard,
-  UploadCloud, // For redirect message
-  LogIn, // For redirect message
+  LogIn,
 } from "lucide-react";
-
-// Define a simple type for prescription, adjust as needed
-interface PrescriptionEntry {
-  id: string;
-  // Add other relevant fields if needed for this page, e.g., fileName
-}
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
   if (priceInput === null || priceInput === undefined) return 0;
@@ -42,11 +35,11 @@ const CartPage = () => {
     clearCartError,
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
-  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); // Renamed for clarity
-  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); // For user feedback
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -109,51 +102,28 @@ const CartPage = () => {
   const currencyCode = cart?.cost?.subtotalAmount?.currencyCode || "USD";
 
   const handleProceedToCheckout = async () => {
-    setCheckoutMessage(null); // Clear previous messages
+    setCheckoutMessage(null);
     setIsProcessingCheckout(true);
 
-    // 1. Check if user is logged in
     if (sessionStatus === "loading") {
       setCheckoutMessage("Verifying your session...");
-      // Wait for session status to resolve, or handle this state more gracefully
-      // setIsProcessingCheckout(false); // Potentially allow retry or show persistent message
+      // Let button be disabled by isProcessingCheckout or cartContextLoading instead of early return
+      // setIsProcessingCheckout(false); // Keep true until check is done
       return;
     }
 
     if (!session) {
       setCheckoutMessage("Redirecting to sign in...");
-      router.push("/auth/signin?callbackUrl=/cart"); // Redirect to sign-in
+      const currentPath = window.location.pathname + window.location.search;
+      router.push(
+        `/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`
+      );
       // No need to set setIsProcessingCheckout(false) here as page will redirect
       return;
     }
 
-    // 2. Check if user has prescriptions (only if logged in)
-    try {
-      const prescriptionsResponse = await fetch("/api/account/prescriptions");
-      if (!prescriptionsResponse.ok) {
-        const errorData = await prescriptionsResponse.json();
-        throw new Error(errorData.message || "Failed to fetch prescriptions.");
-      }
-      const prescriptionsData = await prescriptionsResponse.json();
-      const userPrescriptions: PrescriptionEntry[] =
-        prescriptionsData.prescriptions || [];
+    // ** Prescription check REMOVED from here **
 
-      if (userPrescriptions.length === 0) {
-        setCheckoutMessage("No prescriptions found. Redirecting to upload...");
-        router.push("/account/prescriptions?callbackUrl=/cart"); // Redirect to prescriptions page
-        // No need to set setIsProcessingCheckout(false) here
-        return;
-      }
-    } catch (err: any) {
-      console.error("Error fetching prescriptions:", err);
-      setCheckoutMessage(
-        `Error checking prescriptions: ${err.message}. Please try again.`
-      );
-      setIsProcessingCheckout(false);
-      return;
-    }
-
-    // 3. Proceed with draft order creation if all checks pass
     if (!lineItemsWithDisplayPrice || lineItemsWithDisplayPrice.length === 0) {
       setCheckoutMessage("Your cart is empty.");
       setIsProcessingCheckout(false);
@@ -173,7 +143,6 @@ const CartPage = () => {
 
     const customerInfoPayload: any = {};
     if (session?.user?.email) {
-      // Should always be true if this point is reached
       customerInfoPayload.email = session.user.email;
     }
 
@@ -206,9 +175,8 @@ const CartPage = () => {
         err.message ||
           "An unexpected error occurred while preparing your order."
       );
-      setIsProcessingCheckout(false); // Ensure loading state is reset on error
+      setIsProcessingCheckout(false);
     }
-    // Removed finally block to ensure setIsProcessingCheckout(false) is only called on non-redirect paths
   };
 
   if (cartContextLoading && !cart) {
@@ -274,8 +242,6 @@ const CartPage = () => {
                   <AlertCircle className="h-6 w-6 mr-3" />
                 ) : checkoutMessage.toLowerCase().includes("sign in") ? (
                   <LogIn className="h-6 w-6 mr-3" />
-                ) : checkoutMessage.toLowerCase().includes("upload") ? (
-                  <UploadCloud className="h-6 w-6 mr-3" />
                 ) : (
                   <Loader2 className="h-6 w-6 animate-spin mr-3" />
                 )}
@@ -303,12 +269,9 @@ const CartPage = () => {
           </div>
         ) : (
           <div className="bg-white p-4 sm:p-8 rounded-xl shadow-xl">
-            {" "}
-            {/* Base padding p-4, sm:p-8 */}
             <ul role="list" className="divide-y divide-gray-200">
               {lineItemsWithDisplayPrice.map((line) => (
                 <li key={line.id} className="flex py-6 sm:py-8">
-                  {/* Base image size w-20 h-20, sm size w-32 h-32 */}
                   <div className="flex-shrink-0 w-20 h-20 sm:w-32 sm:h-32 border border-gray-200 rounded-md overflow-hidden">
                     <img
                       src={
@@ -319,13 +282,11 @@ const CartPage = () => {
                         line.merchandise.image?.altText ||
                         line.merchandise.product.title
                       }
-                      width={128} // HTML attribute, CSS will control actual size via parent
-                      height={128} // HTML attribute, CSS will control actual size via parent
+                      width={128}
+                      height={128}
                       className="w-full h-full object-contain"
                     />
                   </div>
-
-                  {/* Base margin ml-2, sm margin ml-4 */}
                   <div className="ml-2 sm:ml-4 flex-1 flex flex-col">
                     <div>
                       <div className="flex justify-between text-base font-medium text-gray-900">
@@ -424,6 +385,7 @@ const CartPage = () => {
                 </li>
               ))}
             </ul>
+
             <div className="border-t border-gray-200 pt-6 mt-6">
               <div className="flex justify-between text-base font-medium text-gray-900">
                 <p>Subtotal</p>
@@ -446,13 +408,18 @@ const CartPage = () => {
                 customizations will be shown on the Shopify payment page.
               </p>
               <div className="mt-6">
-                {/* Base button padding px-4 py-2.5, sm padding px-6 py-3 */}
                 <button
                   onClick={handleProceedToCheckout}
-                  disabled={isProcessingCheckout || cartContextLoading}
+                  disabled={
+                    isProcessingCheckout ||
+                    cartContextLoading ||
+                    sessionStatus === "loading"
+                  }
                   className="w-full flex items-center justify-center rounded-md border border-transparent bg-black px-4 py-2.5 sm:px-6 sm:py-3 text-base font-medium text-white shadow-sm hover:bg-gray-800 transition-colors duration-150 ease-in-out disabled:opacity-50"
                 >
-                  {isProcessingCheckout ? (
+                  {isProcessingCheckout ||
+                  cartContextLoading ||
+                  sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
                     <CreditCard className="w-5 h-5 mr-2" />
