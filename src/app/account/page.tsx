@@ -11,9 +11,10 @@ import {
   UserCircle,
   Mail,
   LogOut,
-  ShoppingBag,
-  MapPin,
-} from "lucide-react"; // Removed CreditCard
+  // ShoppingBag, // Removed as Order History is removed
+  // MapPin, // Removed as Manage Addresses is removed
+  FileText,
+} from "lucide-react";
 
 const AccountPage = () => {
   const { data: session, status } = useSession();
@@ -22,7 +23,7 @@ const AccountPage = () => {
   useEffect(() => {
     if (status === "loading") return;
     if (!session) {
-      router.push("/");
+      router.push("/auth/signin?callbackUrl=/account");
     }
   }, [session, status, router]);
 
@@ -48,7 +49,7 @@ const AccountPage = () => {
           Please sign in to view your account details.
         </p>
         <button
-          onClick={() => router.push("/api/auth/signin")}
+          onClick={() => router.push("/auth/signin?callbackUrl=/account")}
           className="px-6 py-2.5 bg-black text-white font-medium text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors duration-150 ease-in-out"
         >
           Sign In
@@ -67,8 +68,8 @@ const AccountPage = () => {
             My Account
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Welcome back, {user?.name || "Valued Customer"}! Manage your profile
-            and view your activity.
+            Welcome back, {user?.name || user?.email || "Valued Customer"}!
+            Manage your profile and view your activity.
           </p>
         </header>
 
@@ -76,7 +77,7 @@ const AccountPage = () => {
           <section className="pb-8 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               {user?.image ? (
-                <Image
+                <img
                   src={user.image}
                   alt={user.name || "User profile picture"}
                   width={100}
@@ -96,7 +97,10 @@ const AccountPage = () => {
                 </p>
                 {user?.shopifyCustomerId && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Shopify Customer ID: {user.shopifyCustomerId}
+                    Shopify Customer ID:{" "}
+                    {user.shopifyCustomerId.substring(
+                      user.shopifyCustomerId.lastIndexOf("/") + 1
+                    )}
                   </p>
                 )}
               </div>
@@ -104,19 +108,16 @@ const AccountPage = () => {
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Order History Card Removed */}
+            {/* Manage Addresses Card Removed */}
             <AccountActionCard
-              icon={<ShoppingBag className="text-blue-600" size={28} />}
-              title="Order History"
-              description="View your past orders and track current shipments."
-              href="/account/orders"
+              icon={<FileText className="text-purple-600" size={28} />}
+              title="Manage Prescriptions"
+              description="Upload and view your eyewear or contact lens prescriptions."
+              href="/account/prescriptions"
             />
-            <AccountActionCard
-              icon={<MapPin className="text-green-600" size={28} />}
-              title="Manage Addresses"
-              description="Update your shipping and billing addresses."
-              href="/account/addresses"
-            />
-            {/* Payment Methods card removed */}
+            {/* Add more cards as needed - ensure the grid looks balanced if only one item remains */}
+            {/* If only one item, you might want to change grid-cols-1 md:grid-cols-1 or adjust styling */}
           </section>
 
           <section className="pt-8 mt-8 border-t border-gray-200 flex justify-center">

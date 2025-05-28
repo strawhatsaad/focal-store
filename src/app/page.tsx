@@ -13,15 +13,21 @@ import { Testimonials } from "@/sections/HomePage/Testimonials";
 import { storeFront } from "../../utils";
 
 export default async function Home() {
-  const result = await storeFront(productQuery);
+  const variables = {
+    handle: "Contacts", // Replace with dynamic value as needed
+  };
 
-  const products = result.data.products.edges.map(({ node }: any) => ({
-    id: node.handle,
+  let result = await storeFront(productQuery, variables);
+
+  const data = result.data.collectionByHandle.products.edges;
+
+  const products = data.map(({ node }: any) => ({
+    id: node.id,
     name: node.title,
-    href: `/products/${node.handle}`,
-    price: `$${node.priceRange.minVariantPrice.amount}`,
-    imageSrc: node.images.edges[0]?.node.transformedSrc || "",
-    imageAlt: node.images.edges[0]?.node.altText || "",
+    href: `/products/${node.handle}`, // Assuming general product slug structure
+    price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(2)}`, // Format price
+    imageSrc: node.featuredImage.url,
+    imageAlt: node.featuredImage.altText,
   }));
 
   return (
@@ -43,30 +49,32 @@ export default async function Home() {
 const gql = String.raw;
 
 const productQuery = gql`
-  query Products {
-    products(first: 9) {
-      edges {
-        node {
-          title
-          handle
-          tags
-          priceRange {
-            minVariantPrice {
-              amount
+  query GetCollectionProducts($handle: String!) {
+    collectionByHandle(handle: $handle) {
+      title
+      description
+      products(first: 12) {
+        edges {
+          node {
+            id
+            title
+            handle
+            description
+            featuredImage {
+              url
+              altText
             }
-            maxVariantPrice {
-              amount
-            }
-          }
-          images(first: 1) {
-            edges {
-              node {
-                transformedSrc
-                altText
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+              maxVariantPrice {
+                amount
+                currencyCode
               }
             }
           }
-          description
         }
       }
     }

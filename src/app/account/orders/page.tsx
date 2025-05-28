@@ -204,7 +204,8 @@ const OrderHistoryPage = () => {
               No Orders Yet
             </h2>
             <p className="text-gray-500 mb-6">
-              You haven't placed any orders with us yet. Time to start shopping!
+              You haven&apos;t placed any orders with us yet. Time to start
+              shopping!
             </p>
             <Link
               href="/"

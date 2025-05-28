@@ -1,79 +1,52 @@
 // File: src/app/auth/signin/page.tsx
 "use client";
 
-import { useState, FormEvent, ChangeEvent, useEffect } from "react";
-import {
-  signIn,
-  getProviders,
-  LiteralUnion,
-  ClientSafeProvider,
-} from "next-auth/react";
+import { useState, FormEvent, useEffect, Suspense } from "react";
+import { signIn, getProviders } from "next-auth/react"; // getProviders might be removed if no OAuth
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Logo from "@/assets/navBarLogo.png"; // Adjust path as necessary
-import {
-  Chrome,
-  Apple,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
-import { BuiltInProviderType } from "next-auth/providers/index";
+import { Eye, EyeOff, AlertTriangle, Loader2 } from "lucide-react";
 
-type Providers = Record<
-  LiteralUnion<BuiltInProviderType>,
-  ClientSafeProvider
-> | null;
-
-export default function SignInPage() {
+// SignInFormContent remains largely the same but will not render OAuth providers
+function SignInFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const errorParam = searchParams.get("error");
+  const errorParam = searchParams.get("error"); // Error from NextAuth (e.g., CredentialsSignin)
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState(""); // For sign-up
+  const [lastName, setLastName] = useState(""); // For sign-up
+  const [confirmPassword, setConfirmPassword] = useState(""); // For sign-up
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(
-    errorParam ? decodeURIComponent(errorParam) : null
-  );
+  const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const [providers, setProviders] = useState<Providers>(null);
-
-  useEffect(() => {
-    const fetchProviders = async () => {
-      const res = await getProviders();
-      setProviders(res);
-    };
-    fetchProviders();
-  }, []);
 
   useEffect(() => {
     if (errorParam) {
-      // Map common NextAuth error codes to user-friendly messages
-      if (errorParam === "CredentialsSignin") {
+      let decodedError = decodeURIComponent(errorParam);
+      // Customize messages for known NextAuth errors
+      if (decodedError === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
-      } else if (errorParam === "OAuthAccountNotLinked") {
-        setFormError(
-          "This email is already associated with another provider. Try signing in with that provider."
-        );
-      } else if (errorParam === "Callback") {
-        setFormError(
-          "There was an issue with the sign-in provider. Please try again or use a different method."
-        );
+      } else if (
+        decodedError.includes("Shopify API request failed") ||
+        decodedError.includes("Invalid credentials")
+      ) {
+        setFormError("Login failed. Please check your email and password.");
+      } else {
+        // For other errors passed from authorize (like custom messages)
+        setFormError(decodedError);
       }
-      // else, use the error message directly if it's custom from authorize
+    } else {
+      setFormError(null);
     }
   }, [errorParam]);
 
@@ -84,7 +57,7 @@ export default function SignInPage() {
     setSuccessMessage(null);
 
     const result = await signIn("credentials", {
-      redirect: false, // Handle redirect manually
+      redirect: false, // Handle redirect manually to show errors on this page
       email,
       password,
       callbackUrl: callbackUrl,
@@ -92,15 +65,19 @@ export default function SignInPage() {
 
     setLoading(false);
     if (result?.error) {
+      // Error is already set by useEffect watching errorParam after redirect.
+      // If no redirect (e.g. network error before NextAuth handles it), result.error might be different.
+      // For direct feedback without waiting for redirect and param parsing:
       if (result.error === "CredentialsSignin") {
         setFormError("Invalid email or password. Please try again.");
       } else {
-        setFormError(result.error); // Show error from authorize function
+        setFormError(result.error); // Use the error message from signIn result
       }
     } else if (result?.ok && result?.url) {
-      router.push(result.url); // Redirect to callbackUrl on success
+      router.push(result.url); // Successful sign-in, redirect
     } else if (result?.ok && !result.url) {
-      router.push(callbackUrl); // Fallback redirect
+      // Should not happen with redirect: false if callbackUrl is provided, but as a fallback:
+      router.push(callbackUrl);
     }
   };
 
@@ -110,13 +87,18 @@ export default function SignInPage() {
       setFormError("Passwords do not match.");
       return;
     }
+    if (password.length < 5) {
+      // Shopify's minimum
+      setFormError("Password must be at least 5 characters long.");
+      return;
+    }
     setLoading(true);
     setFormError(null);
     setSuccessMessage(null);
 
     try {
+      // Call your existing sign-up API route
       const response = await fetch("/api/auth/signup", {
-        // New API route for sign-up
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, firstName, lastName }),
@@ -125,14 +107,22 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Sign up failed.");
+        // data.message should contain the error from your signup API
+        throw new Error(
+          data.message || "Sign up failed due to an unknown error."
+        );
       }
 
-      setSuccessMessage("Account created successfully! Please sign in.");
+      setSuccessMessage(
+        "Account created successfully! Please sign in with your new credentials."
+      );
       setIsSignUp(false); // Switch to sign-in form
-      setEmail(email); // Pre-fill email for convenience
+      // Optionally clear form fields, or prefill email for sign-in
+      setEmail(email); // Keep email for convenience
       setPassword("");
       setConfirmPassword("");
+      setFirstName("");
+      setLastName("");
     } catch (err: any) {
       setFormError(
         err.message || "An unexpected error occurred during sign up."
@@ -218,13 +208,10 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5"
+              className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff size={20} className="text-gray-500" />
-              ) : (
-                <Eye size={20} className="text-gray-500" />
-              )}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           <div className="relative">
@@ -247,13 +234,14 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5"
+              className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700"
+              aria-label={
+                showConfirmPassword
+                  ? "Hide confirm password"
+                  : "Show confirm password"
+              }
             >
-              {showConfirmPassword ? (
-                <EyeOff size={20} className="text-gray-500" />
-              ) : (
-                <Eye size={20} className="text-gray-500" />
-              )}
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           <div>
@@ -313,17 +301,15 @@ export default function SignInPage() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5"
+            className="absolute inset-y-0 right-0 top-6 pr-3 flex items-center text-sm leading-5 text-gray-500 hover:text-gray-700"
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? (
-              <EyeOff size={20} className="text-gray-500" />
-            ) : (
-              <Eye size={20} className="text-gray-500" />
-            )}
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm">
+            {/* TODO: Implement forgot password functionality - this would typically link to Shopify's password reset */}
             <a href="#" className="font-medium text-black hover:text-gray-700">
               Forgot your password?
             </a>
@@ -363,8 +349,8 @@ export default function SignInPage() {
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
-              setFormError(null);
-              setSuccessMessage(null);
+              setFormError(null); // Clear errors when toggling
+              setSuccessMessage(null); // Clear success messages
             }}
             className="font-medium text-black hover:text-gray-700"
           >
@@ -378,63 +364,40 @@ export default function SignInPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10">
           {formError && (
-            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 flex items-center">
-              <AlertTriangle size={20} className="mr-2" />
+            <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-400 text-red-700 flex items-center rounded-md">
+              <AlertTriangle size={20} className="mr-2 flex-shrink-0" />
               <p className="text-sm">{formError}</p>
             </div>
           )}
           {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-400 text-green-700">
+            <div className="mb-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-md">
               <p className="text-sm">{successMessage}</p>
             </div>
           )}
 
           {renderForm()}
 
-          {providers &&
-            Object.values(providers).filter((p) => p.id !== "credentials")
-              .length > 0 && (
-              <>
-                <div className="mt-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-3">
-                  {Object.values(providers).map((provider) => {
-                    if (provider.id === "credentials") return null; // Don't render button for credentials
-                    const Icon =
-                      provider.id === "google"
-                        ? Chrome
-                        : provider.id === "apple"
-                        ? Apple
-                        : null;
-                    return (
-                      <div key={provider.name}>
-                        <button
-                          onClick={() => signIn(provider.id, { callbackUrl })}
-                          disabled={loading}
-                          className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50"
-                        >
-                          {Icon && <Icon size={20} className="mr-2" />}
-                          {provider.name}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+          {/* OAuth buttons removed from here */}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Main page component wraps SignInFormContent in Suspense for useSearchParams
+export default function SignInPageContainer() {
+  return (
+    <Suspense fallback={<SignInPageLoadingFallback />}>
+      <SignInFormContent />
+    </Suspense>
+  );
+}
+
+function SignInPageLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
+      <Loader2 className="h-12 w-12 animate-spin text-black" />
+      <p className="mt-4 text-gray-600">Loading sign-in page...</p>
     </div>
   );
 }
