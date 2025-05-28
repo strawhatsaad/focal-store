@@ -17,7 +17,7 @@ import { useSession } from "next-auth/react";
 export interface ContactLensPrescriptionData {
   odValues: PrescriptionValues;
   osValues: PrescriptionValues;
-  prescriptionReferenceType: "existing" | "new" | "none";
+  prescriptionReferenceType: "existing" | "new" | "later" | "none";
   prescriptionReferenceValue: string;
   uploadedFile?: File | null;
 }
@@ -53,25 +53,21 @@ interface SphOptionsSeparated {
   positive: string[];
 }
 
-// Generates SPH options separated into negative, zero, and positive
 const generateSphOptionsSeparated = (
   isAstigmatismProduct: boolean
 ): SphOptionsSeparated => {
   const negativeOptions: string[] = [];
   const positiveOptions: string[] = [];
   const zeroOption = "0.00";
-
   const negativeLimit = isAstigmatismProduct ? -9.0 : -12.0;
   const positiveLimit = 8.0;
   const step = 0.25;
-
   for (let i = -step; i >= negativeLimit; i -= step) {
     negativeOptions.unshift(i.toFixed(2));
   }
   for (let i = step; i <= positiveLimit; i += step) {
     positiveOptions.push(`+${i.toFixed(2)}`);
   }
-
   return {
     negative: negativeOptions.sort((a, b) => parseFloat(b) - parseFloat(a)),
     zero: zeroOption,
@@ -121,9 +117,7 @@ const parseMetafieldOptions = (metafieldValue?: string): string[] => {
           .filter((s) => s.length > 0);
       }
     } catch (e) {
-      console.warn(
-        `Metafield value looked like JSON array but failed to parse: "${trimmedValue}". Falling back to comma split. Error: ${e}`
-      );
+      // console.warn(`Metafield value looked like JSON array but failed to parse: "${trimmedValue}". Falling back to comma split. Error: ${e}`);
     }
   }
   return trimmedValue
@@ -148,6 +142,7 @@ const ContactLensPrescriptionModal: React.FC<
   const [selectedExistingRxId, setSelectedExistingRxId] = useState<string>("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadLabel, setUploadLabel] = useState("");
+  const [willProvideRxLater, setWillProvideRxLater] = useState(false);
 
   const [isLoadingExistingRx, setIsLoadingExistingRx] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,10 +152,10 @@ const ContactLensPrescriptionModal: React.FC<
   const sphSelectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen && product) {
-      // console.log("[Modal Opened] Product received:", product.name);
-      // console.log("[Modal Opened] Product Metafields (raw from props):", JSON.stringify(product.metafields, null, 2));
-    }
+    // if (isOpen && product) {
+    // console.log("[Modal Opened] Product received:", product.name);
+    // console.log("[Modal Opened] Product Metafields (raw from props):", JSON.stringify(product.metafields, null, 2));
+    // }
   }, [isOpen, product]);
 
   const isAstigmatismProduct = useMemo(() => {
@@ -310,6 +305,7 @@ const ContactLensPrescriptionModal: React.FC<
           ? `${session.user.name} - Contact Lens Rx`
           : "Contact Lens Rx"
       );
+      setWillProvideRxLater(false);
       setError(null);
       setIsSubmitting(false);
       setIsSphSelectOpen(false);
@@ -356,6 +352,7 @@ const ContactLensPrescriptionModal: React.FC<
     if (e.target.files && e.target.files[0]) {
       setUploadedFile(e.target.files[0]);
       setSelectedExistingRxId("");
+      setWillProvideRxLater(false);
       if (
         !uploadLabel ||
         uploadLabel ===
@@ -374,6 +371,7 @@ const ContactLensPrescriptionModal: React.FC<
   const handleExistingRxSelection = (rxId: string) => {
     setSelectedExistingRxId(rxId);
     setUploadedFile(null);
+    setWillProvideRxLater(false);
     setUploadLabel(
       session?.user?.name
         ? `${session.user.name} - Contact Lens Rx`
@@ -382,17 +380,39 @@ const ContactLensPrescriptionModal: React.FC<
     setError(null);
   };
 
+  const handleWillProvideRxLaterChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const checked = e.target.checked;
+    setWillProvideRxLater(checked);
+    if (checked) {
+      setSelectedExistingRxId("");
+      setUploadedFile(null);
+      setUploadLabel(
+        session?.user?.name
+          ? `${session.user.name} - Contact Lens Rx`
+          : "Contact Lens Rx"
+      );
+    }
+    setError(null);
+  };
+
   const handleConfirmPrescription = () => {
     setError(null);
-    if (!selectedExistingRxId && !uploadedFile) {
-      setError("Please select an existing prescription or upload a new one.");
+    if (!selectedExistingRxId && !uploadedFile && !willProvideRxLater) {
+      setError(
+        "Please select an existing prescription, upload a new one, or choose to add it later."
+      );
       return;
     }
 
     let refValue = "";
-    let refType: "existing" | "new" | "none" = "none";
+    let refType: "existing" | "new" | "later" | "none" = "none";
 
-    if (selectedExistingRxId) {
+    if (willProvideRxLater) {
+      refType = "later";
+      refValue = "Will Provide Later";
+    } else if (selectedExistingRxId) {
       const selectedRx = existingPrescriptions.find(
         (rx) => rx.id === selectedExistingRxId
       );
@@ -409,7 +429,7 @@ const ContactLensPrescriptionModal: React.FC<
       osValues,
       prescriptionReferenceType: refType,
       prescriptionReferenceValue: refValue,
-      uploadedFile: uploadedFile,
+      uploadedFile: refType === "new" ? uploadedFile : null,
     };
     onComplete(prescriptionData);
   };
@@ -602,7 +622,7 @@ const ContactLensPrescriptionModal: React.FC<
 
         <div className="p-4 sm:p-6 overflow-y-auto flex-grow space-y-4">
           {error && (
-            <div className="p-3 text-sm bg-red-50 text-red-700 rounded-md border border-red-200 flex items-center gap-2">
+            <div className="p-3 text-sm bg-red-100 text-red-700 rounded-md border border-red-200 flex items-center gap-2">
               {" "}
               <AlertTriangle size={18} className="flex-shrink-0" />{" "}
               <span className="break-words">{error}</span>{" "}
@@ -633,7 +653,9 @@ const ContactLensPrescriptionModal: React.FC<
                   onChange={(e) => handleExistingRxSelection(e.target.value)}
                   className="mt-1 block w-full pl-3 pr-10 py-2.5 text-sm border-gray-300 focus:outline-none focus:ring-black focus:border-black rounded-md shadow-sm disabled:bg-gray-100"
                   disabled={
-                    isLoadingExistingRx || existingPrescriptions.length === 0
+                    isLoadingExistingRx ||
+                    existingPrescriptions.length === 0 ||
+                    willProvideRxLater
                   }
                 >
                   <option value="">
@@ -680,7 +702,9 @@ const ContactLensPrescriptionModal: React.FC<
                   onChange={(e) => setUploadLabel(e.target.value)}
                   placeholder="Prescription Label (e.g., My Contact Lens Rx)"
                   className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black"
-                  disabled={isSubmitting || isLoadingExistingRx}
+                  disabled={
+                    isSubmitting || isLoadingExistingRx || willProvideRxLater
+                  }
                 />
                 <input
                   type="file"
@@ -688,13 +712,47 @@ const ContactLensPrescriptionModal: React.FC<
                   onChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 disabled:opacity-50"
-                  disabled={isSubmitting || isLoadingExistingRx}
+                  disabled={
+                    isSubmitting || isLoadingExistingRx || willProvideRxLater
+                  }
                 />
-                {uploadedFile && (
+                {uploadedFile && !willProvideRxLater && (
                   <p className="text-xs text-gray-500 mt-1">
                     Selected: {uploadedFile.name}
                   </p>
                 )}
+              </div>
+              <div className="relative my-4">
+                {" "}
+                <div
+                  className="absolute inset-0 flex items-center"
+                  aria-hidden="true"
+                >
+                  {" "}
+                  <div className="w-full border-t border-gray-300" />{" "}
+                </div>{" "}
+                <div className="relative flex justify-center">
+                  {" "}
+                  <span className="bg-white px-2 text-sm text-gray-500">
+                    OR
+                  </span>{" "}
+                </div>{" "}
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="willProvideRxLater"
+                  name="willProvideRxLater"
+                  type="checkbox"
+                  checked={willProvideRxLater}
+                  onChange={handleWillProvideRxLaterChange}
+                  className="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                />
+                <label
+                  htmlFor="willProvideRxLater"
+                  className="ml-2 block text-sm text-gray-700"
+                >
+                  I&apos;ll add my prescription later
+                </label>
               </div>
             </div>
           )}
@@ -732,7 +790,7 @@ const ContactLensPrescriptionModal: React.FC<
               disabled={
                 isSubmitting ||
                 isLoadingExistingRx ||
-                (!selectedExistingRxId && !uploadedFile)
+                (!selectedExistingRxId && !uploadedFile && !willProvideRxLater)
               }
               className="px-6 py-2 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center"
             >

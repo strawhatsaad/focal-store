@@ -10,6 +10,8 @@ import ContactLensPrescriptionModal, {
 } from "@/components/ContactLensPrescriptionModal";
 import EyeglassesPrescriptionModal from "@/components/EyeglassesPrescriptionModal";
 import { useCart } from "@/context/CartContext";
+import { useSession } from "next-auth/react"; // Import useSession
+import { useRouter } from "next/navigation"; // Import useRouter
 import {
   ShoppingCart,
   Loader2,
@@ -18,6 +20,9 @@ import {
 } from "lucide-react";
 
 const Hero = ({ product }: any) => {
+  const { data: session, status: sessionStatus } = useSession(); // Get session
+  const router = useRouter(); // Initialize router
+
   const {
     addLineItem,
     loading: cartLoading,
@@ -84,11 +89,10 @@ const Hero = ({ product }: any) => {
       setRightEyeEnabled(true);
       setLeftEyeEnabled(true);
     } else {
-      // For Eyeglasses, quantity is 1 and typically not per-eye on the main page
       setRightEyeQty(1);
-      setLeftEyeQty(1); // This won't be used for adding to cart for eyeglasses
-      setRightEyeEnabled(false); // Not applicable for eyeglasses in this context
-      setLeftEyeEnabled(false); // Not applicable for eyeglasses in this context
+      setLeftEyeQty(1);
+      setRightEyeEnabled(false);
+      setLeftEyeEnabled(false);
     }
   }, [product, isContactLensProduct]);
 
@@ -97,6 +101,24 @@ const Hero = ({ product }: any) => {
     setActionError(null);
     if (cartContextError) clearCartError();
 
+    // Check session status first
+    if (sessionStatus === "loading") {
+      setActionError("Verifying session, please wait..."); // Or just disable button
+      setTimeout(() => setActionError(null), 3000);
+      return;
+    }
+
+    if (!session) {
+      // Redirect to sign-in page if not logged in
+      // Construct the current product page URL for callback
+      const currentPath = window.location.pathname;
+      router.push(
+        `/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`
+      );
+      return;
+    }
+
+    // Proceed if logged in
     if (!selectedVariant?.id) {
       setActionError("Please select a product variant or style.");
       setTimeout(() => setActionError(null), 3000);
@@ -128,14 +150,12 @@ const Hero = ({ product }: any) => {
       setActionError(
         "This product type has a different ordering process not yet implemented."
       );
-      // console.warn("Unhandled product type for primary action:", product?.collection, product?.product_type);
     }
   };
 
   const handleLensCustomizationComplete = (
     customizations: LensCustomizationData
   ) => {
-    // console.log("[Hero] Lens Customization Complete:", customizations);
     setCurrentLensCustomizations(customizations);
     setIsEyeglassesLensModalOpen(false);
     setIsEyeglassesRxModalOpen(true);
@@ -606,11 +626,16 @@ const Hero = ({ product }: any) => {
                 <button
                   onClick={handlePrimaryAction}
                   disabled={
-                    isProcessingPageAction || cartLoading || !selectedVariant
+                    isProcessingPageAction ||
+                    cartLoading ||
+                    !selectedVariant ||
+                    sessionStatus === "loading"
                   }
                   className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-white bg-black rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out"
                 >
-                  {isProcessingPageAction || cartLoading ? (
+                  {isProcessingPageAction ||
+                  cartLoading ||
+                  sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <ShoppingCart className="w-5 h-5" />
