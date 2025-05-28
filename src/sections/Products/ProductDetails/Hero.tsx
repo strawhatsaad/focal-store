@@ -4,10 +4,11 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
-import EyeglassesModal from "../EyeglassesModal";
+import EyeglassesModal, { LensCustomizationData } from "../EyeglassesModal";
 import ContactLensPrescriptionModal, {
   ContactLensPrescriptionData,
 } from "@/components/ContactLensPrescriptionModal";
+import EyeglassesPrescriptionModal from "@/components/EyeglassesPrescriptionModal";
 import { useCart } from "@/context/CartContext";
 import {
   ShoppingCart,
@@ -33,7 +34,12 @@ const Hero = ({ product }: any) => {
   const [hasUserManuallySelectedImage, setHasUserManuallySelectedImage] =
     useState(false);
 
-  const [isEyeglassesModalOpen, setIsEyeglassesModalOpen] = useState(false);
+  const [isEyeglassesLensModalOpen, setIsEyeglassesLensModalOpen] =
+    useState(false);
+  const [isEyeglassesRxModalOpen, setIsEyeglassesRxModalOpen] = useState(false);
+  const [currentLensCustomizations, setCurrentLensCustomizations] =
+    useState<LensCustomizationData | null>(null);
+
   const [isClModalOpen, setIsClModalOpen] = useState(false);
 
   const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
@@ -46,9 +52,13 @@ const Hero = ({ product }: any) => {
 
   const isContactLensProduct = useMemo(() => {
     const collectionName = product?.collection?.toLowerCase() || "";
-    // console.log("[Hero.tsx] Checking product type. Collection:", collectionName, "Product Name:", product?.name);
     return collectionName === "contacts";
   }, [product]);
+
+  const isEyewearProduct = useMemo(() => {
+    const collectionName = product?.collection?.toLowerCase() || "";
+    return collectionName === "eyewear" && !isContactLensProduct;
+  }, [product, isContactLensProduct]);
 
   useEffect(() => {
     if (product?.variants?.length > 0) {
@@ -74,8 +84,11 @@ const Hero = ({ product }: any) => {
       setRightEyeEnabled(true);
       setLeftEyeEnabled(true);
     } else {
+      // For Eyeglasses, quantity is 1 and typically not per-eye on the main page
       setRightEyeQty(1);
-      setLeftEyeQty(1);
+      setLeftEyeQty(1); // This won't be used for adding to cart for eyeglasses
+      setRightEyeEnabled(false); // Not applicable for eyeglasses in this context
+      setLeftEyeEnabled(false); // Not applicable for eyeglasses in this context
     }
   }, [product, isContactLensProduct]);
 
@@ -109,9 +122,23 @@ const Hero = ({ product }: any) => {
         return;
       }
       setIsClModalOpen(true);
+    } else if (isEyewearProduct) {
+      setIsEyeglassesLensModalOpen(true);
     } else {
-      setIsEyeglassesModalOpen(true);
+      setActionError(
+        "This product type has a different ordering process not yet implemented."
+      );
+      // console.warn("Unhandled product type for primary action:", product?.collection, product?.product_type);
     }
+  };
+
+  const handleLensCustomizationComplete = (
+    customizations: LensCustomizationData
+  ) => {
+    // console.log("[Hero] Lens Customization Complete:", customizations);
+    setCurrentLensCustomizations(customizations);
+    setIsEyeglassesLensModalOpen(false);
+    setIsEyeglassesRxModalOpen(true);
   };
 
   const handleClPrescriptionComplete = async (
@@ -135,30 +162,26 @@ const Hero = ({ product }: any) => {
       formData.append("category", "ContactLenses");
 
       try {
-        // console.log("[Hero] Uploading new prescription from modal data...");
         const uploadRes = await fetch("/api/account/prescriptions", {
           method: "POST",
           body: formData,
         });
         const uploadResult = await uploadRes.json();
-        if (!uploadRes.ok) {
+        if (!uploadRes.ok)
           throw new Error(
             uploadResult.message ||
               "Failed to upload new prescription from modal."
           );
-        }
         finalPrescriptionReference = `Uploaded: ${
           uploadResult.prescription?.fileName ||
           prescriptionData.uploadedFile.name
         }`;
-        // console.log("[Hero] New prescription uploaded successfully from modal:", finalPrescriptionReference);
       } catch (e: any) {
         setActionError(`Prescription Upload Error: ${e.message}`);
         setIsProcessingPageAction(false);
         return;
       }
     } else if (prescriptionData.prescriptionReferenceType === "existing") {
-      // The prescriptionReferenceValue from modal for 'existing' is already the label/fileName
       finalPrescriptionReference = `Existing Rx: ${prescriptionData.prescriptionReferenceValue}`;
     }
 
@@ -178,12 +201,19 @@ const Hero = ({ product }: any) => {
           { key: "BC (OD)", value: prescriptionData.odValues.bc || "N/A" },
           { key: "DIA (OD)", value: prescriptionData.odValues.dia || "N/A" },
         ];
-        if (prescriptionData.odValues.cyl)
+        if (
+          prescriptionData.odValues.cyl &&
+          prescriptionData.odValues.cyl !== "0.00"
+        )
           odAttributes.push({
             key: "CYL (OD)",
             value: prescriptionData.odValues.cyl,
           });
-        if (prescriptionData.odValues.axis)
+        if (
+          prescriptionData.odValues.axis &&
+          prescriptionData.odValues.cyl &&
+          prescriptionData.odValues.cyl !== "0.00"
+        )
           odAttributes.push({
             key: "Axis (OD)",
             value: prescriptionData.odValues.axis,
@@ -211,12 +241,19 @@ const Hero = ({ product }: any) => {
           { key: "BC (OS)", value: prescriptionData.osValues.bc || "N/A" },
           { key: "DIA (OS)", value: prescriptionData.osValues.dia || "N/A" },
         ];
-        if (prescriptionData.osValues.cyl)
+        if (
+          prescriptionData.osValues.cyl &&
+          prescriptionData.osValues.cyl !== "0.00"
+        )
           osAttributes.push({
             key: "CYL (OS)",
             value: prescriptionData.osValues.cyl,
           });
-        if (prescriptionData.osValues.axis)
+        if (
+          prescriptionData.osValues.axis &&
+          prescriptionData.osValues.cyl &&
+          prescriptionData.osValues.cyl !== "0.00"
+        )
           osAttributes.push({
             key: "Axis (OS)",
             value: prescriptionData.osValues.axis,
@@ -273,6 +310,7 @@ const Hero = ({ product }: any) => {
     setSelectedImage(src);
     setHasUserManuallySelectedImage(true);
   };
+
   const handleFrameVariantClick = (variant: any) => {
     setSelectedVariant(variant);
     const newImageSrc =
@@ -283,6 +321,7 @@ const Hero = ({ product }: any) => {
     setSelectedImage(newImageSrc);
     setHasUserManuallySelectedImage(false);
   };
+
   const scrollThumbnails = (direction: "left" | "right") => {
     if (!thumbContainerRef.current) return;
     const scrollAmount = thumbContainerRef.current.clientWidth / 2;
@@ -291,6 +330,7 @@ const Hero = ({ product }: any) => {
       behavior: "smooth",
     });
   };
+
   const getDisplayedImage = () => {
     return (
       selectedImage ||
@@ -307,8 +347,7 @@ const Hero = ({ product }: any) => {
       thumbContainerRef.current.offsetWidth >=
       thumbContainerRef.current.scrollWidth - 5;
 
-  const showFrameVariants =
-    !isContactLensProduct && product?.variants?.length > 1;
+  const showFrameVariants = isEyewearProduct && product?.variants?.length > 1;
   const showContactLensVariantSection =
     isContactLensProduct && product?.variants?.length > 0;
 
@@ -419,6 +458,7 @@ const Hero = ({ product }: any) => {
                 {displayedPrice}
               </p>
 
+              {/* Eyeglasses Style Selector */}
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -451,6 +491,7 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
+              {/* Contact Lens Pack Size Selector */}
               {showContactLensVariantSection && product?.variants && (
                 <div className="mt-5">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -487,76 +528,80 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              <div className="mt-6 space-y-3">
-                <h3 className="text-sm font-medium text-gray-900">
-                  {" "}
-                  Select quantity (boxes per eye):{" "}
-                </h3>
-                {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
-                  >
-                    <label className="flex items-center space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
-                        onChange={(e) =>
-                          idx === 0
-                            ? setRightEyeEnabled(e.target.checked)
-                            : setLeftEyeEnabled(e.target.checked)
-                        }
-                        className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
-                      />
-                      <span className="text-sm text-gray-700">{label}</span>
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() =>
-                          idx === 0
-                            ? setRightEyeQty((prev) => Math.max(1, prev - 1))
-                            : setLeftEyeQty((prev) => Math.max(1, prev - 1))
-                        }
-                        disabled={
-                          (idx === 0 &&
-                            (!rightEyeEnabled || rightEyeQty <= 1)) ||
-                          (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
-                        }
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
-                      >
-                        {" "}
-                        −{" "}
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium text-gray-800">
-                        {" "}
-                        {idx === 0 ? rightEyeQty : leftEyeQty}{" "}
-                      </span>
-                      <button
-                        onClick={() =>
-                          idx === 0
-                            ? setRightEyeQty((prev) =>
-                                Math.min(maxQty, prev + 1)
-                              )
-                            : setLeftEyeQty((prev) =>
-                                Math.min(maxQty, prev + 1)
-                              )
-                        }
-                        disabled={
-                          (idx === 0 &&
-                            (!rightEyeEnabled || rightEyeQty >= maxQty)) ||
-                          (idx === 1 &&
-                            (!leftEyeEnabled || leftEyeQty >= maxQty))
-                        }
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
-                      >
-                        {" "}
-                        +{" "}
-                      </button>
+              {/* Quantity Selection: Only for Contact Lenses on this page */}
+              {isContactLensProduct && (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    {" "}
+                    Select quantity (boxes per eye):{" "}
+                  </h3>
+                  {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
+                    >
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={idx === 0 ? rightEyeEnabled : leftEyeEnabled}
+                          onChange={(e) =>
+                            idx === 0
+                              ? setRightEyeEnabled(e.target.checked)
+                              : setLeftEyeEnabled(e.target.checked)
+                          }
+                          className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                        />
+                        <span className="text-sm text-gray-700">{label}</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) => Math.max(1, prev - 1))
+                              : setLeftEyeQty((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={
+                            (idx === 0 &&
+                              (!rightEyeEnabled || rightEyeQty <= 1)) ||
+                            (idx === 1 && (!leftEyeEnabled || leftEyeQty <= 1))
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          −{" "}
+                        </button>
+                        <span className="w-8 text-center text-sm font-medium text-gray-800">
+                          {" "}
+                          {idx === 0 ? rightEyeQty : leftEyeQty}{" "}
+                        </span>
+                        <button
+                          onClick={() =>
+                            idx === 0
+                              ? setRightEyeQty((prev) =>
+                                  Math.min(maxQty, prev + 1)
+                                )
+                              : setLeftEyeQty((prev) =>
+                                  Math.min(maxQty, prev + 1)
+                                )
+                          }
+                          disabled={
+                            (idx === 0 &&
+                              (!rightEyeEnabled || rightEyeQty >= maxQty)) ||
+                            (idx === 1 &&
+                              (!leftEyeEnabled || leftEyeQty >= maxQty))
+                          }
+                          className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {" "}
+                          +{" "}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
+              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -568,13 +613,16 @@ const Hero = ({ product }: any) => {
                   {isProcessingPageAction || cartLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ShoppingCart className="w-5 w-5" />
+                    <ShoppingCart className="w-5 h-5" />
                   )}
                   {isContactLensProduct
                     ? "Enter Prescription & Add to Cart"
-                    : "Select Lenses & Buy"}
+                    : isEyewearProduct
+                    ? "Customize Lenses & Enter Rx"
+                    : "Add to Cart"}
                 </button>
               </div>
+              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -599,15 +647,33 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
-        {isEyeglassesModalOpen &&
-          !isContactLensProduct &&
+        {/* Modals */}
+        {isEyeglassesLensModalOpen &&
+          isEyewearProduct &&
           selectedVariant &&
           product && (
             <EyeglassesModal
               product={product}
               selectedVariant={selectedVariant}
-              isOpen={isEyeglassesModalOpen}
-              onClose={() => setIsEyeglassesModalOpen(false)}
+              isOpen={isEyeglassesLensModalOpen}
+              onClose={() => setIsEyeglassesLensModalOpen(false)}
+              onLensCustomizationComplete={handleLensCustomizationComplete}
+            />
+          )}
+        {isEyeglassesRxModalOpen &&
+          isEyewearProduct &&
+          selectedVariant &&
+          product &&
+          currentLensCustomizations && (
+            <EyeglassesPrescriptionModal
+              isOpen={isEyeglassesRxModalOpen}
+              onClose={() => {
+                setIsEyeglassesRxModalOpen(false);
+                setCurrentLensCustomizations(null);
+              }}
+              product={product}
+              selectedVariant={selectedVariant}
+              lensCustomizations={currentLensCustomizations}
             />
           )}
         {isClModalOpen &&
@@ -626,6 +692,7 @@ const Hero = ({ product }: any) => {
             />
           )}
 
+        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}
