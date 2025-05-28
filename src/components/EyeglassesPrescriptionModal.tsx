@@ -1,7 +1,7 @@
 // src/components/EyeglassesPrescriptionModal.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react"; // Added useRef
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   ArrowRight,
@@ -422,7 +422,6 @@ const EyeglassesPrescriptionModal: React.FC<
       return;
     }
 
-    // Correctly map lensCustomizations.options to only include key and value for Shopify attributes
     const lensOptionAttributes = lensCustomizations.options.map((opt) => ({
       key: opt.key,
       value: opt.value,
@@ -473,7 +472,7 @@ const EyeglassesPrescriptionModal: React.FC<
         Provide Your Eyeglass Prescription
       </h3>
       <p className="text-sm text-gray-600">
-        Choose how you'd like to submit your prescription details.
+        Choose how you&apos;d like to submit your prescription details.
       </p>
       <div className="pt-2 space-y-3">
         <button
@@ -907,7 +906,7 @@ const EyeglassesPrescriptionModal: React.FC<
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
               {" "}
-              {isProcessing ? (
+              {isProcessing || cartLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <CheckCircle size={16} className="mr-1.5" />
@@ -918,10 +917,10 @@ const EyeglassesPrescriptionModal: React.FC<
           {currentStep === "uploadRx" && (
             <button
               onClick={() => handleFinalAddToCart("upload")}
-              disabled={isProcessing || !uploadedRxFile}
+              disabled={isProcessing || !uploadedRxFile || cartLoading}
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
-              {isProcessing ? (
+              {isProcessing || cartLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <UploadCloud size={16} className="mr-1.5" />
