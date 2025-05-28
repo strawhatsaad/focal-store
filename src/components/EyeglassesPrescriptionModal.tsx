@@ -11,10 +11,11 @@ import {
   AlertTriangle,
   Loader2,
   ClockFading,
-} from "lucide-react"; // Added ClockHistory
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 export interface EyeglassRxDetails {
   prescriptionName?: string;
@@ -153,6 +154,7 @@ const EyeglassesPrescriptionModal: React.FC<
     error: cartErrorHook,
     clearCartError,
   } = useCart();
+  const router = useRouter(); // Initialize useRouter
 
   type ModalStep =
     | "initialChoice"
@@ -173,7 +175,7 @@ const EyeglassesPrescriptionModal: React.FC<
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const prevIsOpenRef = useRef<boolean>();
+  const prevIsOpenRef = useRef<boolean>(isOpen);
 
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
@@ -193,9 +195,6 @@ const EyeglassesPrescriptionModal: React.FC<
       setSuccessMessage(null);
       setIsProcessing(false);
       if (cartErrorHook) clearCartError();
-    } else if (!isOpen && prevIsOpenRef.current) {
-      setError(null);
-      setSuccessMessage(null);
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, session, cartErrorHook, clearCartError]);
@@ -448,13 +447,14 @@ const EyeglassesPrescriptionModal: React.FC<
       },
     ];
 
+    // console.log("[EyeglassesRxModal] Attributes being sent to addLineItem:", JSON.stringify(allAttributes, null, 2));
+
     try {
       const success = await addLineItem(selectedVariant.id, 1, allAttributes);
       if (success) {
         setSuccessMessage("Eyeglasses added to cart!");
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+        onClose(); // Close modal immediately on success
+        router.push("/cart"); // Redirect to cart
       } else {
         setError(
           cartErrorHook || "Failed to add eyeglasses to cart. Please try again."
@@ -496,9 +496,9 @@ const EyeglassesPrescriptionModal: React.FC<
         <button
           onClick={() => handleFinalAddToCart("later")}
           disabled={isProcessing || cartLoading}
-          className="w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-70"
         >
-          {isProcessing ? (
+          {isProcessing || cartLoading ? (
             <Loader2 className="animate-spin h-4 w-4" />
           ) : (
             <ClockFading size={16} />
@@ -900,7 +900,7 @@ const EyeglassesPrescriptionModal: React.FC<
           <div className="flex-grow"></div>
 
           {currentStep === "initialChoice" &&
-            /* No "Next" button here, choices lead to next step or add to cart */ null}
+            /* No "Next" button here; choices lead to actions */ null}
           {currentStep === "manualInput_patientInfo" && (
             <button
               onClick={handleNext}

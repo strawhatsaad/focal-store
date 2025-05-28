@@ -10,8 +10,8 @@ import ContactLensPrescriptionModal, {
 } from "@/components/ContactLensPrescriptionModal";
 import EyeglassesPrescriptionModal from "@/components/EyeglassesPrescriptionModal";
 import { useCart } from "@/context/CartContext";
-import { useSession } from "next-auth/react"; // Import useSession
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
   Loader2,
@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 
 const Hero = ({ product }: any) => {
-  const { data: session, status: sessionStatus } = useSession(); // Get session
-  const router = useRouter(); // Initialize router
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
 
   const {
     addLineItem,
@@ -31,7 +31,7 @@ const Hero = ({ product }: any) => {
   } = useCart();
 
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
-  const [actionSuccess, setActionSuccess] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState(false); // For brief success message before redirect
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
@@ -101,24 +101,20 @@ const Hero = ({ product }: any) => {
     setActionError(null);
     if (cartContextError) clearCartError();
 
-    // Check session status first
     if (sessionStatus === "loading") {
-      setActionError("Verifying session, please wait..."); // Or just disable button
+      setActionError("Verifying session, please wait...");
       setTimeout(() => setActionError(null), 3000);
       return;
     }
 
     if (!session) {
-      // Redirect to sign-in page if not logged in
-      // Construct the current product page URL for callback
-      const currentPath = window.location.pathname;
+      const currentPath = window.location.pathname + window.location.search;
       router.push(
         `/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`
       );
       return;
     }
 
-    // Proceed if logged in
     if (!selectedVariant?.id) {
       setActionError("Please select a product variant or style.");
       setTimeout(() => setActionError(null), 3000);
@@ -203,6 +199,8 @@ const Hero = ({ product }: any) => {
       }
     } else if (prescriptionData.prescriptionReferenceType === "existing") {
       finalPrescriptionReference = `Existing Rx: ${prescriptionData.prescriptionReferenceValue}`;
+    } else if (prescriptionData.prescriptionReferenceType === "later") {
+      finalPrescriptionReference = "Will Provide Later";
     }
 
     const baseAttributes = [
@@ -302,7 +300,8 @@ const Hero = ({ product }: any) => {
         totalEyesSelected > 0
       ) {
         setActionSuccess(true);
-        setTimeout(() => setActionSuccess(false), 3000);
+        // setTimeout(() => setActionSuccess(false), 3000); // Message will be short-lived due to redirect
+        router.push("/cart"); // Redirect to cart on success
       } else if (
         anyError ||
         (totalEyesSelected > 0 && itemsSuccessfullyAdded < totalEyesSelected)
@@ -312,9 +311,20 @@ const Hero = ({ product }: any) => {
             "One or more items could not be added to cart. Please check cart."
         );
         setTimeout(() => setActionError(null), 5000);
-      } else if (totalEyesSelected === 0) {
+      } else if (
+        totalEyesSelected === 0 &&
+        prescriptionData.prescriptionReferenceType !== "later"
+      ) {
         setActionError("No quantity selected for either eye.");
         setTimeout(() => setActionError(null), 3000);
+      } else if (
+        totalEyesSelected === 0 &&
+        prescriptionData.prescriptionReferenceType === "later"
+      ) {
+        setActionError(
+          "Please enable and set quantity for at least one eye, even if adding prescription later."
+        );
+        setTimeout(() => setActionError(null), 4000);
       }
     } catch (e: any) {
       setActionError(
