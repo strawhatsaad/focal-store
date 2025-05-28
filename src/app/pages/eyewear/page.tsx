@@ -1,3 +1,5 @@
+"use client";
+
 import { Footer } from "@/sections/HomePage/Footer";
 import { Header } from "@/sections/HomePage/Header";
 import React from "react";
