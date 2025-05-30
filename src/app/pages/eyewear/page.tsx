@@ -1,12 +1,12 @@
 // src/app/pages/eyewear/page.tsx
 "use client";
 
-import Hero from "@/sections/Products/Hero"; // Assuming this is a generic Hero for collection pages
+import Hero from "@/sections/Products/Hero";
 import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
-import { storeFront } from "../../../../utils"; // Ensure this path is correct
-import { Loader2, Filter, X } from "lucide-react";
+import { storeFront } from "../../../../utils";
+import { Loader2, Filter, Search, X as XIcon } from "lucide-react"; // Added Search and XIcon
 
 interface ProductImage {
   url: string;
@@ -29,12 +29,12 @@ interface ProductNode {
   id: string;
   title: string;
   handle: string;
+  tags: string[]; // Added tags
   featuredImage: ProductImage;
   priceRange: {
     minVariantPrice: Price;
   };
-  // For eyewear, we'll use a specific metafield, e.g., 'search_filters_eyewear'
-  searchFiltersEyewear: MetafieldNode | null;
+  searchFiltersMetafield: MetafieldNode | null; // Using consistent key for search filters
 }
 
 interface ProductEdge {
@@ -48,10 +48,10 @@ interface MappedProduct {
   price: string;
   imageSrc: string;
   imageAlt: string | null;
-  eyewearFilters?: string[]; // To store parsed filter values for this product
+  eyewearFilters?: string[];
+  tags?: string[]; // Added tags
 }
 
-// Define static filter options based on your list
 const SHAPE_OPTIONS = [
   "Square",
   "Rectangle",
@@ -60,14 +60,14 @@ const SHAPE_OPTIONS = [
   "Cat-eye",
   "Geometric",
   "Aviator",
-];
+].sort();
 const FRAME_WIDTH_OPTIONS = [
   "Extra narrow",
   "Narrow",
   "Medium",
   "Wide",
   "Extra wide",
-]; // Consider order if not alphabetical
+].sort();
 const MATERIAL_OPTIONS = ["Metal", "Acetate", "Mixed", "Nylon"].sort();
 const PRESCRIPTION_OPTIONS = [
   "Good for progressives",
@@ -81,7 +81,7 @@ const FEATURES_OPTIONS = [
   "Adjustable nose pads",
   "Rimless",
 ].sort();
-const NOSE_BRIDGE_OPTIONS = ["Standard bridge", "Low Bridge Fit"];
+const NOSE_BRIDGE_OPTIONS = ["Standard bridge", "Low Bridge Fit"].sort();
 
 const EyewearPage = () => {
   const [allProducts, setAllProducts] = useState<MappedProduct[]>([]);
@@ -93,20 +93,21 @@ const EyewearPage = () => {
     Record<string, string | null>
   >({});
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // State for search term
 
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const variables = { handle: "Eyewear" }; // Collection handle for Eyewear
+        const variables = { handle: "Eyewear" };
         const result = await storeFront(productQueryForEyewear, variables);
 
         if (result.data?.collectionByHandle?.products?.edges) {
           const fetchedProducts =
             result.data.collectionByHandle.products.edges.map(
               ({ node }: ProductEdge) => {
-                const searchFiltersValue = node.searchFiltersEyewear?.value;
+                const searchFiltersValue = node.searchFiltersMetafield?.value; // Using consistent metafield key
                 let parsedEyewearFilters: string[] = [];
 
                 if (searchFiltersValue) {
@@ -131,7 +132,6 @@ const EyewearPage = () => {
                 return {
                   id: node.id,
                   name: node.title,
-                  // Ensure href points to the correct eyewear product detail page structure
                   href: `/products/eyewear/${node.handle}`,
                   price: `$${parseFloat(
                     node.priceRange.minVariantPrice.amount
@@ -143,6 +143,7 @@ const EyewearPage = () => {
                   eyewearFilters: parsedEyewearFilters.filter(
                     (sf) => sf.length > 0
                   ),
+                  tags: node.tags || [], // Add tags
                 };
               }
             );
@@ -152,10 +153,6 @@ const EyewearPage = () => {
           setError(
             "Could not fetch eyewear products or no products in collection."
           );
-          console.error(
-            "Error fetching eyewear products or empty data:",
-            result
-          );
           setAllProducts([]);
           setFilteredProducts([]);
         }
@@ -163,7 +160,6 @@ const EyewearPage = () => {
         setError(
           err.message || "An error occurred while fetching eyewear products."
         );
-        console.error(err);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -173,16 +169,17 @@ const EyewearPage = () => {
     fetchProducts();
   }, []);
 
-  // useEffect for filtering products based on activeFilters
   useEffect(() => {
     if (isLoading) return;
 
     let tempProducts = [...allProducts];
-    const hasActiveFilters = Object.values(activeFilters).some(
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    const hasActiveSidebarFilters = Object.values(activeFilters).some(
       (value) => value !== null
     );
 
-    if (hasActiveFilters) {
+    // Apply sidebar filters first
+    if (hasActiveSidebarFilters) {
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) {
           tempProducts = tempProducts.filter((product) =>
@@ -193,8 +190,20 @@ const EyewearPage = () => {
         }
       });
     }
+
+    // Then apply search term filter
+    if (lowerSearchTerm) {
+      tempProducts = tempProducts.filter(
+        (product) =>
+          product.name.toLowerCase().includes(lowerSearchTerm) ||
+          product.tags?.some((tag) =>
+            tag.toLowerCase().includes(lowerSearchTerm)
+          )
+      );
+    }
+
     setFilteredProducts(tempProducts);
-  }, [activeFilters, allProducts, isLoading]);
+  }, [activeFilters, allProducts, isLoading, searchTerm]);
 
   const handleFilterChange = (filterKey: string, value: string | null) => {
     setActiveFilters((prev) => ({
@@ -205,9 +214,9 @@ const EyewearPage = () => {
 
   const clearAllFilters = () => {
     setActiveFilters({});
+    setSearchTerm(""); // Also clear search term
   };
 
-  // Define filter sections using the static options
   const filterSections = [
     { title: "Shape", options: SHAPE_OPTIONS, filterKey: "shape" },
     {
@@ -223,6 +232,11 @@ const EyewearPage = () => {
     },
     { title: "Gender", options: GENDER_OPTIONS, filterKey: "gender" },
     { title: "Features", options: FEATURES_OPTIONS, filterKey: "features" },
+    {
+      title: "Nose bridge",
+      options: NOSE_BRIDGE_OPTIONS,
+      filterKey: "noseBridge",
+    },
   ];
 
   if (isLoading && allProducts.length === 0) {
@@ -243,10 +257,8 @@ const EyewearPage = () => {
 
   return (
     <main>
-      {/* Main content wrapper: full width with responsive padding */}
       <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
-          {/* Desktop Filters Sidebar */}
           <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
             <FilterSidebar
               filterSections={filterSections}
@@ -257,17 +269,36 @@ const EyewearPage = () => {
             />
           </div>
 
-          {/* Main Content Area (Hero, Products) */}
           <div className="lg:col-span-9 xl:col-span-10">
             <Hero
               title="Eyewear"
               headline="Discover our premium Eyewear Collection—a curated selection of stylish, comfortable, and vision-enhancing glasses designed to suit every face and lifestyle."
             />
 
-            {/* Mobile Filters Button */}
+            {/* Search Input */}
+            <div className="my-6 lg:my-8 relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name or tag (e.g., 'Square', 'Metal', 'Lightweight')..."
+                className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  <XIcon size={18} />
+                </button>
+              )}
+            </div>
+
             <div className="lg:hidden my-6">
-              {" "}
-              {/* Added my-6 for spacing */}
               <button
                 onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
                 className="w-full flex items-center justify-between text-left p-3 bg-gray-100 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-200 shadow-sm"
@@ -281,7 +312,6 @@ const EyewearPage = () => {
               </button>
             </div>
 
-            {/* Mobile Filter Sidebar (Modal/Drawer) */}
             {isMobileFilterOpen && (
               <div
                 className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
@@ -304,7 +334,7 @@ const EyewearPage = () => {
                       onClick={() => setIsMobileFilterOpen(false)}
                       className="p-1 text-gray-500 hover:text-gray-700"
                     >
-                      <X size={22} />
+                      <XIcon size={22} />
                     </button>
                   </div>
                   <FilterSidebar
@@ -322,10 +352,7 @@ const EyewearPage = () => {
               </div>
             )}
 
-            {/* Products Section or No Products Message */}
             <div className="mt-8">
-              {" "}
-              {/* Added mt-8 for spacing below Hero/Popular Brands for eyewear */}
               {isLoading &&
               filteredProducts.length === 0 &&
               allProducts.length > 0 ? (
@@ -365,7 +392,6 @@ export default EyewearPage;
 
 const gql = String.raw;
 
-// Updated query to fetch the 'search_filters_eyewear' metafield
 const productQueryForEyewear = gql`
   query GetCollectionProducts($handle: String!) {
     collectionByHandle(handle: $handle) {
@@ -376,6 +402,7 @@ const productQueryForEyewear = gql`
             id
             title
             handle
+            tags # Fetch product tags
             featuredImage {
               url
               altText
@@ -386,8 +413,8 @@ const productQueryForEyewear = gql`
                 currencyCode
               }
             }
-            # Assuming a metafield key like 'search_filters_eyewear' for eyewear products
-            searchFiltersEyewear: metafield(
+            # Using the same metafield key "search_filters"
+            searchFiltersMetafield: metafield(
               namespace: "custom"
               key: "search_filters"
             ) {
