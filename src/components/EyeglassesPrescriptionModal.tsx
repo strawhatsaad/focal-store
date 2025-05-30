@@ -15,7 +15,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 
 export interface EyeglassRxDetails {
   prescriptionName?: string;
@@ -154,7 +154,7 @@ const EyeglassesPrescriptionModal: React.FC<
     error: cartErrorHook,
     clearCartError,
   } = useCart();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
   type ModalStep =
     | "initialChoice"
@@ -403,9 +403,14 @@ const EyeglassesPrescriptionModal: React.FC<
           key: "Rx Method",
           value: "Uploaded File",
         });
+        // Use the GDrive link from the API response for the attribute
         prescriptionAttributes.push({
           key: "Rx File Ref",
-          value: uploadResult.prescription?.fileName || uploadedRxFile.name,
+          value:
+            uploadResult.prescription?.storageUrlOrId ||
+            `Uploaded: ${
+              uploadResult.prescription?.fileName || uploadedRxFile.name
+            }`,
         });
       } catch (e: any) {
         setError(`Prescription Upload Error: ${e.message}`);

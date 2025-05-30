@@ -109,7 +109,6 @@ const Hero = ({ product }: any) => {
 
     if (!session) {
       const currentPath = window.location.pathname + window.location.search;
-      // Add reason=orderAttempt to the callbackUrl
       router.push(
         `/auth/signin?callbackUrl=${encodeURIComponent(
           currentPath
@@ -177,7 +176,7 @@ const Hero = ({ product }: any) => {
     ) {
       const formData = new FormData();
       formData.append("prescriptionFile", prescriptionData.uploadedFile);
-      formData.append("label", prescriptionData.prescriptionReferenceValue);
+      formData.append("label", prescriptionData.prescriptionReferenceValue); // This is the uploadLabel from modal
       formData.append("category", "ContactLenses");
 
       try {
@@ -191,24 +190,28 @@ const Hero = ({ product }: any) => {
             uploadResult.message ||
               "Failed to upload new prescription from modal."
           );
-        finalPrescriptionReference = `Uploaded: ${
-          uploadResult.prescription?.fileName ||
-          prescriptionData.uploadedFile.name
-        }`;
+        // Use the link from the API response
+        finalPrescriptionReference =
+          uploadResult.prescription?.storageUrlOrId ||
+          `Uploaded: ${
+            uploadResult.prescription?.fileName ||
+            prescriptionData.uploadedFile.name
+          }`;
       } catch (e: any) {
         setActionError(`Prescription Upload Error: ${e.message}`);
         setIsProcessingPageAction(false);
         return;
       }
     } else if (prescriptionData.prescriptionReferenceType === "existing") {
-      finalPrescriptionReference = `Existing Rx: ${prescriptionData.prescriptionReferenceValue}`;
+      // For existing, prescriptionReferenceValue is already the GDrive link (storageUrlOrId) from the modal
+      finalPrescriptionReference = prescriptionData.prescriptionReferenceValue;
     } else if (prescriptionData.prescriptionReferenceType === "later") {
       finalPrescriptionReference = "Will Provide Later";
     }
 
     const baseAttributes = [
       { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-      { key: "Prescription Ref", value: finalPrescriptionReference },
+      { key: "Prescription Ref", value: finalPrescriptionReference }, // This will now be the GDrive link or "Will Provide Later"
     ];
     let itemsSuccessfullyAdded = 0;
     let anyError = false;
@@ -298,15 +301,23 @@ const Hero = ({ product }: any) => {
         (rightEyeEnabled && rightEyeQty > 0 ? 1 : 0) +
         (leftEyeEnabled && leftEyeQty > 0 ? 1 : 0);
 
+      // For "Add Rx Later", success is achieved if totalEyesSelected > 0 (meaning some quantity was set)
+      const isLaterSuccess =
+        prescriptionData.prescriptionReferenceType === "later" &&
+        totalEyesSelected > 0;
+
       if (
-        itemsSuccessfullyAdded === totalEyesSelected &&
-        totalEyesSelected > 0
+        (itemsSuccessfullyAdded === totalEyesSelected &&
+          totalEyesSelected > 0) ||
+        isLaterSuccess
       ) {
         setActionSuccess(true);
         router.push("/cart");
       } else if (
         anyError ||
-        (totalEyesSelected > 0 && itemsSuccessfullyAdded < totalEyesSelected)
+        (totalEyesSelected > 0 &&
+          itemsSuccessfullyAdded < totalEyesSelected &&
+          prescriptionData.prescriptionReferenceType !== "later")
       ) {
         setActionError(
           cartContextError ||
@@ -319,14 +330,6 @@ const Hero = ({ product }: any) => {
       ) {
         setActionError("No quantity selected for either eye.");
         setTimeout(() => setActionError(null), 3000);
-      } else if (
-        totalEyesSelected === 0 &&
-        prescriptionData.prescriptionReferenceType === "later"
-      ) {
-        setActionError(
-          "Please enable and set quantity for at least one eye, even if adding prescription later."
-        );
-        setTimeout(() => setActionError(null), 4000);
       }
     } catch (e: any) {
       setActionError(
@@ -490,6 +493,7 @@ const Hero = ({ product }: any) => {
                 {displayedPrice}
               </p>
 
+              {/* Eyeglasses Style Selector */}
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -522,6 +526,7 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
+              {/* Contact Lens Pack Size Selector */}
               {showContactLensVariantSection && product?.variants && (
                 <div className="mt-5">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -558,6 +563,7 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
+              {/* Quantity Selection - Only for Contact Lenses */}
               {isContactLensProduct && (
                 <div className="mt-6 space-y-3">
                   <h3 className="text-sm font-medium text-gray-900">
@@ -630,6 +636,7 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
+              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -655,6 +662,7 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
+              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -679,6 +687,7 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
+        {/* Modals */}
         {isEyeglassesLensModalOpen &&
           isEyewearProduct &&
           selectedVariant &&
@@ -723,6 +732,7 @@ const Hero = ({ product }: any) => {
             />
           )}
 
+        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}
