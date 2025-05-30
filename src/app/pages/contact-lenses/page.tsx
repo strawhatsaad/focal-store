@@ -6,7 +6,7 @@ import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
 import { storeFront } from "../../../../utils/index";
-import { Loader2, Filter, X } from "lucide-react";
+import { Loader2, Filter, Search, X as XIcon } from "lucide-react"; // Added Search and XIcon
 
 interface ProductImage {
   url: string;
@@ -29,6 +29,7 @@ interface ProductNode {
   id: string;
   title: string;
   handle: string;
+  tags: string[]; // Added tags
   featuredImage: ProductImage;
   priceRange: {
     minVariantPrice: Price;
@@ -48,6 +49,7 @@ interface MappedProduct {
   imageSrc: string;
   imageAlt: string | null;
   searchFilters?: string[];
+  tags?: string[]; // Added tags
 }
 
 const ALL_BRANDS_OPTIONS = [
@@ -79,6 +81,7 @@ const MANUFACTURERS_OPTIONS = [
   "Bausch + Lomb",
   "CooperVision",
   "Johnson & Johnson",
+  "Warby Parker",
 ].sort();
 const POPULAR_BRANDS_DISPLAY = [
   "Acuvue",
@@ -103,6 +106,7 @@ const ContactLensesPage = () => {
     Record<string, string | null>
   >({});
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // State for search term
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -152,6 +156,7 @@ const ContactLensesPage = () => {
                   searchFilters: parsedSearchFilters.filter(
                     (sf) => sf.length > 0
                   ),
+                  tags: node.tags || [], // Add tags
                 };
               }
             );
@@ -175,15 +180,18 @@ const ContactLensesPage = () => {
     fetchProducts();
   }, []);
 
+  // useEffect for filtering products based on activeFilters AND searchTerm
   useEffect(() => {
     if (isLoading) return;
 
     let tempProducts = [...allProducts];
-    const hasActiveFilters = Object.values(activeFilters).some(
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+
+    // Apply sidebar filters first
+    const hasActiveSidebarFilters = Object.values(activeFilters).some(
       (value) => value !== null
     );
-
-    if (hasActiveFilters) {
+    if (hasActiveSidebarFilters) {
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) {
           tempProducts = tempProducts.filter((product) =>
@@ -194,8 +202,20 @@ const ContactLensesPage = () => {
         }
       });
     }
+
+    // Then apply search term filter on the result of sidebar filters
+    if (lowerSearchTerm) {
+      tempProducts = tempProducts.filter(
+        (product) =>
+          product.name.toLowerCase().includes(lowerSearchTerm) || // Search in name
+          product.tags?.some((tag) =>
+            tag.toLowerCase().includes(lowerSearchTerm)
+          ) // Search in tags
+      );
+    }
+
     setFilteredProducts(tempProducts);
-  }, [activeFilters, allProducts, isLoading]);
+  }, [activeFilters, allProducts, isLoading, searchTerm]);
 
   const handleFilterChange = (filterKey: string, value: string | null) => {
     setActiveFilters((prev) => ({
@@ -205,6 +225,7 @@ const ContactLensesPage = () => {
   };
 
   const handlePopularBrandClick = (brandName: string) => {
+    setSearchTerm(""); // Clear search when a popular brand is clicked
     setActiveFilters((prev) => ({
       brand: prev.brand === brandName ? null : brandName,
       lensType: null,
@@ -214,6 +235,7 @@ const ContactLensesPage = () => {
 
   const clearAllFilters = () => {
     setActiveFilters({});
+    setSearchTerm(""); // Also clear search term
   };
 
   const filterSections = [
@@ -244,12 +266,8 @@ const ContactLensesPage = () => {
 
   return (
     <main>
-      {/* Main content wrapper: full width with increased responsive padding */}
       <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
-          {" "}
-          {/* Increased gap slightly */}
-          {/* Desktop Filters Sidebar: sticky top-16 for alignment below typical header */}
           <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
             <FilterSidebar
               filterSections={filterSections}
@@ -259,15 +277,37 @@ const ContactLensesPage = () => {
               productCount={filteredProducts.length}
             />
           </div>
-          {/* Main Content Area (Hero, Popular Brands, Products) */}
+
           <div className="lg:col-span-9 xl:col-span-10">
             <Hero
               title="Contact Lenses"
               headline="Explore our premium selection of prescription and colored contact lenses designed for comfort, clarity, and style."
             />
 
-            {/* Popular Brands Row */}
-            <div className="mt-8 mb-8">
+            {/* Search Input */}
+            <div className="my-6 lg:my-8 relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name or tag (e.g., 'Acuvue', 'daily', 'toric')..."
+                className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  <XIcon size={18} />
+                </button>
+              )}
+            </div>
+
+            <div className="mb-8">
               <h3 className="text-base font-semibold text-gray-600 mb-3">
                 Popular Brands:
               </h3>
@@ -289,7 +329,6 @@ const ContactLensesPage = () => {
               </div>
             </div>
 
-            {/* Mobile Filters Button */}
             <div className="lg:hidden mb-6">
               <button
                 onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
@@ -304,7 +343,6 @@ const ContactLensesPage = () => {
               </button>
             </div>
 
-            {/* Mobile Filter Sidebar (Modal/Drawer) */}
             {isMobileFilterOpen && (
               <div
                 className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
@@ -327,7 +365,7 @@ const ContactLensesPage = () => {
                       onClick={() => setIsMobileFilterOpen(false)}
                       className="p-1 text-gray-500 hover:text-gray-700"
                     >
-                      <X size={22} />
+                      <XIcon size={22} />
                     </button>
                   </div>
                   <FilterSidebar
@@ -345,7 +383,6 @@ const ContactLensesPage = () => {
               </div>
             )}
 
-            {/* Products Section or No Products Message */}
             {isLoading &&
             filteredProducts.length === 0 &&
             allProducts.length > 0 ? (
@@ -394,6 +431,7 @@ const productQueryWithMetafields = gql`
             id
             title
             handle
+            tags # Fetch product tags
             featuredImage {
               url
               altText
