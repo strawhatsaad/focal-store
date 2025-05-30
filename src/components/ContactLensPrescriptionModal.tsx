@@ -18,6 +18,7 @@ export interface ContactLensPrescriptionData {
   odValues: PrescriptionValues;
   osValues: PrescriptionValues;
   prescriptionReferenceType: "existing" | "new" | "later" | "none";
+  // For 'existing', this will be the GDrive link. For 'new', it's the uploadLabel (Hero will get the link). For 'later', it's "Will Provide Later".
   prescriptionReferenceValue: string;
   uploadedFile?: File | null;
 }
@@ -36,7 +37,8 @@ interface PrescriptionEntry {
   fileName: string;
   label?: string;
   category?: "ContactLenses" | "Eyeglasses";
-  storageUrlOrId: string;
+  storageUrlOrId: string; // This IS the Google Drive link for existing prescriptions
+  googleDriveFileId?: string | null;
 }
 
 interface ContactLensPrescriptionModalProps {
@@ -152,9 +154,10 @@ const ContactLensPrescriptionModal: React.FC<
   const sphSelectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Initial console logs for debugging data passed to modal
     // if (isOpen && product) {
-    // console.log("[Modal Opened] Product received:", product.name);
-    // console.log("[Modal Opened] Product Metafields (raw from props):", JSON.stringify(product.metafields, null, 2));
+    // console.log("[Modal Opened] ContactLensPrescriptionModal - Product:", product.name);
+    // console.log("[Modal Opened] ContactLensPrescriptionModal - Metafields:", JSON.stringify(product.metafields, null, 2));
     // }
   }, [isOpen, product]);
 
@@ -175,8 +178,7 @@ const ContactLensPrescriptionModal: React.FC<
     const addMetafield = product.metafields?.find(
       (mf: any) => mf && mf.key === "add"
     );
-    const result = !!addMetafield?.value && addMetafield.value.trim() !== "";
-    return result;
+    return !!addMetafield?.value && addMetafield.value.trim() !== "";
   }, [product.metafields]);
 
   const sphOptionsSeparated = useMemo(
@@ -288,7 +290,6 @@ const ContactLensPrescriptionModal: React.FC<
           setExistingPrescriptions(data.prescriptions || []);
         } catch (e: any) {
           setError(`Could not load existing prescriptions: ${e.message}`);
-          console.error(e);
         } finally {
           setIsLoadingExistingRx(false);
         }
@@ -416,8 +417,12 @@ const ContactLensPrescriptionModal: React.FC<
       const selectedRx = existingPrescriptions.find(
         (rx) => rx.id === selectedExistingRxId
       );
+      // Pass the actual GDrive link (storageUrlOrId) for existing Rx
       refValue =
-        selectedRx?.label || selectedRx?.fileName || selectedExistingRxId;
+        selectedRx?.storageUrlOrId ||
+        `Existing Rx: ${
+          selectedRx?.label || selectedRx?.fileName || selectedExistingRxId
+        }`;
       refType = "existing";
     } else if (uploadedFile) {
       refValue = uploadLabel || uploadedFile.name.replace(/\.[^/.]+$/, "");
@@ -442,7 +447,9 @@ const ContactLensPrescriptionModal: React.FC<
     isRequired: boolean = true,
     disabled: boolean = false
   ) => {
-    if (options.length === 1) {
+    if (options.length === 1 && !disabled) {
+      // Also consider disabled state
+      // Auto-select and display as text if not disabled
       return (
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
