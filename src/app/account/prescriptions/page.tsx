@@ -13,6 +13,7 @@ import {
   CheckCircle,
   ArrowLeft,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
 
 type PrescriptionCategory = "ContactLenses" | "Eyeglasses";
@@ -25,8 +26,9 @@ interface PrescriptionEntry {
   storageUrlOrId: string;
   label?: string;
   fileSize?: number;
-  shopifyFileId?: string;
+  shopifyFileId?: string | null;
   category?: PrescriptionCategory;
+  googleDriveFileId?: string | null;
 }
 
 const ManagePrescriptionsPage = () => {
@@ -41,14 +43,13 @@ const ManagePrescriptionsPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileLabel, setFileLabel] = useState("");
   const [selectedCategory, setSelectedCategory] =
-    useState<PrescriptionCategory>("Eyeglasses"); // Default to Eyeglasses
+    useState<PrescriptionCategory>("Eyeglasses");
   const [isUploading, setIsUploading] = useState(false);
 
   const fetchPrescriptions = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch all prescriptions for this page display
       const response = await fetch("/api/account/prescriptions");
       if (!response.ok) {
         const errorData = await response.json();
@@ -71,7 +72,7 @@ const ManagePrescriptionsPage = () => {
       return;
     }
     if (session?.user?.name && !fileLabel && !selectedFile) {
-      setFileLabel(session.user.name); // Default label
+      setFileLabel(session.user.name);
     }
     fetchPrescriptions();
   }, [session, sessionStatus, router]);
@@ -121,7 +122,7 @@ const ManagePrescriptionsPage = () => {
       "label",
       fileLabel || selectedFile.name.replace(/\.[^/.]+$/, "")
     );
-    formData.append("category", selectedCategory); // Add category to form data
+    formData.append("category", selectedCategory);
 
     try {
       const response = await fetch("/api/account/prescriptions", {
@@ -133,13 +134,10 @@ const ManagePrescriptionsPage = () => {
         throw new Error(result.message || "Failed to upload prescription.");
       }
       setSuccessMessage("Prescription uploaded successfully!");
-      setPrescriptions((prev) => [
-        result.prescription,
-        ...prev.filter((p) => p.id !== result.prescription.id),
-      ]);
+      fetchPrescriptions();
       setSelectedFile(null);
       setFileLabel(session?.user?.name || "");
-      setSelectedCategory("Eyeglasses"); // Reset category to default
+      setSelectedCategory("Eyeglasses");
       const fileInput = document.getElementById(
         "prescriptionFile"
       ) as HTMLInputElement | null;
@@ -184,12 +182,22 @@ const ManagePrescriptionsPage = () => {
     }
   };
 
+  const getFileViewUrl = (storageUrlOrId: string): string | null => {
+    if (
+      storageUrlOrId &&
+      (storageUrlOrId.startsWith("http://") ||
+        storageUrlOrId.startsWith("https://"))
+    ) {
+      return storageUrlOrId;
+    }
+    return null;
+  };
+
   if (
     sessionStatus === "loading" ||
     (isLoading && prescriptions.length === 0 && !error)
   ) {
     return (
-      /* ... loading spinner ... */
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
         <p className="mt-4 text-lg font-medium text-gray-700">Loading...</p>
@@ -216,7 +224,7 @@ const ManagePrescriptionsPage = () => {
           </h1>
         </header>
 
-        {error /* ... error display ... */ && (
+        {error && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-sm mb-6"
             role="alert"
@@ -228,7 +236,7 @@ const ManagePrescriptionsPage = () => {
             </div>
           </div>
         )}
-        {successMessage /* ... success display ... */ && (
+        {successMessage && (
           <div
             className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md shadow-sm mb-6"
             role="alert"
@@ -278,7 +286,7 @@ const ManagePrescriptionsPage = () => {
             >
               Prescription Label{" "}
               <span className="text-xs text-gray-500">
-                (Optional, defaults to your name or filename)
+                (Optional, defaults to filename)
               </span>
             </label>
             <input
@@ -286,7 +294,13 @@ const ManagePrescriptionsPage = () => {
               id="fileLabel"
               value={fileLabel}
               onChange={(e) => setFileLabel(e.target.value)}
-              placeholder={session?.user?.name || "e.g., Dr. Smith - Jan 2024"}
+              placeholder={
+                selectedFile
+                  ? selectedFile.name.replace(/\.[^/.]+$/, "")
+                  : session?.user?.name
+                  ? `${session.user.name} - Rx`
+                  : "e.g., Dr. Smith - Jan 2024"
+              }
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm"
             />
           </div>
@@ -339,16 +353,12 @@ const ManagePrescriptionsPage = () => {
             {" "}
             Your Uploaded Prescriptions{" "}
           </h2>
-          {isLoading &&
-          prescriptions.length === 0 &&
-          !error /* ... loader ... */ ? (
+          {isLoading && prescriptions.length === 0 && !error ? (
             <div className="text-center py-10">
               {" "}
               <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />{" "}
             </div>
-          ) : !isLoading &&
-            prescriptions.length === 0 &&
-            !error /* ... no prescriptions message ... */ ? (
+          ) : !isLoading && prescriptions.length === 0 && !error ? (
             <div className="text-center py-10 bg-white rounded-lg shadow-sm">
               {" "}
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />{" "}
@@ -359,64 +369,78 @@ const ManagePrescriptionsPage = () => {
             </div>
           ) : prescriptions.length > 0 ? (
             <ul className="space-y-4">
-              {prescriptions.map((rx) => (
-                <li
-                  key={rx.id}
-                  className="bg-white p-4 rounded-lg shadow flex items-center justify-between hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center overflow-hidden">
-                    <FileText className="h-8 w-8 text-black mr-3 flex-shrink-0" />
-                    <div className="overflow-hidden">
-                      <p
-                        className="font-medium text-gray-800 truncate"
-                        title={rx.label || rx.fileName}
+              {prescriptions.map((rx) => {
+                const viewUrl = getFileViewUrl(rx.storageUrlOrId);
+                return (
+                  <li
+                    key={rx.id}
+                    className="bg-white p-4 rounded-lg shadow flex items-center justify-between hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center overflow-hidden">
+                      <FileText className="h-8 w-8 text-black mr-3 flex-shrink-0" />
+                      <div className="overflow-hidden">
+                        <p
+                          className="font-medium text-gray-800 truncate"
+                          title={rx.label || rx.fileName}
+                        >
+                          {" "}
+                          {rx.label || rx.fileName}{" "}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Uploaded:{" "}
+                          {new Date(rx.uploadedAt).toLocaleDateString()}
+                          {rx.category && (
+                            <span className="italic">
+                              {" "}
+                              (
+                              {rx.category === "ContactLenses"
+                                ? "Contacts"
+                                : "Eyeglasses"}
+                              )
+                            </span>
+                          )}
+                          {rx.fileSize
+                            ? ` | Size: ${(rx.fileSize / 1024 / 1024).toFixed(
+                                2
+                              )} MB`
+                            : ""}
+                        </p>
+                        {/* Display the GDrive link if it's a URL */}
+                        {viewUrl ? (
+                          <a
+                            href={viewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline truncate block"
+                            title={rx.storageUrlOrId}
+                          >
+                            View/Download Prescription
+                          </a>
+                        ) : (
+                          <p
+                            className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
+                            title={rx.storageUrlOrId}
+                          >
+                            Ref: {rx.storageUrlOrId}{" "}
+                            {/* Might be a GID if older or GDrive link failed */}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                      <button
+                        onClick={() => handleDeletePrescription(rx.id)}
+                        title="Delete Prescription"
+                        disabled={isLoading}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full disabled:opacity-50"
                       >
                         {" "}
-                        {rx.label || rx.fileName}{" "}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Uploaded: {new Date(rx.uploadedAt).toLocaleDateString()}{" "}
-                        | Type: {rx.fileType}
-                        {rx.category && (
-                          <span className="italic">
-                            {" "}
-                            (
-                            {rx.category === "ContactLenses"
-                              ? "Contacts"
-                              : "Eyeglasses"}
-                            )
-                          </span>
-                        )}
-                        {rx.fileSize
-                          ? ` | Size: ${(rx.fileSize / 1024 / 1024).toFixed(
-                              2
-                            )} MB`
-                          : ""}
-                      </p>
-                      <p
-                        className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
-                        title={rx.storageUrlOrId}
-                      >
-                        Ref:{" "}
-                        {rx.storageUrlOrId.startsWith("http")
-                          ? "CDN Link"
-                          : rx.storageUrlOrId}
-                      </p>
+                        <Trash2 size={18} />{" "}
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-                    <button
-                      onClick={() => handleDeletePrescription(rx.id)}
-                      title="Delete Prescription"
-                      disabled={isLoading}
-                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full disabled:opacity-50"
-                    >
-                      {" "}
-                      <Trash2 size={18} />{" "}
-                    </button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </div>

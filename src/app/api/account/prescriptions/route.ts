@@ -4,13 +4,13 @@ import { authOptions } from "@/lib/authOptions";
 import {
     setShopifyMetafields,
     getShopifyCustomerMetafield,
-    createStagedUploads,
-    createShopifyFiles,
     deleteShopifyFile
 } from "../../../../../utils";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { google, drive_v3 } from 'googleapis';
+import stream from 'stream';
 
 const PRESCRIPTION_METAFIELD_NAMESPACE = "focal_rx";
 const PRESCRIPTION_METAFIELD_KEY = "uploaded_prescriptions";
@@ -25,8 +25,9 @@ interface PrescriptionEntry {
     storageUrlOrId: string;
     label?: string;
     fileSize?: number;
-    shopifyFileId?: string;
+    shopifyFileId?: string | null;
     category?: PrescriptionCategory;
+    googleDriveFileId?: string | null;
 }
 
 const parsePrescriptionsMetafield = (metafieldValue: string | null | undefined): PrescriptionEntry[] => {
@@ -40,28 +41,154 @@ const parsePrescriptionsMetafield = (metafieldValue: string | null | undefined):
     }
 };
 
+async function getOrCreateCustomerFolder(drive: drive_v3.Drive, parentFolderId: string, customerFolderName: string): Promise<string> {
+    try {
+        const sanitizedFolderName = customerFolderName.replace(/'/g, "\\'");
+        const query = `mimeType='application/vnd.google-apps.folder' and name='${sanitizedFolderName}' and '${parentFolderId}' in parents and trashed=false`;
+        // console.log(`[Google Drive] Searching for folder with query: ${query}`);
+        const res = await drive.files.list({
+            q: query,
+            fields: 'files(id, name)',
+            spaces: 'drive',
+        });
+
+        if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
+            // console.log(`[Google Drive] Found existing folder: ${customerFolderName}, ID: ${res.data.files[0].id}`);
+            return res.data.files[0].id;
+        } else {
+            // console.log(`[Google Drive] Creating folder: ${customerFolderName} in parent ID: ${parentFolderId}`);
+            const fileMetadata = {
+                name: customerFolderName,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [parentFolderId],
+            };
+            const folder = await drive.files.create({
+                requestBody: fileMetadata,
+                fields: 'id',
+            });
+            if (!folder.data.id) {
+                throw new Error("Failed to get ID for newly created Google Drive folder.");
+            }
+            // console.log(`[Google Drive] Created folder: ${customerFolderName}, ID: ${folder.data.id}`);
+            return folder.data.id;
+        }
+    } catch (error: any) {
+        console.error(`[Google Drive] Error finding or creating customer folder "${customerFolderName}":`, error.message, error.errors);
+        throw new Error(`Could not find or create customer folder in Google Drive: ${error.message}`);
+    }
+}
+
+
+async function uploadToGoogleDrive(
+    fileBuffer: ArrayBuffer,
+    fileNameInDrive: string,
+    mimeType: string,
+    customerName: string,
+    customerEmail: string
+): Promise<{ fileId: string; webViewLink: string }> {
+    try {
+        const serviceAccountJsonString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDS_JSON;
+        const mainDriveFolderId = process.env.GOOGLE_DRIVE_PRESCRIPTIONS_FOLDER_ID;
+
+        if (!serviceAccountJsonString) {
+            throw new Error("Google Service Account JSON credentials not configured in environment variables (GOOGLE_SERVICE_ACCOUNT_CREDS_JSON).");
+        }
+        if (!mainDriveFolderId) {
+            throw new Error("Google Drive Main Prescriptions Folder ID not configured in environment variables (GOOGLE_DRIVE_PRESCRIPTIONS_FOLDER_ID).");
+        }
+
+        // Log the raw string to help debug its content
+        // Be cautious with logging sensitive data in production. This is for debugging.
+        console.log("[Google Drive Auth] Raw serviceAccountJsonString from ENV (first 100 chars):", serviceAccountJsonString.substring(0, 100) + "...");
+
+        let credentials;
+        try {
+            credentials = JSON.parse(serviceAccountJsonString);
+        } catch (parseError: any) {
+            console.error("[Google Drive Auth] Failed to parse serviceAccountJsonString:", parseError.message);
+            console.error("[Google Drive Auth] Ensure the GOOGLE_SERVICE_ACCOUNT_CREDS_JSON environment variable is set correctly as a valid JSON string.");
+            throw new Error(`Invalid Google Service Account JSON format: ${parseError.message}`);
+        }
+
+
+        const auth = new google.auth.GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/drive'],
+        });
+
+        const drive = google.drive({ version: 'v3', auth });
+
+        const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s-_]/g, '_');
+        const safeCustomerEmail = customerEmail.replace(/[^a-zA-Z0-9@._-]/g, '_');
+        const customerFolderName = `${safeCustomerName} - ${safeCustomerEmail}`;
+
+        const customerSpecificFolderId = await getOrCreateCustomerFolder(drive, mainDriveFolderId, customerFolderName);
+
+        const fileMetadata = {
+            name: fileNameInDrive,
+            parents: [customerSpecificFolderId],
+        };
+
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(Buffer.from(fileBuffer));
+
+        const media = {
+            mimeType: mimeType,
+            body: bufferStream,
+        };
+
+        const response = await drive.files.create({
+            requestBody: fileMetadata,
+            media: media,
+            fields: 'id, webViewLink, webContentLink',
+        });
+
+        const fileId = response.data.id;
+        const webViewLink = response.data.webViewLink;
+
+        if (!fileId || !webViewLink) {
+            console.error("[Google Drive] Upload response missing ID or webViewLink:", response.data);
+            throw new Error('Failed to get file ID or link from Google Drive response.');
+        }
+
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+        // console.log(`[Google Drive] File uploaded: ${fileNameInDrive}, ID: ${fileId}, Link: ${webViewLink}`);
+
+        return { fileId, webViewLink: webViewLink || `https://drive.google.com/file/d/${fileId}/view?usp=sharing` };
+
+    } catch (driveError: any) {
+        console.error('[Google Drive] Upload Error:', driveError.message, driveError.stack, driveError.errors);
+        let detailedMessage = driveError.message;
+        if (driveError.errors && Array.isArray(driveError.errors) && driveError.errors.length > 0) {
+            detailedMessage += ` Details: ${driveError.errors.map((e: any) => e.message).join(', ')}`;
+        }
+        throw new Error(`Failed to upload prescription to Google Drive: ${detailedMessage}`);
+    }
+}
+
 export async function GET(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.shopifyCustomerId) {
-        return NextResponse.json({ message: "Not authenticated." }, { status: 401 });
+        return NextResponse.json({ message: "Not authenticated or Shopify Customer ID missing." }, { status: 401 });
     }
-
     const { searchParams } = new URL(request.url);
     const categoryFilter = searchParams.get('category') as PrescriptionCategory | null;
-
     try {
-        const customerId = session.user.shopifyCustomerId;
-        const response = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
-
+        const ownerShopifyId = session.user.shopifyCustomerId;
+        const response = await getShopifyCustomerMetafield(ownerShopifyId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
         let prescriptions: PrescriptionEntry[] = [];
         if (response.data?.customer?.metafield?.value) {
             prescriptions = parsePrescriptionsMetafield(response.data.customer.metafield.value);
         }
-
         if (categoryFilter) {
             prescriptions = prescriptions.filter(p => p.category === categoryFilter);
         }
-
         return NextResponse.json({ prescriptions });
     } catch (error: any) {
         console.error("[API GET Prescriptions] Error fetching prescriptions:", error);
@@ -72,9 +199,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
 
-    // Ensure all necessary user details are present in the session
     if (!session?.user?.shopifyCustomerId || !session?.user?.name || !session?.user?.email) {
-        return NextResponse.json({ message: "User details (ID, name, or email) not found in session. Cannot process prescription." }, { status: 401 });
+        return NextResponse.json({ message: "User details (Shopify Customer ID, name, or email) not found in session. Cannot process prescription." }, { status: 401 });
     }
 
     try {
@@ -93,79 +219,46 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "File size exceeds 20MB limit." }, { status: 400 });
         }
 
-        const customerId = session.user.shopifyCustomerId;
+        const ownerShopifyId = session.user.shopifyCustomerId;
         const customerName = session.user.name;
-        const customerEmail = session.user.email; // Define customerEmail here
+        const customerEmail = session.user.email;
 
         const originalExtension = path.extname(file.name);
-        const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "_");
-        const newFileName = `${safeCustomerName}_Prescription_${category}_${Date.now()}${originalExtension}`;
-        const altText = `${customerName} - ${customerEmail} - ${category} Prescription`; // Now customerEmail can be used
+        const safeOriginalFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const uniqueFileNameForDrive = `${safeOriginalFileName}_${uuidv4()}${originalExtension}`;
 
-        const stagedUploadInput = [{ filename: newFileName, mimeType: file.type, resource: "FILE", httpMethod: "POST" }];
-        const stagedUploadsResponse = await createStagedUploads(stagedUploadInput);
-
-        if (stagedUploadsResponse.data?.stagedUploadsCreate?.userErrors?.length > 0) {
-            const errorMsg = stagedUploadsResponse.data.stagedUploadsCreate.userErrors.map((e: any) => e.message).join(", ");
-            throw new Error(`Failed to prepare file upload target on Shopify: ${errorMsg}`);
-        }
-        if (!stagedUploadsResponse.data?.stagedUploadsCreate?.stagedTargets?.[0]) {
-            throw new Error("Failed to prepare file upload target on Shopify (no target returned).");
-        }
-        const target = stagedUploadsResponse.data.stagedUploadsCreate.stagedTargets[0];
-        const { url: uploadUrl, resourceUrl, parameters } = target;
         const fileBuffer = await file.arrayBuffer();
-        const uploadFormData = new FormData();
-        parameters.forEach(({ name, value }: { name: string; value: string }) => uploadFormData.append(name, value));
-        uploadFormData.append("file", new Blob([fileBuffer]), newFileName);
-        const uploadResponse = await fetch(uploadUrl, { method: "POST", body: uploadFormData });
-        if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            throw new Error(`Failed to upload file to Shopify's storage. Server responded with ${uploadResponse.status}. Details: ${errorText}`);
-        }
 
-        const fileCreateInput = [{ originalSource: resourceUrl, contentType: "FILE", alt: altText }];
-        const fileCreateResponse = await createShopifyFiles(fileCreateInput);
-
-        if (fileCreateResponse.data?.fileCreate?.userErrors?.length > 0) {
-            const errorMsg = fileCreateResponse.data.fileCreate.userErrors.map((e: any) => e.message).join(", ");
-            throw new Error(`Failed to finalize file on Shopify: ${errorMsg}`);
-        }
-        if (!fileCreateResponse.data?.fileCreate?.files?.[0]?.id) {
-            throw new Error("Failed to finalize file on Shopify (no file ID returned or files array empty).");
-        }
-        const createdShopifyFile = fileCreateResponse.data.fileCreate.files[0];
-        const shopifyFileId = createdShopifyFile.id;
-        let directCdnUrl: string | null = null;
-        if (createdShopifyFile.__typename === "GenericFile" && createdShopifyFile.url) { directCdnUrl = createdShopifyFile.url; }
-        else if (createdShopifyFile.__typename === "MediaImage") {
-            if (createdShopifyFile.image?.originalSrc) { directCdnUrl = createdShopifyFile.image.originalSrc; }
-            else if (createdShopifyFile.preview?.image?.url) { directCdnUrl = createdShopifyFile.preview.image.url; }
-            else if (createdShopifyFile.url) { directCdnUrl = createdShopifyFile.url; }
-        }
-        const finalStorageUrlOrId = directCdnUrl || shopifyFileId;
+        const { fileId: googleDriveFileId, webViewLink: googleDriveLink } = await uploadToGoogleDrive(
+            fileBuffer,
+            uniqueFileNameForDrive,
+            file.type,
+            customerName,
+            customerEmail
+        );
 
         let existingPrescriptions: PrescriptionEntry[] = [];
-        const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
+        const existingMetafieldResponse = await getShopifyCustomerMetafield(ownerShopifyId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
         if (existingMetafieldResponse.data?.customer?.metafield?.value) {
             existingPrescriptions = parsePrescriptionsMetafield(existingMetafieldResponse.data.customer.metafield.value);
         }
 
         const newPrescription: PrescriptionEntry = {
             id: uuidv4(),
-            fileName: newFileName,
+            fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
             uploadedAt: new Date().toISOString(),
-            storageUrlOrId: finalStorageUrlOrId,
-            label: userLabel || customerName,
-            shopifyFileId: shopifyFileId,
+            storageUrlOrId: googleDriveLink,
+            label: userLabel || file.name.replace(/\.[^/.]+$/, ""),
+            shopifyFileId: null,
             category: category,
+            googleDriveFileId: googleDriveFileId,
         };
 
         const updatedPrescriptions = [...existingPrescriptions, newPrescription];
         const metafieldsInput = [{
-            ownerId: customerId,
+            ownerId: ownerShopifyId,
             namespace: PRESCRIPTION_METAFIELD_NAMESPACE,
             key: PRESCRIPTION_METAFIELD_KEY,
             type: "json_string",
@@ -174,15 +267,21 @@ export async function POST(request: Request) {
 
         const metafieldResponse = await setShopifyMetafields(metafieldsInput);
 
-        if (metafieldResponse.data?.metafieldsSet?.metafields || metafieldResponse.data?.metafieldsSet?.userErrors?.length === 0) {
+        if (metafieldResponse.data?.metafieldsSet?.userErrors?.length > 0) {
+            const userErrors = metafieldResponse.data.metafieldsSet.userErrors;
+            const errorMessage = userErrors.map((e: any) => `Field: ${e.field.join('/')}, Message: ${e.message}`).join("; ");
+            console.error("[API POST Prescription] Error setting metafield:", errorMessage, userErrors);
+            throw new Error(`Failed to save prescription metadata: ${errorMessage}`);
+        }
+
+        if (metafieldResponse.data?.metafieldsSet?.metafields) {
             return NextResponse.json({
                 success: true,
                 prescription: newPrescription,
                 allPrescriptions: updatedPrescriptions
             });
         } else {
-            const userErrors = metafieldResponse.data?.metafieldsSet?.userErrors;
-            throw new Error(userErrors?.map((e: any) => e.message).join(", ") || "Failed to save prescription metadata.");
+            throw new Error("Failed to save prescription metadata (unknown error after metafieldsSet).");
         }
 
     } catch (error: any) {
@@ -194,15 +293,15 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.shopifyCustomerId) {
-        return NextResponse.json({ message: "Not authenticated." }, { status: 401 });
+        return NextResponse.json({ message: "Not authenticated or Shopify Customer ID missing." }, { status: 401 });
     }
     try {
         const { prescriptionId } = await request.json();
         if (!prescriptionId) {
             return NextResponse.json({ message: "Prescription ID (for metafield entry) is required." }, { status: 400 });
         }
-        const customerId = session.user.shopifyCustomerId;
-        const existingMetafieldResponse = await getShopifyCustomerMetafield(customerId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
+        const ownerShopifyId = session.user.shopifyCustomerId;
+        const existingMetafieldResponse = await getShopifyCustomerMetafield(ownerShopifyId, PRESCRIPTION_METAFIELD_NAMESPACE, PRESCRIPTION_METAFIELD_KEY);
         let existingPrescriptions: PrescriptionEntry[] = [];
         if (existingMetafieldResponse.data?.customer?.metafield?.value) {
             existingPrescriptions = parsePrescriptionsMetafield(existingMetafieldResponse.data.customer.metafield.value);
@@ -211,39 +310,44 @@ export async function DELETE(request: Request) {
         if (!prescriptionToDelete) {
             return NextResponse.json({ message: "Prescription entry not found in metafield." }, { status: 404 });
         }
-        let shopifyFileToDeleteGid = prescriptionToDelete.shopifyFileId;
-        if (!shopifyFileToDeleteGid && prescriptionToDelete.storageUrlOrId.startsWith("gid://shopify/File/")) {
-            shopifyFileToDeleteGid = prescriptionToDelete.storageUrlOrId;
-        }
-        if (shopifyFileToDeleteGid) {
+
+        if (prescriptionToDelete.googleDriveFileId) {
             try {
-                console.log(`[API DELETE Prescription] Attempting to delete Shopify file with GID: ${shopifyFileToDeleteGid}`);
-                const deleteFileResponse = await deleteShopifyFile([shopifyFileToDeleteGid]);
-                if (deleteFileResponse.data?.fileDelete?.userErrors?.length > 0) {
-                    const errorMessages = deleteFileResponse.data.fileDelete.userErrors.map((e: any) => e.message).join(", ");
-                    console.warn(`[API DELETE Prescription] User errors while deleting Shopify file ${shopifyFileToDeleteGid}: ${errorMessages}`);
-                }
-                else if (deleteFileResponse.data?.fileDelete?.deletedFileIds?.includes(shopifyFileToDeleteGid)) {
-                    console.log(`[API DELETE Prescription] Shopify file ${shopifyFileToDeleteGid} successfully marked for deletion.`);
-                }
-                else {
-                    console.warn(`[API DELETE Prescription] Shopify file ${shopifyFileToDeleteGid} was not in deletedFileIds or no deletedFileIds returned. Response:`, JSON.stringify(deleteFileResponse.data?.fileDelete, null, 2));
-                }
-            } catch (fileDeleteError: any) {
-                console.error(`[API DELETE Prescription] Error calling deleteShopifyFile for ${shopifyFileToDeleteGid}:`, fileDeleteError.message, fileDeleteError.stack);
+                // console.log(`[API DELETE Prescription] Attempting to delete Google Drive file: ${prescriptionToDelete.googleDriveFileId}`);
+                const serviceAccountJsonString = process.env.GOOGLE_SERVICE_ACCOUNT_CREDS_JSON;
+                if (!serviceAccountJsonString) throw new Error("Google Service Account JSON credentials not configured for deletion.");
+
+                const credentials = JSON.parse(serviceAccountJsonString);
+                const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/drive.file'] });
+                const drive = google.drive({ version: 'v3', auth });
+                await drive.files.delete({ fileId: prescriptionToDelete.googleDriveFileId });
+                console.log(`[API DELETE Prescription] Google Drive file ${prescriptionToDelete.googleDriveFileId} deleted successfully.`);
+            } catch (driveDeleteError: any) {
+                console.error(`[API DELETE Prescription] Error deleting Google Drive file ${prescriptionToDelete.googleDriveFileId}:`, driveDeleteError.message);
             }
-        } else {
-            console.warn(`[API DELETE Prescription] No Shopify File GID found for prescription entry ID ${prescriptionId} (UUID: ${prescriptionToDelete.id}). Cannot delete from Shopify storage.`);
         }
+
+        if (prescriptionToDelete.shopifyFileId) {
+            try {
+                await deleteShopifyFile([prescriptionToDelete.shopifyFileId]);
+            } catch (e) { console.error("Error deleting Shopify file during GDrive flow:", e); }
+        }
+
         const updatedPrescriptions = existingPrescriptions.filter(p => p.id !== prescriptionId);
-        const metafieldsInput = [{ ownerId: customerId, namespace: PRESCRIPTION_METAFIELD_NAMESPACE, key: PRESCRIPTION_METAFIELD_KEY, type: "json_string", value: JSON.stringify(updatedPrescriptions), }];
+        const metafieldsInput = [{ ownerId: ownerShopifyId, namespace: PRESCRIPTION_METAFIELD_NAMESPACE, key: PRESCRIPTION_METAFIELD_KEY, type: "json_string", value: JSON.stringify(updatedPrescriptions), }];
+
         const metafieldResponse = await setShopifyMetafields(metafieldsInput);
+
+        if (metafieldResponse.data?.metafieldsSet?.userErrors?.length > 0) {
+            const userErrors = metafieldResponse.data.metafieldsSet.userErrors;
+            const errorMessage = userErrors.map((e: any) => `Field: ${e.field.join('/')}, Message: ${e.message}`).join("; ");
+            throw new Error(`Failed to update prescription metadata after deletion: ${errorMessage}`);
+        }
+
         if (metafieldResponse.data?.metafieldsSet?.metafields || (metafieldResponse.data?.metafieldsSet?.userErrors && metafieldResponse.data.metafieldsSet.userErrors.length === 0)) {
             return NextResponse.json({ success: true, message: "Prescription deleted successfully.", remainingPrescriptions: updatedPrescriptions });
         } else {
-            const userErrors = metafieldResponse.data?.metafieldsSet?.userErrors;
-            const errorMessage = userErrors?.map((e: any) => e.message).join(", ") || "Failed to update prescription metadata after deletion.";
-            throw new Error(errorMessage);
+            throw new Error("Failed to update prescription metadata after deletion (unknown error after metafieldsSet).");
         }
     } catch (error: any) {
         console.error("[API DELETE Prescription] Error deleting prescription (outer catch):", error.message, error.stack);
