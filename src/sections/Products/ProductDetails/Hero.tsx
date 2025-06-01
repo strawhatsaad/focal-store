@@ -17,6 +17,7 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
+  HeartIcon as DonationIcon, // Using HeartIcon for donation visual
 } from "lucide-react";
 
 const Hero = ({ product }: any) => {
@@ -49,8 +50,9 @@ const Hero = ({ product }: any) => {
 
   const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
   const [leftEyeEnabled, setLeftEyeEnabled] = useState(true);
-  const [rightEyeQty, setRightEyeQty] = useState(4);
-  const [leftEyeQty, setLeftEyeQty] = useState(4);
+  // Default quantity for Contact Lenses changed to 2
+  const [rightEyeQty, setRightEyeQty] = useState(2);
+  const [leftEyeQty, setLeftEyeQty] = useState(2);
   const maxQty = 4;
 
   const thumbContainerRef = useRef<HTMLDivElement>(null);
@@ -84,8 +86,8 @@ const Hero = ({ product }: any) => {
     setActionError(null);
 
     if (isContactLensProduct) {
-      setRightEyeQty(4);
-      setLeftEyeQty(4);
+      setRightEyeQty(2); // Default quantity for Contact Lenses set to 2
+      setLeftEyeQty(2); // Default quantity for Contact Lenses set to 2
       setRightEyeEnabled(true);
       setLeftEyeEnabled(true);
     } else {
@@ -145,9 +147,21 @@ const Hero = ({ product }: any) => {
     } else if (isEyewearProduct) {
       setIsEyeglassesLensModalOpen(true);
     } else {
-      setActionError(
-        "This product type has a different ordering process not yet implemented."
-      );
+      // Fallback for other product types, or products not correctly categorized
+      // For now, attempt to add directly to cart if it's not CL or Eyewear
+      // This might need adjustment based on whether other products require special handling
+      setIsProcessingPageAction(true);
+      const success = await addLineItem(selectedVariant.id, 1, [
+        { key: "Product Type", value: product?.product_type || "General" },
+      ]);
+      if (success) {
+        setActionSuccess(true);
+        router.push("/cart");
+      } else {
+        setActionError(cartContextError || "Failed to add item to cart.");
+        setTimeout(() => setActionError(null), 4000);
+      }
+      setIsProcessingPageAction(false);
     }
   };
 
@@ -176,7 +190,7 @@ const Hero = ({ product }: any) => {
     ) {
       const formData = new FormData();
       formData.append("prescriptionFile", prescriptionData.uploadedFile);
-      formData.append("label", prescriptionData.prescriptionReferenceValue); // This is the uploadLabel from modal
+      formData.append("label", prescriptionData.prescriptionReferenceValue);
       formData.append("category", "ContactLenses");
 
       try {
@@ -190,7 +204,6 @@ const Hero = ({ product }: any) => {
             uploadResult.message ||
               "Failed to upload new prescription from modal."
           );
-        // Use the link from the API response
         finalPrescriptionReference =
           uploadResult.prescription?.storageUrlOrId ||
           `Uploaded: ${
@@ -203,7 +216,6 @@ const Hero = ({ product }: any) => {
         return;
       }
     } else if (prescriptionData.prescriptionReferenceType === "existing") {
-      // For existing, prescriptionReferenceValue is already the GDrive link (storageUrlOrId) from the modal
       finalPrescriptionReference = prescriptionData.prescriptionReferenceValue;
     } else if (prescriptionData.prescriptionReferenceType === "later") {
       finalPrescriptionReference = "Will Provide Later";
@@ -211,7 +223,7 @@ const Hero = ({ product }: any) => {
 
     const baseAttributes = [
       { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-      { key: "Prescription Ref", value: finalPrescriptionReference }, // This will now be the GDrive link or "Will Provide Later"
+      { key: "Prescription Ref", value: finalPrescriptionReference },
     ];
     let itemsSuccessfullyAdded = 0;
     let anyError = false;
@@ -301,15 +313,11 @@ const Hero = ({ product }: any) => {
         (rightEyeEnabled && rightEyeQty > 0 ? 1 : 0) +
         (leftEyeEnabled && leftEyeQty > 0 ? 1 : 0);
 
-      // For "Add Rx Later", success is achieved if totalEyesSelected > 0 (meaning some quantity was set)
-      const isLaterSuccess =
-        prescriptionData.prescriptionReferenceType === "later" &&
-        totalEyesSelected > 0;
-
       if (
         (itemsSuccessfullyAdded === totalEyesSelected &&
           totalEyesSelected > 0) ||
-        isLaterSuccess
+        (prescriptionData.prescriptionReferenceType === "later" &&
+          totalEyesSelected > 0)
       ) {
         setActionSuccess(true);
         router.push("/cart");
@@ -330,6 +338,12 @@ const Hero = ({ product }: any) => {
       ) {
         setActionError("No quantity selected for either eye.");
         setTimeout(() => setActionError(null), 3000);
+      } else if (
+        totalEyesSelected === 0 &&
+        prescriptionData.prescriptionReferenceType === "later"
+      ) {
+        setActionError("Please enable and set quantity for at least one eye.");
+        setTimeout(() => setActionError(null), 4000);
       }
     } catch (e: any) {
       setActionError(
@@ -493,7 +507,6 @@ const Hero = ({ product }: any) => {
                 {displayedPrice}
               </p>
 
-              {/* Eyeglasses Style Selector */}
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -526,7 +539,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Contact Lens Pack Size Selector */}
               {showContactLensVariantSection && product?.variants && (
                 <div className="mt-5">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -563,7 +575,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Quantity Selection - Only for Contact Lenses */}
               {isContactLensProduct && (
                 <div className="mt-6 space-y-3">
                   <h3 className="text-sm font-medium text-gray-900">
@@ -635,6 +646,16 @@ const Hero = ({ product }: any) => {
                   ))}
                 </div>
               )}
+
+              {/* Disclaimer Section */}
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                <DonationIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm text-blue-700">
+                  With every purchase, we donate to CureBlindness.org. When you
+                  buy four boxes of contact lenses or a pair of eyeglasses with
+                  us, we donate an additional cataract lens on your behalf!
+                </p>
+              </div>
 
               {/* Action Button */}
               <div className="mt-8">
