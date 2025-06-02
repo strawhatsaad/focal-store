@@ -17,8 +17,12 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
-  HeartIcon as DonationIcon, // Using HeartIcon for donation visual
+  HeartIcon as DonationIcon,
 } from "lucide-react";
+
+// IMPORTANT: Ensure this is your actual Donation Product Variant GID
+const DONATION_PRODUCT_VARIANT_ID: any =
+  "gid://shopify/ProductVariant/46334706581757";
 
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
@@ -50,7 +54,6 @@ const Hero = ({ product }: any) => {
 
   const [rightEyeEnabled, setRightEyeEnabled] = useState(true);
   const [leftEyeEnabled, setLeftEyeEnabled] = useState(true);
-  // Default quantity for Contact Lenses changed to 2
   const [rightEyeQty, setRightEyeQty] = useState(2);
   const [leftEyeQty, setLeftEyeQty] = useState(2);
   const maxQty = 4;
@@ -86,8 +89,8 @@ const Hero = ({ product }: any) => {
     setActionError(null);
 
     if (isContactLensProduct) {
-      setRightEyeQty(2); // Default quantity for Contact Lenses set to 2
-      setLeftEyeQty(2); // Default quantity for Contact Lenses set to 2
+      setRightEyeQty(2);
+      setLeftEyeQty(2);
       setRightEyeEnabled(true);
       setLeftEyeEnabled(true);
     } else {
@@ -147,9 +150,6 @@ const Hero = ({ product }: any) => {
     } else if (isEyewearProduct) {
       setIsEyeglassesLensModalOpen(true);
     } else {
-      // Fallback for other product types, or products not correctly categorized
-      // For now, attempt to add directly to cart if it's not CL or Eyewear
-      // This might need adjustment based on whether other products require special handling
       setIsProcessingPageAction(true);
       const success = await addLineItem(selectedVariant.id, 1, [
         { key: "Product Type", value: product?.product_type || "General" },
@@ -226,7 +226,8 @@ const Hero = ({ product }: any) => {
       { key: "Prescription Ref", value: finalPrescriptionReference },
     ];
     let itemsSuccessfullyAdded = 0;
-    let anyError = false;
+    let anyErrorInMainItems = false;
+    let totalContactLensBoxesOrdered = 0;
 
     try {
       if (rightEyeEnabled && rightEyeQty > 0) {
@@ -265,8 +266,10 @@ const Hero = ({ product }: any) => {
           rightEyeQty,
           odAttributes
         );
-        if (successOD) itemsSuccessfullyAdded++;
-        else anyError = true;
+        if (successOD) {
+          itemsSuccessfullyAdded++;
+          totalContactLensBoxesOrdered += rightEyeQty;
+        } else anyErrorInMainItems = true;
       }
 
       if (leftEyeEnabled && leftEyeQty > 0) {
@@ -305,8 +308,10 @@ const Hero = ({ product }: any) => {
           leftEyeQty,
           osAttributes
         );
-        if (successOS) itemsSuccessfullyAdded++;
-        else anyError = true;
+        if (successOS) {
+          itemsSuccessfullyAdded++;
+          totalContactLensBoxesOrdered += leftEyeQty;
+        } else anyErrorInMainItems = true;
       }
 
       const totalEyesSelected =
@@ -314,22 +319,30 @@ const Hero = ({ product }: any) => {
         (leftEyeEnabled && leftEyeQty > 0 ? 1 : 0);
 
       if (
-        (itemsSuccessfullyAdded === totalEyesSelected &&
+        (!anyErrorInMainItems &&
+          itemsSuccessfullyAdded === totalEyesSelected &&
           totalEyesSelected > 0) ||
         (prescriptionData.prescriptionReferenceType === "later" &&
           totalEyesSelected > 0)
       ) {
+        if (
+          totalContactLensBoxesOrdered >= 4 &&
+          DONATION_PRODUCT_VARIANT_ID !==
+            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
+        ) {
+          await addLineItem(DONATION_PRODUCT_VARIANT_ID, 1, [
+            {
+              key: "Donation Trigger",
+              value: `${totalContactLensBoxesOrdered} Contact Lens Boxes`,
+            },
+          ]);
+        }
         setActionSuccess(true);
         router.push("/cart");
-      } else if (
-        anyError ||
-        (totalEyesSelected > 0 &&
-          itemsSuccessfullyAdded < totalEyesSelected &&
-          prescriptionData.prescriptionReferenceType !== "later")
-      ) {
+      } else if (anyErrorInMainItems) {
         setActionError(
           cartContextError ||
-            "One or more items could not be added to cart. Please check cart."
+            "One or more contact lens items could not be added. Please check cart."
         );
         setTimeout(() => setActionError(null), 5000);
       } else if (
@@ -647,7 +660,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Disclaimer Section */}
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
                 <DonationIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-blue-700">
@@ -657,7 +669,6 @@ const Hero = ({ product }: any) => {
                 </p>
               </div>
 
-              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -683,7 +694,6 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
-              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -708,7 +718,6 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
-        {/* Modals */}
         {isEyeglassesLensModalOpen &&
           isEyewearProduct &&
           selectedVariant &&
@@ -753,7 +762,6 @@ const Hero = ({ product }: any) => {
             />
           )}
 
-        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}

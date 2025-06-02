@@ -17,6 +17,10 @@ import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
 import { useRouter } from "next/navigation";
 
+// IMPORTANT: Ensure this is your actual Donation Product Variant GID
+const DONATION_PRODUCT_VARIANT_ID: any =
+  "gid://shopify/ProductVariant/46334706581757";
+
 export interface EyeglassRxDetails {
   prescriptionName?: string;
   shippingState?: string;
@@ -403,7 +407,6 @@ const EyeglassesPrescriptionModal: React.FC<
           key: "Rx Method",
           value: "Uploaded File",
         });
-        // Use the GDrive link from the API response for the attribute
         prescriptionAttributes.push({
           key: "Rx File Ref",
           value:
@@ -452,21 +455,86 @@ const EyeglassesPrescriptionModal: React.FC<
       },
     ];
 
-    // console.log("[EyeglassesRxModal] Attributes being sent to addLineItem:", JSON.stringify(allAttributes, null, 2));
-
     try {
+      // console.log("[EyeglassesRxModal] Attempting to add eyeglasses to cart. Attributes:", JSON.stringify(allAttributes, null, 2));
       const success = await addLineItem(selectedVariant.id, 1, allAttributes);
+      // console.log("[EyeglassesRxModal] Eyeglasses addLineItem success status:", success);
+
       if (success) {
+        console.log(
+          "[EyeglassesRxModal] Main eyewear product added successfully."
+        );
+        // For Eyewear, always add donation if the main product was added successfully (unless 'later')
+        if (
+          prescriptionMethod !== "later" &&
+          DONATION_PRODUCT_VARIANT_ID !==
+            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
+        ) {
+          console.log(
+            `[EyeglassesRxModal] Attempting to add donation product: ${DONATION_PRODUCT_VARIANT_ID}`
+          );
+          const donationSuccess = await addLineItem(
+            DONATION_PRODUCT_VARIANT_ID,
+            1,
+            [{ key: "Donation Trigger", value: "Eyewear Purchase" }]
+          );
+          console.log(
+            "[EyeglassesRxModal] Donation product addLineItem call complete. Success:",
+            donationSuccess
+          );
+          if (!donationSuccess) {
+            console.warn(
+              "[EyeglassesRxModal] Failed to add donation product to cart. Cart Error (if any):",
+              cartErrorHook
+            );
+          }
+        } else if (
+          prescriptionMethod === "later" &&
+          DONATION_PRODUCT_VARIANT_ID !==
+            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
+        ) {
+          // Also add donation if "Add Rx Later" is chosen for eyewear
+          console.log(
+            `[EyeglassesRxModal] 'Add Rx Later' chosen. Attempting to add donation product: ${DONATION_PRODUCT_VARIANT_ID}`
+          );
+          const donationSuccessLater = await addLineItem(
+            DONATION_PRODUCT_VARIANT_ID,
+            1,
+            [{ key: "Donation Trigger", value: "Eyewear Purchase (Rx Later)" }]
+          );
+          console.log(
+            "[EyeglassesRxModal] Donation product (Rx Later) add status:",
+            donationSuccessLater
+          );
+          if (!donationSuccessLater) {
+            console.warn(
+              "[EyeglassesRxModal] Failed to add donation product (Rx Later) to cart. Cart Error (if any):",
+              cartErrorHook
+            );
+          }
+        } else {
+          console.log(
+            "[EyeglassesRxModal] Donation Product Variant ID is placeholder or condition not met. Skipping donation."
+          );
+        }
         setSuccessMessage("Eyeglasses added to cart!");
-        onClose(); // Close modal immediately on success
-        router.push("/cart"); // Redirect to cart
+        onClose();
+        router.push("/cart");
       } else {
         setError(
           cartErrorHook || "Failed to add eyeglasses to cart. Please try again."
         );
+        console.error(
+          "[EyeglassesRxModal] Failed to add main eyewear product. Cart Error:",
+          cartErrorHook
+        );
       }
     } catch (e: any) {
       setError(e.message || "An unexpected error occurred.");
+      console.error(
+        "[EyeglassesRxModal] Catch block error during add to cart:",
+        e
+      );
     } finally {
       setIsProcessing(false);
     }
