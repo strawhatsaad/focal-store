@@ -36,7 +36,7 @@ export const Footer = () => {
         { name: "How to order", href: "/help/how-to-order" },
         {
           name: "How to read your prescription",
-          href: "/help/read-prescription",
+          href: "/how-to-read-prescriptions",
         },
         { name: "Privacy Policy", href: "/pages/privacy-policy" },
         { name: "Terms of Use", href: "/pages/terms-of-use" },
