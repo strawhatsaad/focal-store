@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
 // Import your images
-import writtenRxRegular from "/public/images/rx-guide/Written-regular.png";
+import writtenRxRegular from "/public/images/rx-guide/Written-Regular.png";
 import writtenRxAstig from "/public/images/rx-guide/Written-Astig.png";
 import writtenRxMultifocal from "/public/images/rx-guide/Written-multifocal.png";
 
