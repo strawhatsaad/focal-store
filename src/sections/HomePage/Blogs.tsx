@@ -11,36 +11,44 @@ import Link from "next/link";
 interface BlogItem {
   image: StaticImageData; // Or string if you pass URLs
   title: string;
+  href: string;
 }
 
 const blogData: BlogItem[] = [
   {
     image: blogImage1,
     title: "What it Takes to Create Quality Eyewear",
+    href: "",
   },
   {
     image: blogImage2,
     title: "How to Buy Contacts Online",
+    href: "",
   },
   {
     image: blogImage3,
     title: "How to Buy Glasses Online",
+    href: "",
   },
   {
     image: blogImage4,
     title: "How to Measure Your PD",
+    href: "",
   },
   {
     image: blogImage5,
     title: "How To Read a Prescription",
+    href: "/how-to-read-prescriptions",
   },
   {
     image: blogImage6,
     title: "How We're Fixing The Blindness Problem",
+    href: "",
   },
   {
     image: blogImage7,
     title: "How to use vision insurance",
+    href: "",
   },
 ];
 
@@ -64,7 +72,7 @@ export const Blogs = () => {
 
           {/* Responsive grid for blog items */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-5 md:gap-6 lg:gap-8 w-full mt-6 sm:mt-8">
-            {blogData.map(({ image, title }, index) => (
+            {blogData.map(({ image, title, href }, index) => (
               <Link
                 key={index}
                 href={"/"} // Update with actual blog link if available
@@ -81,9 +89,11 @@ export const Blogs = () => {
                   />
                 </div>
                 {/* Adjusted text sizes and line clamping for titles */}
-                <p className="text-[10px] xs:text-xs sm:text-sm font-semibold tracking-tight group-hover:underline line-clamp-2 sm:line-clamp-3">
-                  {title}
-                </p>
+                <Link href={href}>
+                  <p className="text-[10px] xs:text-xs sm:text-sm font-semibold tracking-tight group-hover:underline line-clamp-2 sm:line-clamp-3">
+                    {title}
+                  </p>
+                </Link>
               </Link>
             ))}
           </div>

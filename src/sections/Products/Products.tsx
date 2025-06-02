@@ -16,9 +16,9 @@ const ProductsSection = ({
       <div className="w-full px-0 py-8 sm:py-12">
         {" "}
         {/* Adjusted padding for section */}
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8 sm:mb-10 md:mb-12">
+        {/* <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8 sm:mb-10 md:mb-12">
           {heading}
-        </h2>
+        </h2> */}
         {/* Responsive grid for products */}
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10">
           {productData.map((product: any) => (

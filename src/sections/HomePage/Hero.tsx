@@ -6,7 +6,7 @@ import {
   motion,
   useScroll,
   useTransform,
-  useMotionValueEvent,
+  // useMotionValueEvent, // No longer needed if we remove one animation or simplify
 } from "framer-motion";
 import { useRef } from "react";
 import LinkButton from "@/components/LinkButton";
@@ -16,9 +16,14 @@ export const Hero = () => {
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
-    offset: ["start end", "end start"],
+    offset: ["start end", "end start"], // Parallax effect starts when top of hero section reaches bottom of viewport, ends when bottom of hero reaches top of viewport
   });
+
+  // Parallax effect: Image moves up as user scrolls down, and down as user scrolls up
+  // Adjust the [150, -150] range to control the amount of parallax movement.
+  // Positive values move it down initially, negative values move it up as it scrolls into view.
   const translateY = useTransform(scrollYProgress, [0, 1], [150, -150]);
+
   return (
     <section
       id="hero"
@@ -70,23 +75,27 @@ export const Hero = () => {
               </div>
             </div>
           </div>
-          {/* Image section - adjustments for aspect ratio */}
+          {/* Image section */}
           <div className="w-full mt-8 md:mt-0 md:flex-1 relative order-1 md:order-2 flex justify-center items-center md:h-[648px]">
             <motion.img
               src={heroImage.src}
               alt="Hero Image"
-              // Use max-h and max-w to control size while object-contain preserves aspect ratio
               className="max-h-[280px] w-auto sm:max-h-[320px] md:absolute md:w-auto md:max-w-none md:-left-24 md:top-44 lg:-left-28 lg:top-0 md:max-h-[350px] lg:max-h-[460px] lg:mt-40 object-contain"
-              animate={{
-                translateY: [-10, 10],
+              // Removed the conflicting animate prop for translateY
+              // animate={{
+              //   translateY: [-10, 10], // This was causing conflict with the scroll-based translateY
+              // }}
+              // transition={{
+              //   repeat: Infinity,
+              //   repeatType: "mirror",
+              //   duration: 3,
+              //   ease: "easeInOut",
+              // }}
+              style={{
+                translateY: translateY, // Only apply the scroll-based parallax translateY
+                // Adding will-change can sometimes help performance, but test without it first
+                // willChange: 'transform',
               }}
-              transition={{
-                repeat: Infinity,
-                repeatType: "mirror",
-                duration: 3,
-                ease: "easeInOut",
-              }}
-              style={{ translateY: translateY }}
             />
           </div>
         </div>
