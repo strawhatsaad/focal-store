@@ -11,9 +11,8 @@ import {
   UserCircle,
   Mail,
   LogOut,
-  // ShoppingBag, // Removed as Order History is removed
-  // MapPin, // Removed as Manage Addresses is removed
-  FileText,
+  FileText, 
+  Package as OrdersIcon, 
 } from "lucide-react";
 
 const AccountPage = () => {
@@ -23,7 +22,7 @@ const AccountPage = () => {
   useEffect(() => {
     if (status === "loading") return;
     if (!session) {
-      router.push("/auth/signin?callbackUrl=/account");
+      router.push("/auth/signin?callbackUrl=/account"); 
     }
   }, [session, status, router]);
 
@@ -77,7 +76,7 @@ const AccountPage = () => {
           <section className="pb-8 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               {user?.image ? (
-                <img
+                <Image
                   src={user.image}
                   alt={user.name || "User profile picture"}
                   width={100}
@@ -108,16 +107,18 @@ const AccountPage = () => {
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Order History Card Removed */}
-            {/* Manage Addresses Card Removed */}
+            <AccountActionCard
+              icon={<OrdersIcon className="text-green-600" size={28} />} 
+              title="View Orders"
+              description="Track your current and past orders."
+              href="https://account.focaloptical.com/orders" // Changed to external link
+            />
             <AccountActionCard
               icon={<FileText className="text-purple-600" size={28} />}
               title="Manage Prescriptions"
               description="Upload and view your eyewear or contact lens prescriptions."
-              href="/account/prescriptions"
+              href="/account/prescriptions" 
             />
-            {/* Add more cards as needed - ensure the grid looks balanced if only one item remains */}
-            {/* If only one item, you might want to change grid-cols-1 md:grid-cols-1 or adjust styling */}
           </section>
 
           <section className="pt-8 mt-8 border-t border-gray-200 flex justify-center">
@@ -133,7 +134,7 @@ const AccountPage = () => {
         <p className="text-center text-gray-500 text-sm mt-12">
           Need help?{" "}
           <Link
-            href="/contact-us"
+            href="/contact-us" 
             className="text-black hover:underline font-medium"
           >
             Contact Support
@@ -157,10 +158,15 @@ const AccountActionCard: React.FC<AccountActionCardProps> = ({
   description,
   href,
 }) => {
+  // Next.js Link component will automatically treat external URLs as regular <a> tags
   return (
     <Link
       href={href}
       className="block p-6 bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm transition-all duration-200 ease-in-out group"
+      // Add target="_blank" rel="noopener noreferrer" if you want it to open in a new tab
+      // For an external domain like account.focaloptical.com, it might be a good user experience
+      // target={href.startsWith('http') ? '_blank' : '_self'}
+      // rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
     >
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0 p-3 bg-white rounded-full shadow-inner group-hover:scale-110 transition-transform duration-200">

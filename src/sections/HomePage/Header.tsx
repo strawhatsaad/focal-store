@@ -9,14 +9,13 @@ import {
   HeartIcon,
   SearchIcon,
   ShoppingCartIcon,
-  // LogOut, // Removed LogOut
   UserCircle,
   LogIn,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { X, Menu } from "lucide-react";
-import { useSession, signIn } from "next-auth/react"; // signOut removed
-import { useCart } from "@/context/CartContext";
+import { useSession, signIn } from "next-auth/react"; 
+import { useCart } from "@/context/CartContext"; 
 
 export const Header = () => {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -42,8 +41,8 @@ export const Header = () => {
   };
 
   const handleMobileSignInClick = () => {
-    setMobileMenuOpen(false);
-    handleSignIn();
+    setMobileMenuOpen(false); 
+    handleSignIn(); 
   };
 
   const navLinks = [
@@ -99,10 +98,13 @@ export const Header = () => {
               />
             </div>
 
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex md:gap-3 lg:gap-5 text-black/70 items-center">
               {navLinks.map((link) => (
-                <Link href={link.href} key={link.title}>
-                  <span className="md:text-xs lg:text-sm font-medium hover:text-black hover:font-semibold transition-all duration-200 cursor-pointer">
+                <Link href={link.href} key={link.title} className="group"> {/* Added group for group-hover */}
+                  <span 
+                    className="inline-block md:text-xs lg:text-sm font-medium group-hover:text-black group-hover:font-semibold transition-all duration-300 ease-in-out cursor-pointer py-2 group-hover:scale-110"
+                  >
                     {link.title}
                   </span>
                 </Link>
@@ -111,18 +113,15 @@ export const Header = () => {
               {isLoadingSession ? (
                 <div className="h-8 w-20 bg-gray-200 rounded-full animate-pulse"></div>
               ) : session?.user ? (
-                <>
-                  <Link href="/account">
-                    <span className="flex items-center gap-1 md:text-xs lg:text-sm font-medium hover:text-black hover:font-semibold transition-all duration-200 cursor-pointer">
-                      <UserCircle size={18} />
-                      {session.user.name || session.user.email}
-                    </span>
-                  </Link>
-                  {/* Sign Out button removed from here */}
-                </>
+                <Link href="/account" className="group"> {/* Added group */}
+                  <span className="flex items-center gap-1 md:text-xs lg:text-sm font-medium group-hover:text-black group-hover:font-semibold transition-all duration-300 ease-in-out cursor-pointer p-2 rounded-md group-hover:bg-gray-100 group-hover:scale-105"> {/* Adjusted scale to 105 for account link for balance */}
+                    <UserCircle size={18} />
+                    {session.user.name?.split(' ')[0] || session.user.email} 
+                  </span>
+                </Link>
               ) : (
                 <button
-                  onClick={handleSignIn}
+                  onClick={handleSignIn} 
                   className="bg-black text-white px-4 py-1.5 lg:px-6 lg:py-2 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:bg-gray-800 hover:scale-105 transition-all duration-300 md:text-xs lg:text-sm"
                 >
                   Sign in
@@ -148,7 +147,7 @@ export const Header = () => {
                   href="/cart"
                   className="relative"
                   aria-label="Shopping Cart"
-                >
+                > 
                   <ShoppingCartIcon
                     strokeWidth={2.5}
                     color="#374151"
@@ -180,7 +179,7 @@ export const Header = () => {
               key={link.title}
               href={link.href}
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-lg font-semibold text-gray-800 hover:text-black transition-colors"
+              className="block text-lg font-semibold text-gray-800 hover:text-black transition-all duration-300 ease-in-out py-2 hover:bg-gray-50 rounded-md px-2 hover:scale-110 transform" // Added hover:scale-110 and transform
             >
               {link.title}
             </Link>
@@ -189,20 +188,17 @@ export const Header = () => {
           {isLoadingSession ? (
             <div className="h-8 w-32 bg-gray-200 rounded-md animate-pulse mb-4"></div>
           ) : session?.user ? (
-            <>
-              <Link
-                href="/account"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-lg font-semibold text-gray-800 hover:text-black transition-colors"
-              >
-                My Account ({session.user.name || session.user.email})
-              </Link>
-              {/* Sign Out button removed from mobile menu */}
-            </>
+            <Link
+              href="/account"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-lg font-semibold text-gray-800 hover:text-black transition-all duration-300 ease-in-out py-2 hover:bg-gray-50 rounded-md px-2 hover:scale-105 transform" // scale 105 for account link for balance
+            >
+              My Account ({session.user.name?.split(' ')[0] || session.user.email})
+            </Link>
           ) : (
             <button
-              onClick={handleMobileSignInClick}
-              className="w-full text-left text-lg font-semibold text-black hover:bg-gray-100 transition-colors py-3 px-2 rounded-md flex items-center gap-2"
+              onClick={handleMobileSignInClick} 
+              className="w-full text-left text-lg font-semibold text-black hover:bg-gray-100 transition-all duration-300 ease-in-out py-3 px-2 rounded-md flex items-center gap-2 hover:scale-105 transform"
             >
               <LogIn size={20} /> Sign In / Create Account
             </button>
@@ -212,24 +208,24 @@ export const Header = () => {
             <SearchIcon
               strokeWidth={2.5}
               size={26}
-              className="cursor-pointer hover:opacity-75"
+              className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
             />
             <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>
               <HeartIcon
                 strokeWidth={2.5}
                 size={26}
-                className="cursor-pointer hover:opacity-75"
+                className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
               />
             </Link>
             <Link
               href="/cart"
               className="relative"
               onClick={() => setMobileMenuOpen(false)}
-            >
+            > 
               <ShoppingCartIcon
                 strokeWidth={2.5}
                 size={26}
-                className="cursor-pointer hover:opacity-75"
+                className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
               />
               {totalQuantity > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">

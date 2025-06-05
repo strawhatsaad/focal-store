@@ -1,53 +1,38 @@
-"use client";
+// src/components/LinkButton.tsx
+import Link from "next/link";
+import React from "react";
 
-import React, { MouseEventHandler } from "react";
-import Image from "next/image";
-
-interface CustomButtonProps {
+interface Props {
   title: string;
-  sectionId?: string;
+  sectionId?: string; // Make sectionId optional
+  href?: string; // Add href as an optional prop
   containerStyles?: string;
-  handleClick?: MouseEventHandler<HTMLButtonElement>;
-  btnType?: "button" | "submit";
   textStyles?: string;
-  rightIcon?: string;
-  isDisabled?: boolean;
+  icon?: React.ReactNode; // If you ever want to add an icon
 }
 
 const LinkButton = ({
   title,
   sectionId,
+  href, // Destructure new href prop
   containerStyles,
-  handleClick,
-  btnType,
   textStyles,
-  rightIcon,
-}: CustomButtonProps) => {
-  const handleScroll = () => {
-    const nextSection = document.getElementById(`${sectionId}`);
-    if (nextSection) {
-      nextSection.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  icon,
+}: Props) => {
+  // Determine the link destination:
+  // Priority to direct href, fallback to sectionId for hash links,
+  // then a default if neither is provided (though one should be).
+  const destination = href || (sectionId ? `#${sectionId}` : "/");
+
   return (
-    <button
-      disabled={false}
-      type={btnType || "button"}
-      className={containerStyles}
-      onClick={handleScroll}
-    >
-      <span className={`${textStyles}`}>{title}</span>
-      {rightIcon && (
-        <div className="relative w-6 h-6">
-          <Image
-            src={rightIcon}
-            alt="right icon"
-            fill
-            className="object-contain"
-          />
-        </div>
-      )}
-    </button>
+    <Link href={destination} scroll={sectionId ? false : true}>
+      {" "}
+      {/* scroll={false} only for hash links */}
+      <div className={containerStyles}>
+        {icon && <span className="mr-2">{icon}</span>}
+        <p className={textStyles}>{title}</p>
+      </div>
+    </Link>
   );
 };
 

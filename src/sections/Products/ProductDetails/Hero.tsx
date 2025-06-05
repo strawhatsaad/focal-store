@@ -419,6 +419,16 @@ const Hero = ({ product }: any) => {
     ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
     : selectedVariant?.price || product?.price || "$0.00";
 
+  // Determine the specific disclaimer text
+  let donationSpecifics = "";
+  if (isContactLensProduct) {
+    donationSpecifics =
+      "When you buy four boxes of contact lenses, we donate an additional cataract lens on your behalf!";
+  } else if (isEyewearProduct) {
+    donationSpecifics =
+      "When you buy a pair of eyeglasses, we donate an additional cataract lens on your behalf!";
+  }
+
   return (
     <section className="py-8 bg-white md:py-16 antialiased">
       <div className="max-w-screen-xl px-4 mx-auto 2xl:px-0 container">
@@ -660,15 +670,18 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
+              {/* Disclaimer Section */}
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
                 <DonationIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-blue-700">
-                  With every purchase, we donate to CureBlindness.org. When you
-                  buy four boxes of contact lenses or a pair of eyeglasses with
-                  us, we donate an additional cataract lens on your behalf!
+                  With every purchase at Focal, we donate to CureBlindness.org.
+                  {donationSpecifics && (
+                    <span className="block mt-1">{donationSpecifics}</span>
+                  )}
                 </p>
               </div>
 
+              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -685,7 +698,7 @@ const Hero = ({ product }: any) => {
                   sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ShoppingCart className="w-5 h-5" />
+                    <ShoppingCart className="w-5 w-5" />
                   )}
                   {isContactLensProduct
                     ? "Enter Prescription & Add to Cart"
@@ -694,6 +707,7 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
+              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -718,6 +732,7 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
+        {/* Modals */}
         {isEyeglassesLensModalOpen &&
           isEyewearProduct &&
           selectedVariant &&
@@ -762,6 +777,7 @@ const Hero = ({ product }: any) => {
             />
           )}
 
+        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}

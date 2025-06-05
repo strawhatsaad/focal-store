@@ -14,7 +14,7 @@ export const LensType = () => {
       <div className="container">
         <div className="flex flex-col items-center md:gap-y-2 lg:gap-y-4">
           <h2 className="font-black text-3xl md:text-4xl lg:text-7xl tracking-tighter text-center bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
-            Lens Type
+            Lens Types
           </h2>
           <p className="text-sm md:text-lg lg:text-xl font-medium text-center md:tracking-tighter lg:tracking-normal">
             Match your high-end frame with the perfect lens
