@@ -8,7 +8,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
-  useMemo, // Added useMemo
+  useMemo, 
 } from "react";
 import {
   storeFront,
@@ -18,30 +18,30 @@ import {
   CART_LINES_REMOVE_MUTATION,
   GET_CART_QUERY,
   CART_BUYER_IDENTITY_UPDATE_MUTATION,
-  // CART_FRAGMENT, // Not used directly if types are defined
-} from "../../utils"; // Adjust path as needed
+} from "../../utils"; 
 import { useSession } from "next-auth/react";
 
-const DONATION_PRODUCT_VARIANT_ID: any =
-  "gid://shopify/ProductVariant/46334706581757";
+const DONATION_PRODUCT_VARIANT_ID: any = "gid://shopify/ProductVariant/46334706581757"; 
 
 interface CartContextType {
   cart: Cart | null;
   cartId: string | null;
   loading: boolean;
+  isInitializing: boolean; // Added isInitializing
   error: string | null;
-  createCart: () => Promise<void>;
+  createCart: () => Promise<string | null>; 
   fetchCart: (id: string) => Promise<void>;
   addLineItem: (
     variantId: string,
     quantity: number,
     attributes?: Array<{ key: string; value: string }>
-  ) => Promise<boolean>;
+  ) => Promise<boolean>; 
   updateLineItem: (lineId: string, quantity: number) => Promise<void>;
   removeLineItem: (lineId: string) => Promise<void>;
   clearCartError: () => void;
   associateCartWithCustomer: (customerAccessToken: string) => Promise<void>;
   itemCount: number;
+  clearCartAndCreateNew: () => Promise<void>; 
 }
 
 interface CartProviderProps {
@@ -89,10 +89,10 @@ interface CartLines {
   edges: CartLineEdge[];
 }
 interface CartBuyerIdentity {
-  email: string | null;
-  phone: string | null;
-  customer: { id: string } | null;
-  countryCode: string | null;
+    email: string | null;
+    phone: string | null;
+    customer: { id: string } | null;
+    countryCode: string | null;
 }
 interface Cart {
   id: string;
@@ -103,6 +103,7 @@ interface Cart {
   buyerIdentity: CartBuyerIdentity;
   note?: string | null;
 }
+
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -117,7 +118,8 @@ export const useCart = () => {
 export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<Cart | null>(null);
   const [cartId, setCartId] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false); 
+  const [isInitializing, setIsInitializing] = useState<boolean>(true); 
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
 
@@ -136,32 +138,22 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return defaultMessage;
   };
 
-  const checkAndManageDonationProduct = async (
-    currentCart: Cart | null
-  ): Promise<Cart | null> => {
-    if (!currentCart || !currentCart.lines?.edges) return currentCart;
-    if (
-      DONATION_PRODUCT_VARIANT_ID ===
-      "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
-    ) {
-      // console.warn("[CartContext] Donation Product Variant ID is a placeholder. Donation management skipped.");
+  const checkAndManageDonationProduct = async (currentCart: Cart | null): Promise<Cart | null> => {
+    if (!currentCart || !currentCart.id || !currentCart.lines?.edges) return currentCart;
+    if (DONATION_PRODUCT_VARIANT_ID === "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE") {
       return currentCart;
     }
 
     const currentLines = currentCart.lines.edges;
-    const donationItemLine = currentLines.find(
-      (edge) => edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID
-    );
-
+    const donationItemLine = currentLines.find(edge => edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID);
+    
     let qualifyingEyeglassesCount = 0;
     let totalContactLensBoxes = 0;
 
-    currentLines.forEach((edge) => {
-      if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return;
+    currentLines.forEach(edge => {
+      if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return; 
 
-      const focalProductTypeAttr = edge.node.attributes.find(
-        (attr) => attr.key === "FocalProductType"
-      );
+      const focalProductTypeAttr = edge.node.attributes.find(attr => attr.key === "FocalProductType");
       if (focalProductTypeAttr?.value === "Eyeglasses") {
         qualifyingEyeglassesCount++;
       } else if (focalProductTypeAttr?.value === "ContactLenses") {
@@ -169,71 +161,27 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       }
     });
 
-    const shouldHaveDonation =
-      qualifyingEyeglassesCount > 0 || totalContactLensBoxes >= 4;
-
+    const shouldHaveDonation = (qualifyingEyeglassesCount > 0) || (totalContactLensBoxes >= 4);
+    
     if (donationItemLine && !shouldHaveDonation) {
-      // console.log("[CartContext] Conditions no longer met. Removing donation product.");
       try {
-        const variables = {
-          cartId: currentCart.id,
-          lineIds: [donationItemLine.node.id],
-        };
-        const response = await storeFront(
-          CART_LINES_REMOVE_MUTATION,
-          variables
-        );
+        const variables = { cartId: currentCart.id, lineIds: [donationItemLine.node.id] };
+        const response = await storeFront(CART_LINES_REMOVE_MUTATION, variables);
         if (response.data?.cartLinesRemove?.userErrors?.length > 0) {
-          const shopifyError = handleShopifyError(
-            response.data.cartLinesRemove,
-            "Error removing donation item."
-          );
-          console.error(
-            "[CartContext] Error removing donation item from Shopify:",
-            shopifyError
-          );
-          return currentCart;
+          const shopifyError = handleShopifyError(response.data.cartLinesRemove, "Error removing donation item.");
+          console.error("[CartContext] Error removing donation item from Shopify:", shopifyError);
+          return currentCart; 
         }
-        // console.log("[CartContext] Donation product removed successfully from Shopify.");
-        return response.data?.cartLinesRemove?.cart || null;
+        return response.data?.cartLinesRemove?.cart || null; 
       } catch (e: any) {
-        console.error(
-          "[CartContext] Exception removing donation item:",
-          e.message
-        );
-        return currentCart;
+        console.error("[CartContext] Exception removing donation item:", e.message);
+        return currentCart; 
       }
     }
-    return currentCart;
+    return currentCart; 
   };
 
-  const fetchCart = useCallback(async (id: string) => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await storeFront(GET_CART_QUERY, { id });
-      if (response.data?.cart) {
-        let updatedCart = response.data.cart;
-        updatedCart = await checkAndManageDonationProduct(updatedCart);
-        setCart(updatedCart);
-        setCartId(updatedCart?.id || null);
-      } else {
-        localStorage.removeItem("focalCartId");
-        setCart(null);
-        setCartId(null);
-      }
-    } catch (err: any) {
-      setError(handleShopifyError(err, "Failed to fetch cart."));
-      console.error("Fetch cart error:", err);
-    } finally {
-      setLoading(false);
-    }
-    // Removed checkAndManageDonationProduct from here as it's called inside
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const createCart = useCallback(async () => {
+  const createCart = useCallback(async (): Promise<string | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -248,30 +196,61 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setCart(newCart);
         setCartId(newCart.id);
         localStorage.setItem("focalCartId", newCart.id);
+        return newCart.id;
       } else {
-        throw new Error(
-          handleShopifyError(
-            response.data?.cartCreate,
-            "Failed to create cart."
-          )
-        );
+        throw new Error(handleShopifyError(response.data?.cartCreate, "Failed to create cart."));
       }
     } catch (err: any) {
       setError(err.message);
       console.error("Create cart error:", err);
+      return null;
     } finally {
       setLoading(false);
     }
   }, [session]);
 
+  const fetchCart = useCallback(async (id: string) => {
+    if (!id) {
+      setIsInitializing(false); // Ensure initializing is false if no id
+      return;
+    }
+    setLoading(true); // setLoading should be true when fetching
+    setError(null);
+    try {
+      const response = await storeFront(GET_CART_QUERY, { id });
+      if (response.data?.cart) {
+        let updatedCart = response.data.cart;
+        updatedCart = await checkAndManageDonationProduct(updatedCart);
+        setCart(updatedCart);
+        setCartId(updatedCart?.id || null);
+      } else {
+        localStorage.removeItem("focalCartId");
+        setCart(null);
+        setCartId(null);
+        await createCart(); 
+      }
+    } catch (err: any) {
+      setError(handleShopifyError(err, "Failed to fetch cart."));
+      console.error("Fetch cart error:", err);
+      localStorage.removeItem("focalCartId");
+      await createCart();
+    } finally {
+      setLoading(false);
+      setIsInitializing(false); // Set to false after fetch/create attempt
+    }
+  }, [createCart]); 
+
+
   useEffect(() => {
+    setIsInitializing(true);
     const storedCartId = localStorage.getItem("focalCartId");
     if (storedCartId) {
-      fetchCart(storedCartId);
+      fetchCart(storedCartId); // This will set isInitializing to false in its finally block
     } else {
-      createCart();
+      createCart().finally(() => setIsInitializing(false));
     }
   }, [fetchCart, createCart]);
+
 
   const addLineItem = useCallback(
     async (
@@ -281,19 +260,18 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     ): Promise<boolean> => {
       let currentCartId = cartId;
       if (!currentCartId) {
-        console.log(
-          "[CartContext] No cartId, attempting to create/fetch cart before adding item."
-        );
-        await createCart(); // Attempt to create a cart if missing
-        currentCartId = localStorage.getItem("focalCartId"); // Check again after creation attempt
-        if (!currentCartId) {
-          console.error(
-            "[CartContext] Failed to create or retrieve cart ID before adding item."
-          );
-          setError("Cart not initialized. Please try again.");
-          return false;
+        const storedId = localStorage.getItem("focalCartId");
+        if (storedId) {
+            currentCartId = storedId;
+            setCartId(storedId); 
+        } else {
+            currentCartId = await createCart(); 
+             if (!currentCartId) {
+                console.error("[CartContext] Failed to create or retrieve cart ID before adding item.");
+                setError("Cart not initialized. Please try again.");
+                return false;
+            }
         }
-        setCartId(currentCartId); // Ensure cartId state is updated
       }
 
       setLoading(true);
@@ -306,21 +284,13 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         const response = await storeFront(CART_LINES_ADD_MUTATION, variables);
         if (response.data?.cartLinesAdd?.cart) {
           let updatedCart = response.data.cartLinesAdd.cart;
-          // Check donation status after adding main items, before setting cart state
-          // This is important if the donation is added by Hero/Modal and this addLineItem is for the donation itself
-          if (variantId !== DONATION_PRODUCT_VARIANT_ID) {
-            // Avoid recursion if this is the donation item
-            updatedCart = await checkAndManageDonationProduct(updatedCart);
+          if (variantId !== DONATION_PRODUCT_VARIANT_ID) { 
+             updatedCart = await checkAndManageDonationProduct(updatedCart);
           }
           setCart(updatedCart);
           return true;
         } else {
-          throw new Error(
-            handleShopifyError(
-              response.data?.cartLinesAdd,
-              "Failed to add item to cart."
-            )
-          );
+          throw new Error(handleShopifyError(response.data?.cartLinesAdd, "Failed to add item to cart."));
         }
       } catch (err: any) {
         setError(err.message);
@@ -330,10 +300,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId, createCart] // Removed checkAndManageDonationProduct from here
+    [cartId, createCart] 
   );
 
-  // Define removeLineItem BEFORE updateLineItem
   const removeLineItem = useCallback(
     async (lineId: string) => {
       if (!cartId) {
@@ -344,21 +313,13 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       setError(null);
       try {
         const variables = { cartId, lineIds: [lineId] };
-        const response = await storeFront(
-          CART_LINES_REMOVE_MUTATION,
-          variables
-        );
+        const response = await storeFront(CART_LINES_REMOVE_MUTATION, variables);
         if (response.data?.cartLinesRemove?.cart) {
           let updatedCart = response.data.cartLinesRemove.cart;
           updatedCart = await checkAndManageDonationProduct(updatedCart);
           setCart(updatedCart);
         } else {
-          throw new Error(
-            handleShopifyError(
-              response.data?.cartLinesRemove,
-              "Failed to remove item from cart."
-            )
-          );
+          throw new Error(handleShopifyError(response.data?.cartLinesRemove, "Failed to remove item from cart."));
         }
       } catch (err: any) {
         setError(err.message);
@@ -367,7 +328,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId] // Removed checkAndManageDonationProduct from here
+    [cartId] 
   );
 
   const updateLineItem = useCallback(
@@ -376,30 +337,21 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setError("Cart not initialized.");
         return;
       }
-      // If quantity is 0 or less, remove the item instead of updating
-      if (quantity <= 0) {
-        await removeLineItem(lineId); // Call the already defined removeLineItem
+      if (quantity <= 0) { 
+        await removeLineItem(lineId); 
         return;
       }
       setLoading(true);
       setError(null);
       try {
         const variables = { cartId, lines: [{ id: lineId, quantity }] };
-        const response = await storeFront(
-          CART_LINES_UPDATE_MUTATION,
-          variables
-        );
+        const response = await storeFront(CART_LINES_UPDATE_MUTATION, variables);
         if (response.data?.cartLinesUpdate?.cart) {
           let updatedCart = response.data.cartLinesUpdate.cart;
           updatedCart = await checkAndManageDonationProduct(updatedCart);
           setCart(updatedCart);
         } else {
-          throw new Error(
-            handleShopifyError(
-              response.data?.cartLinesUpdate,
-              "Failed to update item quantity."
-            )
-          );
+          throw new Error(handleShopifyError(response.data?.cartLinesUpdate, "Failed to update item quantity."));
         }
       } catch (err: any) {
         setError(err.message);
@@ -408,54 +360,51 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId, removeLineItem] // Now removeLineItem is defined before this
+    [cartId, removeLineItem] 
   );
+  
+  const associateCartWithCustomer = useCallback(async (customerAccessToken: string) => {
+    let currentCartId = cartId;
+    if (!currentCartId) {
+        currentCartId = localStorage.getItem("focalCartId");
+    }
+    if (!currentCartId || !customerAccessToken) {
+      console.warn("Cart ID or Customer Access Token missing for association.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const buyerIdentity = { customerAccessToken: customerAccessToken, countryCode: "US" }; 
+      const variables = { cartId: currentCartId, buyerIdentity };
+      const response = await storeFront(CART_BUYER_IDENTITY_UPDATE_MUTATION, variables);
+      if (response.data?.cartBuyerIdentityUpdate?.cart) {
+        setCart(response.data.cartBuyerIdentityUpdate.cart);
+      } else if (response.data?.cartBuyerIdentityUpdate?.userErrors?.length > 0) {
+        throw new Error(handleShopifyError(response.data.cartBuyerIdentityUpdate, "Failed to associate cart with customer."));
+      } else {
+         throw new Error("Failed to associate cart with customer due to an unknown error.");
+      }
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Associate cart error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [cartId]);
 
-  const associateCartWithCustomer = useCallback(
-    async (customerAccessToken: string) => {
-      if (!cartId || !customerAccessToken) {
-        console.warn(
-          "Cart ID or Customer Access Token missing for association."
-        );
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      try {
-        const buyerIdentity = {
-          customerAccessToken: customerAccessToken,
-          countryCode: "US",
-        };
-        const variables = { cartId, buyerIdentity };
-        const response = await storeFront(
-          CART_BUYER_IDENTITY_UPDATE_MUTATION,
-          variables
-        );
-        if (response.data?.cartBuyerIdentityUpdate?.cart) {
-          setCart(response.data.cartBuyerIdentityUpdate.cart);
-        } else {
-          throw new Error(
-            handleShopifyError(
-              response.data?.cartBuyerIdentityUpdate,
-              "Failed to associate cart with customer."
-            )
-          );
-        }
-      } catch (err: any) {
-        setError(err.message);
-        console.error("Associate cart error:", err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [cartId]
-  );
+  const clearCartAndCreateNew = useCallback(async () => {
+    localStorage.removeItem("focalCartId");
+    setCart(null);
+    setCartId(null);
+    setIsInitializing(true); // Set initializing true before creating a new cart
+    await createCart().finally(() => setIsInitializing(false)); 
+  }, [createCart]);
 
   const itemCount = useMemo(() => {
-    return (
-      cart?.lines.edges.reduce((sum, edge) => sum + edge.node.quantity, 0) || 0
-    );
+    return cart?.lines.edges.reduce((sum, edge) => sum + edge.node.quantity, 0) || 0;
   }, [cart]);
+
 
   return (
     <CartContext.Provider
@@ -463,6 +412,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         cart,
         cartId,
         loading,
+        isInitializing, // Expose isInitializing
         error,
         createCart,
         fetchCart,
@@ -472,6 +422,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         clearCartError,
         associateCartWithCustomer,
         itemCount,
+        clearCartAndCreateNew, 
       }}
     >
       {children}

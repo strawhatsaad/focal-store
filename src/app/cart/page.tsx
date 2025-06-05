@@ -2,11 +2,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useCart } from "@/context/CartContext";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useCart } from "@/context/CartContext"; 
+import { useSession } from "next-auth/react"; 
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
-// import Image from "next/image";
 import {
   Loader2,
   Trash2,
@@ -14,7 +13,7 @@ import {
   ShoppingBag,
   AlertCircle,
   CreditCard,
-  LogIn,
+  LogIn, 
 } from "lucide-react";
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
@@ -28,18 +27,20 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
 const CartPage = () => {
   const {
     cart,
-    loading: cartContextLoading,
+    loading: cartContextLoading, 
+    isInitializing, // Destructure isInitializing from context
     error: cartContextError,
     updateLineItem,
     removeLineItem,
     clearCartError,
+    clearCartAndCreateNew, 
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
+  const router = useRouter(); 
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
-  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
-  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); 
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); 
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -65,9 +66,9 @@ const CartPage = () => {
     if (!cart?.lines?.edges) return [];
     return cart.lines.edges.map((edge) => {
       const line = edge.node;
-      let displayPrice = parsePrice(line.merchandise.priceV2.amount);
+      let displayPrice = parsePrice(line.merchandise.priceV2.amount); 
       let isCustomizedEyeglass = false;
-      let finalCalculatedPrice = displayPrice;
+      let finalCalculatedPrice = displayPrice; 
 
       const finalPriceAttr = line.attributes.find(
         (attr) => attr.key === "_finalCalculatedPrice"
@@ -76,14 +77,14 @@ const CartPage = () => {
       if (finalPriceAttr) {
         const parsedFinalPrice = parsePrice(finalPriceAttr.value);
         if (parsedFinalPrice > 0) {
-          finalCalculatedPrice = parsedFinalPrice;
+          finalCalculatedPrice = parsedFinalPrice; 
           isCustomizedEyeglass = true;
         }
       }
       return {
         ...line,
-        merchandiseId: line.merchandise.id,
-        customizedUnitPrice: finalCalculatedPrice,
+        merchandiseId: line.merchandise.id, 
+        customizedUnitPrice: finalCalculatedPrice, 
         displayTotalPrice: finalCalculatedPrice * line.quantity,
         isCustomizedEyeglass,
         title:
@@ -102,20 +103,18 @@ const CartPage = () => {
   const currencyCode = cart?.cost?.subtotalAmount?.currencyCode || "USD";
 
   const handleProceedToCheckout = async () => {
-    setCheckoutMessage(null);
+    setCheckoutMessage(null); 
     setIsProcessingCheckout(true);
 
     if (sessionStatus === "loading") {
       setCheckoutMessage("Verifying your session...");
-      return;
+      return; 
     }
 
     if (!session) {
       setCheckoutMessage("Redirecting to sign in...");
       const currentPath = window.location.pathname + window.location.search;
-      router.push(
-        `/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`
-      );
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`); 
       return;
     }
 
@@ -126,21 +125,21 @@ const CartPage = () => {
     }
 
     const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
-      variantId: item.merchandiseId,
+      variantId: item.merchandiseId, 
       quantity: item.quantity,
-      customizedPrice: item.customizedUnitPrice.toFixed(2),
+      customizedPrice: item.customizedUnitPrice.toFixed(2), 
       attributes: item.attributes.map((attr) => ({
         key: attr.key,
         value: attr.value,
       })),
-      title: item.title,
+      title: item.title, 
     }));
 
     const customerInfoPayload: any = {};
-    if (session?.user?.email) {
+    if (session?.user?.email) { 
       customerInfoPayload.email = session.user.email;
     }
-
+    
     try {
       setCheckoutMessage("Processing your order...");
       const response = await fetch("/api/checkout/create-draft-order", {
@@ -160,7 +159,8 @@ const CartPage = () => {
 
       if (result.invoiceUrl) {
         setCheckoutMessage("Redirecting to Shopify checkout...");
-        window.location.href = result.invoiceUrl;
+        await clearCartAndCreateNew(); 
+        window.location.href = result.invoiceUrl; 
       } else {
         throw new Error("Invoice URL not received from draft order creation.");
       }
@@ -170,11 +170,12 @@ const CartPage = () => {
         err.message ||
           "An unexpected error occurred while preparing your order."
       );
-      setIsProcessingCheckout(false);
-    }
+       setIsProcessingCheckout(false); 
+    } 
   };
 
-  if (cartContextLoading && !cart) {
+  // Updated loading condition to use isInitializing from context
+  if (isInitializing || (cartContextLoading && !cart)) { 
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
@@ -187,14 +188,14 @@ const CartPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 py-8 md:py-12 px-2 xs:px-4">
-      <div className="container mx-auto max-w-4xl">
+      <div className="container mx-auto max-w-4xl"> 
         <header className="mb-6 md:mb-10">
           <Link
             href="/"
             className="flex items-center text-xs xs:text-sm text-gray-600 hover:text-black mb-4 sm:mb-6 group"
           >
             <ArrowLeft
-              size={16}
+              size={16} 
               className="mr-1.5 xs:mr-2 group-hover:-translate-x-1 transition-transform duration-200"
             />
             Continue Shopping
@@ -204,7 +205,7 @@ const CartPage = () => {
           </h1>
         </header>
 
-        {cartContextError && (
+        {cartContextError && ( 
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 rounded-md shadow-md mb-6 text-sm"
             role="alert"
@@ -223,21 +224,19 @@ const CartPage = () => {
         {checkoutMessage && (
           <div
             className={`p-3 sm:p-4 rounded-md shadow-md mb-6 border-l-4 text-sm ${
-              checkoutMessage.toLowerCase().includes("error") ||
-              checkoutMessage.toLowerCase().includes("failed")
+              checkoutMessage.toLowerCase().includes("error") || checkoutMessage.toLowerCase().includes("failed")
                 ? "bg-red-100 border-red-500 text-red-700"
-                : "bg-blue-100 border-blue-500 text-blue-700"
+                : "bg-blue-100 border-blue-500 text-blue-700" 
             }`}
             role="alert"
           >
             <div className="flex items-center">
               <div className="py-1">
-                {checkoutMessage.toLowerCase().includes("error") ||
-                checkoutMessage.toLowerCase().includes("failed") ? (
+                {checkoutMessage.toLowerCase().includes("error") || checkoutMessage.toLowerCase().includes("failed") ? (
                   <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
                 ) : checkoutMessage.toLowerCase().includes("sign in") ? (
                   <LogIn className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
-                ) : (
+                ) : ( 
                   <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin mr-2 sm:mr-3" />
                 )}
               </div>
@@ -263,17 +262,12 @@ const CartPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="bg-white p-3 xs:p-4 sm:p-6 md:p-8 rounded-xl shadow-xl">
+          <div className="bg-white p-3 xs:p-4 sm:p-6 md:p-8 rounded-xl shadow-xl"> 
             <ul role="list" className="divide-y divide-gray-200">
               {lineItemsWithDisplayPrice.map((line) => (
-                // Line item: stacks below md, row from md up
-                <li
-                  key={line.id}
-                  className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8"
-                >
-                  {/* Image: Centered on smallest screens (when stacked), left-aligned from md upwards */}
-                  <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0">
-                    <img
+                <li key={line.id} className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8"> 
+                  <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0"> 
+                    <img 
                       src={
                         line.merchandise.image?.url ||
                         "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"
@@ -282,17 +276,15 @@ const CartPage = () => {
                         line.merchandise.image?.altText ||
                         line.merchandise.product.title
                       }
-                      width={128}
+                      width={128} 
                       height={128}
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  {/* Details section */}
-                  <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col">
+                  <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col"> 
                     <div>
-                      {/* Title and Price container: stacks below md, row from md up */}
-                      <div className="flex flex-col md:flex-row justify-between text-sm sm:text-base font-medium text-gray-900">
-                        <h3 className="mb-1 md:mb-0 break-words md:pr-2">
+                      <div className="flex flex-col md:flex-row justify-between text-sm sm:text-base font-medium text-gray-900"> 
+                        <h3 className="mb-1 md:mb-0 break-words md:pr-2">  
                           <Link
                             href={`/products/${line.merchandise.product.handle}`}
                             className="hover:underline"
@@ -300,22 +292,18 @@ const CartPage = () => {
                             {line.title}
                           </Link>
                         </h3>
-                        <p className="flex-shrink-0 self-start md:self-auto">
+                        <p className="flex-shrink-0 self-start md:self-auto"> 
                           ${line.displayTotalPrice.toFixed(2)}
                         </p>
                       </div>
-                      {/* Attributes */}
                       {line.attributes && line.attributes.length > 0 && (
                         <div className="mt-1 space-y-0.5">
                           {line.attributes
                             .filter(
-                              (attr) => attr.key !== "_finalCalculatedPrice"
+                              (attr) => attr.key !== "_finalCalculatedPrice" 
                             )
                             .map((attr) => (
-                              <p
-                                key={attr.key}
-                                className="text-xs text-gray-500 break-words"
-                              >
+                              <p key={attr.key} className="text-xs text-gray-500 break-words">
                                 <span className="font-medium">{attr.key}:</span>{" "}
                                 {attr.value}
                               </p>
@@ -329,59 +317,38 @@ const CartPage = () => {
                         </p>
                       )}
                     </div>
-                    {/* Quantity and Remove controls */}
-                    <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between text-xs sm:text-sm mt-3 md:mt-4 gap-3 md:gap-0">
+                    <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between text-xs sm:text-sm mt-3 md:mt-4 gap-3 md:gap-0"> 
                       <div className="flex items-center border border-gray-300 rounded">
                         <button
-                          onClick={() =>
-                            handleQuantityChange(line.id, line.quantity - 1)
-                          }
-                          disabled={
-                            updatingItemId === line.id ||
-                            line.quantity <= 0 ||
-                            isProcessingCheckout
-                          }
+                          onClick={() => handleQuantityChange(line.id, line.quantity - 1)}
+                          disabled={updatingItemId === line.id || line.quantity <= 0 || isProcessingCheckout }
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
                           aria-label="Decrease quantity"
-                        >
-                          {" "}
-                          &ndash;{" "}
-                        </button>
+                        > &ndash; </button>
                         <span className="px-2.5 sm:px-3 py-1 text-center w-8 sm:w-10 border-l border-r border-gray-300">
                           {updatingItemId === line.id && cartContextLoading ? (
                             <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
-                          ) : (
-                            line.quantity
-                          )}
+                          ) : ( line.quantity )}
                         </span>
                         <button
-                          onClick={() =>
-                            handleQuantityChange(line.id, line.quantity + 1)
-                          }
-                          disabled={
-                            updatingItemId === line.id || isProcessingCheckout
-                          }
+                          onClick={() => handleQuantityChange(line.id, line.quantity + 1)}
+                          disabled={updatingItemId === line.id || isProcessingCheckout}
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
                           aria-label="Increase quantity"
-                        >
-                          {" "}
-                          +{" "}
-                        </button>
+                        > + </button>
                       </div>
 
-                      <div className="flex mt-2 md:mt-0">
+                      <div className="flex mt-2 md:mt-0"> 
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(line.id)}
-                          disabled={
-                            updatingItemId === line.id || isProcessingCheckout
-                          }
+                          disabled={updatingItemId === line.id || isProcessingCheckout}
                           className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50 px-2 py-1 rounded-md hover:bg-red-50"
                         >
                           {updatingItemId === line.id && cartContextLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                          ) : (
-                            <Trash2 size={16} className="mr-1" />
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" /> 
+                          ) : ( 
+                            <Trash2 size={16} className="mr-1" /> 
                           )}
                           Remove
                         </button>
@@ -392,7 +359,6 @@ const CartPage = () => {
               ))}
             </ul>
 
-            {/* Summary Section */}
             <div className="border-t border-gray-200 pt-6 mt-6">
               <div className="flex justify-between text-base font-medium text-gray-900">
                 <p>Subtotal</p>
@@ -417,16 +383,10 @@ const CartPage = () => {
               <div className="mt-6">
                 <button
                   onClick={handleProceedToCheckout}
-                  disabled={
-                    isProcessingCheckout ||
-                    cartContextLoading ||
-                    sessionStatus === "loading"
-                  }
+                  disabled={isProcessingCheckout || cartContextLoading || sessionStatus === "loading"}
                   className="w-full flex items-center justify-center rounded-md border border-transparent bg-black px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-white shadow-sm hover:bg-gray-800 transition-colors duration-150 ease-in-out disabled:opacity-50"
                 >
-                  {isProcessingCheckout ||
-                  cartContextLoading ||
-                  sessionStatus === "loading" ? (
+                  {isProcessingCheckout || cartContextLoading || sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
                     <CreditCard className="w-5 h-5 mr-2" />
