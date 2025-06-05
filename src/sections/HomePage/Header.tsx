@@ -48,9 +48,9 @@ export const Header = () => {
   const navLinks = [
     { title: "Contact Lenses", href: "/pages/contact-lenses" },
     { title: "Eyewear", href: "/pages/eyewear" },
-    { title: "Sunglasses", href: "/sunglasses" },
-    { title: "Eyehealth", href: "/eyehealth" },
-    { title: "Learning Center", href: "/learning-center" },
+    { title: "Sunglasses", href: "/pages/sunglasses" },
+    { title: "Eyehealth", href: "/pages/eyehealth" },
+    { title: "Learning Center", href: "/pages/learning-center" },
   ];
 
   return (
