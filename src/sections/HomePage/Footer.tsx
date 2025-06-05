@@ -99,7 +99,7 @@ export const Footer = () => {
                 </div>
               </Link>
               <h2 className="font-bold text-base sm:text-lg md:text-xl lg:text-2xl text-center lg:text-left">
-                Your happiness, backed by our Gajillion Percent Promise
+                See the world clearly. Help the world see
               </h2>
             </div>
             <button className="hidden btn btn-text gap-1 p-0 md:flex items-center hover:font-bold hover:scale-105 transition-all duration-[350ms]">

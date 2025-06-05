@@ -290,7 +290,7 @@ const ContactLensesPage = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or tag (e.g., 'Acuvue', 'daily', 'toric')..."
+                placeholder="Search for contact lenses"
                 className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
               />
               <Search

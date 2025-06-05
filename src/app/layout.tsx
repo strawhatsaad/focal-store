@@ -1,20 +1,23 @@
-// File: src/app/layout.tsx
+// src/app/layout.tsx
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans } from "next/font/google"; // Import DM_Sans
 import "./globals.css";
-import { twMerge } from "tailwind-merge";
-import { Header } from "@/sections/HomePage/Header"; // Ensure this path is correct
-import { Footer } from "@/sections/HomePage/Footer"; // Ensure this path is correct
-import NextAuthProvider from "./providers"; // This should contain SessionProvider
-import { CartProvider } from "@/context/CartContext"; // Ensure this path is correct
-// SessionHandler import removed
+import { Header } from "@/sections/HomePage/Header";
+import { Footer } from "@/sections/HomePage/Footer";
+import Providers from "./providers"; // For NextAuth SessionProvider
+import { CartProvider } from "@/context/CartContext"; // For Cart Context
 
-const dmSans = DM_Sans({ subsets: ["latin"] });
+// Configure DM Sans
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"], // Specify the weights you'll use
+  variable: "--font-dm-sans", // Define a CSS variable
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Focal",
-  description:
-    "A place for you to buy eyewear and contact lenses while contributing to a good cause.",
+  title: "Focal Optical",
+  description: "Your one-stop shop for eyewear and contact lenses.",
 };
 
 export default function RootLayout({
@@ -23,16 +26,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="relative">
-      <body className={twMerge(dmSans.className, "antialiased bg-[#FFFFFF]")}>
-        <NextAuthProvider>
+    <html lang="en">
+      {/* Apply the font variable and Tailwind's font-sans class */}
+      <body className={`${dmSans.variable} font-sans antialiased`}>
+        <Providers>
+          {" "}
+          {/* Wraps children with SessionProvider */}
           <CartProvider>
-            {/* SessionHandler component removed */}
             <Header />
-            <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">
+              {" "}
+              {/* Ensure main content area can fill screen */}
+              {children}
+            </main>
             <Footer />
           </CartProvider>
-        </NextAuthProvider>
+        </Providers>
       </body>
     </html>
   );

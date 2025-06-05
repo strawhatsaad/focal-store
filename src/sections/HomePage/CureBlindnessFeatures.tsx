@@ -32,22 +32,21 @@ export const CureBlindnessFeatures = () => {
               </p>
               {/* Adjusted button sizes and gap */}
               <div className="flex flex-col xs:flex-row md:flex-row gap-2 sm:gap-3 md:gap-2 lg:gap-4 mt-3 sm:mt-4">
-                <Link href={"/pages/contact-lenses"}>
-                  <LinkButton
-                    title="Contact Lenses"
-                    sectionId="contact-lenses-btn"
-                    textStyles="text-xs xs:text-sm md:text-sm lg:text-lg" // xs for very small text adjustment
-                    containerStyles="w-full md:w-fit xs:w-auto bg-white text-black px-4 py-2 sm:px-5 md:px-3 lg:px-8 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms]"
-                  />
-                </Link>
-                <Link href={"/pages/eyewear"}>
-                  <LinkButton
-                    title="Glasses"
-                    sectionId="glasses-btn"
-                    textStyles="text-xs xs:text-sm md:text-sm lg:text-lg"
-                    containerStyles="w-full md:w-fit xs:w-auto bg-white text-black px-4 py-2 sm:px-6 md:px-3 lg:px-8 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms]"
-                  />
-                </Link>
+                <LinkButton
+                  title="Contact Lenses"
+                  href="/pages/contact-lenses"
+                  sectionId="contact-lenses-btn"
+                  textStyles="text-xs xs:text-sm md:text-sm lg:text-lg" // xs for very small text adjustment
+                  containerStyles="w-full md:w-fit xs:w-auto bg-white text-black px-4 py-2 sm:px-5 md:px-3 lg:px-8 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms]"
+                />
+
+                <LinkButton
+                  title="Glasses"
+                  href="/pages/eyewear"
+                  sectionId="glasses-btn"
+                  textStyles="text-xs xs:text-sm md:text-sm lg:text-lg"
+                  containerStyles="w-full md:w-fit xs:w-auto bg-white text-black px-4 py-2 sm:px-6 md:px-3 lg:px-8 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-[350ms]"
+                />
               </div>
             </div>
           </div>

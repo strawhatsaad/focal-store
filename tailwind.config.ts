@@ -22,6 +22,11 @@ const config: Config = {
         },
       },
     },
+    fontFamily: {
+      // Set DM Sans as the default sans-serif font using the CSS variable
+      // The fallback fonts (ui-sans-serif, system-ui, etc.) are standard Tailwind fallbacks
+      sans: ['var(--font-dm-sans)', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+    },
   },
   plugins: [
     require('@tailwindcss/forms'),

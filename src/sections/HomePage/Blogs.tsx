@@ -75,7 +75,7 @@ export const Blogs = () => {
             {blogData.map(({ image, title, href }, index) => (
               <Link
                 key={index}
-                href={"/"} // Update with actual blog link if available
+                href={href} // Update with actual blog link if available
                 className="group flex flex-col items-center text-center"
               >
                 <div className="w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-square lg:aspect-[3/4] overflow-hidden rounded-lg mb-2 sm:mb-3 group-hover:-translate-y-1 transition-transform duration-300">
@@ -89,11 +89,9 @@ export const Blogs = () => {
                   />
                 </div>
                 {/* Adjusted text sizes and line clamping for titles */}
-                <Link href={href}>
-                  <p className="text-[10px] xs:text-xs sm:text-sm font-semibold tracking-tight group-hover:underline line-clamp-2 sm:line-clamp-3">
-                    {title}
-                  </p>
-                </Link>
+                <p className="text-[10px] xs:text-xs sm:text-sm font-semibold tracking-tight group-hover:underline line-clamp-2 sm:line-clamp-3">
+                  {title}
+                </p>
               </Link>
             ))}
           </div>
