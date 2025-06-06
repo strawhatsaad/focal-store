@@ -60,7 +60,6 @@ const ProductsSection = ({
                     src={product.imageSrc}
                     width={300}
                     height={225}
-                    layout="responsive"
                     className="object-contain w-full h-full group-hover:opacity-90 transition-opacity duration-300"
                     onError={(e) =>
                       (e.currentTarget.src =
