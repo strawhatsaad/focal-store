@@ -25,6 +25,9 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+// Define the donation product variant ID here
+const DONATION_PRODUCT_VARIANT_ID = "gid://shopify/ProductVariant/46334706581757";
+
 function CartPageContent() {
   const {
     cart,
@@ -277,6 +280,7 @@ function CartPageContent() {
           <div className="bg-white p-3 xs:p-4 sm:p-6 md:p-8 rounded-xl shadow-xl"> 
             <ul role="list" className="divide-y divide-gray-200">
               {lineItemsWithDisplayPrice.map((line) => {
+                const isDonation = line.merchandise.id === DONATION_PRODUCT_VARIANT_ID;
                 const itemDiscount = isFirstTimeCustomer ? line.displayTotalPrice * 0.20 : 0;
                 const itemFinalPrice = line.displayTotalPrice - itemDiscount;
 
@@ -341,32 +345,38 @@ function CartPageContent() {
                         )}
                       </div>
                       <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between text-xs sm:text-sm mt-3 md:mt-4 gap-3 md:gap-0"> 
-                        <div className="flex items-center border border-gray-300 rounded">
-                          <button
-                            onClick={() => handleQuantityChange(line.id, line.quantity - 1)}
-                            disabled={updatingItemId === line.id || line.quantity <= 0 || isProcessingCheckout }
-                            className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
-                            aria-label="Decrease quantity"
-                          > &ndash; </button>
-                          <span className="px-2.5 sm:px-3 py-1 text-center w-8 sm:w-10 border-l border-r border-gray-300">
-                            {updatingItemId === line.id && cartContextLoading ? (
-                              <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
-                            ) : ( line.quantity )}
-                          </span>
-                          <button
-                            onClick={() => handleQuantityChange(line.id, line.quantity + 1)}
-                            disabled={updatingItemId === line.id || isProcessingCheckout}
-                            className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
-                            aria-label="Increase quantity"
-                          > + </button>
-                        </div>
+                        {isDonation ? (
+                            <div className="flex items-center">
+                                <p className="text-gray-600 font-medium">Quantity: 1</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center border border-gray-300 rounded">
+                                <button
+                                onClick={() => handleQuantityChange(line.id, line.quantity - 1)}
+                                disabled={updatingItemId === line.id || line.quantity <= 1 || isProcessingCheckout }
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
+                                aria-label="Decrease quantity"
+                                > &ndash; </button>
+                                <span className="px-2.5 sm:px-3 py-1 text-center w-8 sm:w-10 border-l border-r border-gray-300">
+                                {updatingItemId === line.id && cartContextLoading ? (
+                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
+                                ) : ( line.quantity )}
+                                </span>
+                                <button
+                                onClick={() => handleQuantityChange(line.id, line.quantity + 1)}
+                                disabled={updatingItemId === line.id || isProcessingCheckout}
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
+                                aria-label="Increase quantity"
+                                > + </button>
+                            </div>
+                        )}
 
                         <div className="flex mt-2 md:mt-0"> 
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(line.id)}
-                            disabled={updatingItemId === line.id || isProcessingCheckout}
-                            className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50 px-2 py-1 rounded-md hover:bg-red-50"
+                            disabled={updatingItemId === line.id || isProcessingCheckout || isDonation}
+                            className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50 disabled:text-red-300 disabled:cursor-not-allowed px-2 py-1 rounded-md hover:bg-red-50"
                           >
                             {updatingItemId === line.id && cartContextLoading ? (
                               <Loader2 className="h-4 w-4 animate-spin mr-1" /> 
