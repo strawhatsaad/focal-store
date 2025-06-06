@@ -47,30 +47,34 @@ function CartPageComponent() {
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [isProcessingCartLink, setIsProcessingCartLink] = useState(!!cartLinkId);
 
-  // --- NEW LOGIC FOR HANDLING cart_link_id ---
   useEffect(() => {
-    if (cartLinkId && !isInitializing && cartLinkId !== cartId) {
-      setIsProcessingCartLink(true);
-      setCheckoutMessage("Loading your previous order into the cart...");
+    if (cartLinkId) {
+      // Construct the full Shopify GID from the URL parameter.
+      // Shopify's Cart ID is a full GID, but often the raw ID is passed in share links.
+      // We'll construct the full GID to be safe.
+      const fullCartGid = cartLinkId.startsWith("gid://shopify/Cart/")
+        ? cartLinkId
+        : `gid://shopify/Cart/${cartLinkId}`;
 
-      const handleCartLink = async () => {
-        try {
-          await loadCartFromId(cartLinkId);
-          setCheckoutMessage("Your previous order has been restored successfully.");
-          router.replace("/cart", { scroll: false });
-        } catch (error: any) {
-          console.error("Failed to load cart from link:", error);
-          setCheckoutMessage(`Error: Could not load the specified cart. ${error.message}`);
-          router.replace("/cart", { scroll: false });
-        } finally {
-          setIsProcessingCartLink(false);
-          setTimeout(() => setCheckoutMessage(null), 5000);
-        }
-      };
-      handleCartLink();
-    }
-    if (!cartLinkId) {
-      setIsProcessingCartLink(false);
+      if (!isInitializing && fullCartGid !== cartId) {
+        setIsProcessingCartLink(true);
+        setCheckoutMessage("Loading your previous order into the cart...");
+
+        const handleCartLink = async () => {
+          try {
+            await loadCartFromId(fullCartGid);
+            setCheckoutMessage("Your previous order has been restored successfully.");
+          } catch (error: any) {
+            console.error("Failed to load cart from link:", error);
+            setCheckoutMessage(`Error: Could not load the specified cart. It may be invalid or expired.`);
+          } finally {
+            setIsProcessingCartLink(false);
+            router.replace("/cart", { scroll: false }); // Clean URL
+            setTimeout(() => setCheckoutMessage(null), 7000);
+          }
+        };
+        handleCartLink();
+      }
     }
   }, [cartLinkId, isInitializing, cartId, loadCartFromId, router]);
 
@@ -273,7 +277,7 @@ function CartPageComponent() {
               <p className="mt-1 text-xs sm:text-sm text-gray-500">Shipping and taxes calculated at Shopify checkout.</p>
               <div className="mt-6">
                 <button onClick={handleProceedToCheckout} disabled={isProcessingCheckout || cartContextLoading || sessionStatus === 'loading'} className="w-full flex items-center justify-center rounded-md border border-transparent bg-black px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-white shadow-sm hover:bg-gray-800 disabled:opacity-50">
-                  {isProcessingCheckout || cartContextLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CreditCard className="w-5 h-5 mr-2" />} Proceed to Secure Checkout
+                  {isProcessingCheckout || cartContextLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CreditCard className="w-5 w-5 mr-2" />} Proceed to Secure Checkout
                 </button>
               </div>
               <div className="mt-6 flex justify-center text-center text-xs sm:text-sm text-gray-500">

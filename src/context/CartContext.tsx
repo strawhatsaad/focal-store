@@ -77,7 +77,6 @@ interface CartContextType {
   associateCartWithCustomer: (customerAccessToken: string) => Promise<void>;
   itemCount: number;
   clearCartAndCreateNew: () => Promise<void>;
-  // New function to load a cart from a given ID
   loadCartFromId: (newCartId: string) => Promise<void>;
 }
 
@@ -182,21 +181,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         let updatedCart = await checkAndManageDonationProduct(response.data.cart);
         setCart(updatedCart);
         setCartId(updatedCart?.id || null);
+        localStorage.setItem("focalCartId", updatedCart!.id);
       } else {
         localStorage.removeItem("focalCartId");
-        setCart(null);
         setCartId(null);
-        await createCart();
+        setCart(null);
+        throw new Error(`Cart with ID ${id} could not be found or has expired.`);
       }
     } catch (err: any) {
       setError(handleShopifyError(err, "Failed to fetch cart."));
-      localStorage.removeItem("focalCartId");
-      await createCart();
+      console.error("Fetch cart error:", err);
+      throw err;
     } finally {
       setLoading(false);
       setIsInitializing(false);
     }
-  }, [createCart]);
+  }, []);
 
   const loadCartFromId = useCallback(async (newCartId: string) => {
     if (!newCartId || newCartId === cartId) return;
@@ -204,22 +204,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     setCart(null);
-    localStorage.setItem("focalCartId", newCartId);
-    setCartId(newCartId);
     await fetchCart(newCartId);
   }, [cartId, fetchCart]);
 
   useEffect(() => {
-    if (!cartId) {
-      const storedCartId = localStorage.getItem("focalCartId");
-      if (storedCartId) {
-        setCartId(storedCartId);
-        fetchCart(storedCartId);
-      } else {
-        createCart().finally(() => setIsInitializing(false));
-      }
+    const storedCartId = localStorage.getItem("focalCartId");
+    if (storedCartId) {
+      fetchCart(storedCartId).catch(() => {
+        createCart();
+      });
+    } else {
+      createCart();
     }
-  }, []); // Runs once on initial load
+  }, [createCart, fetchCart]);
 
   const addLineItem = useCallback(async (variantId: string, quantity: number, attributes?: Array<{ key: string; value: string }>): Promise<boolean> => {
     let currentCartId = cartId;
