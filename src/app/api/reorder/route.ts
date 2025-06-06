@@ -45,13 +45,41 @@ export async function POST(request: Request) {
         }
 
         const newCartLines = lineItemsFromOrder.map((edge: any) => {
-            if (!edge.node.variant?.id) { return null; }
+            if (!edge.node.variant?.id) {
+                console.warn("Skipping line item from previous order with missing variant ID:", edge.node);
+                return null;
+            }
+
+            // Copy existing attributes
+            const attributes = edge.node.customAttributes.map((attr: { key: string; value: string }) => ({
+                key: attr.key,
+                value: attr.value,
+            }));
+
+            // **THE FIX**: Check if FocalProductType attribute exists. If not, infer it.
+            const hasProductTypeAttr = attributes.some((attr:any) => attr.key === 'FocalProductType');
+
+            if (!hasProductTypeAttr) {
+                // Infer if it's a contact lens based on other common attributes
+                const isContactLens = attributes.some((attr:any) => attr.key.includes('(OD)') || attr.key.includes('(OS)') || attr.key === 'Eye');
+                if (isContactLens) {
+                    attributes.push({ key: 'FocalProductType', value: 'ContactLenses' });
+                }
+                
+                // Infer if it's eyeglasses
+                const isEyeglasses = attributes.some((attr:any) => attr.key === 'Rx Method' || attr.key === 'Frame');
+                if (isEyeglasses) {
+                    attributes.push({ key: 'FocalProductType', value: 'Eyeglasses' });
+                }
+            }
+
             return {
                 merchandiseId: edge.node.variant.id,
                 quantity: edge.node.quantity,
-                attributes: edge.node.customAttributes.map((attr: { key: string; value: string }) => ({ key: attr.key, value: attr.value })),
+                attributes: attributes, // Use the potentially modified attributes array
             };
         }).filter(Boolean);
+
 
         if (newCartLines.length === 0) {
             return NextResponse.json({ message: "No valid items could be reordered from the previous order." }, { status: 400 });
@@ -59,7 +87,10 @@ export async function POST(request: Request) {
 
         const addLinesResponse = await storeFront(
             CART_LINES_ADD_MUTATION,
-            { cartId: newCartId, lines: newCartLines },
+            {
+                cartId: newCartId,
+                lines: newCartLines,
+            },
             session.shopifyAccessToken
         );
 
