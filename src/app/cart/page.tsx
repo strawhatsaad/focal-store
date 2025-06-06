@@ -40,7 +40,6 @@ function CartPageComponent() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  // We look for 'order_id', not 'cart_link_id'.
   const reorderId = searchParams.get("order_id");
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
@@ -59,7 +58,7 @@ function CartPageComponent() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              orderId: `gid://shopify/Order/${reorderId}`,
+              orderId: reorderId, // Pass the numerical ID directly
               cartId: cartId,
             }),
           });

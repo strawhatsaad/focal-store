@@ -182,29 +182,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartId(updatedCart?.id || null);
         localStorage.setItem("focalCartId", updatedCart!.id);
       } else {
+        // If the cart is not found, we should clear local storage and create a new one.
         localStorage.removeItem("focalCartId");
-        setCartId(null);
-        setCart(null);
-        throw new Error(`Cart with ID ${id} could not be found or has expired.`);
+        await createCart();
       }
     } catch (err: any) {
       const errorMessage = handleShopifyError(err, "Failed to fetch cart.");
       setError(errorMessage);
       console.error("Fetch cart error:", err);
-      throw new Error(errorMessage);
+      // If fetching fails, create a new cart to recover gracefully.
+      await createCart();
     } finally {
       setLoading(false);
       setIsInitializing(false);
     }
-  }, []);
+  }, [createCart]);
 
   useEffect(() => {
     const storedCartId = localStorage.getItem("focalCartId");
     if (storedCartId) {
-      fetchCart(storedCartId).catch(() => {
-        // If fetching the stored cart fails (e.g., expired), create a new one.
-        createCart();
-      });
+      fetchCart(storedCartId);
     } else {
       createCart();
     }
@@ -311,8 +308,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const itemCount = useMemo(() => cart?.totalQuantity || 0, [cart]);
 
-  // The loadCartFromId function was removed as it's part of a flawed approach.
-  // The correct approach is to use the reorder API.
   return (
     <CartContext.Provider value={{ cart, cartId, loading, isInitializing, error, createCart, fetchCart, addLineItem, updateLineItem, removeLineItem, clearCartError, associateCartWithCustomer, itemCount, clearCartAndCreateNew } as CartContextType}>
       {children}
