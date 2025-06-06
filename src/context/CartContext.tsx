@@ -1,4 +1,4 @@
-// src/context/CartContext.tsx
+// File: src/context/CartContext.tsx
 "use client";
 
 import React, {
@@ -27,7 +27,7 @@ interface CartContextType {
   cart: Cart | null;
   cartId: string | null;
   loading: boolean;
-  isInitializing: boolean; // Added isInitializing
+  isInitializing: boolean; 
   error: string | null;
   createCart: () => Promise<string | null>; 
   fetchCart: (id: string) => Promise<void>;
@@ -153,31 +153,51 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     currentLines.forEach(edge => {
       if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return; 
 
-      const focalProductTypeAttr = edge.node.attributes.find(attr => attr.key === "FocalProductType");
-      if (focalProductTypeAttr?.value === "Eyeglasses") {
-        qualifyingEyeglassesCount++;
-      } else if (focalProductTypeAttr?.value === "ContactLenses") {
+      const isContactLens = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "ContactLenses");
+      const isEyeglasses = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "Eyeglasses");
+
+      if (isEyeglasses) {
+        qualifyingEyeglassesCount += edge.node.quantity;
+      } else if (isContactLens) {
         totalContactLensBoxes += edge.node.quantity;
       }
     });
 
     const shouldHaveDonation = (qualifyingEyeglassesCount > 0) || (totalContactLensBoxes >= 4);
     
+    // Case 1: Donation item exists but shouldn't. REMOVE IT.
     if (donationItemLine && !shouldHaveDonation) {
       try {
         const variables = { cartId: currentCart.id, lineIds: [donationItemLine.node.id] };
         const response = await storeFront(CART_LINES_REMOVE_MUTATION, variables);
-        if (response.data?.cartLinesRemove?.userErrors?.length > 0) {
-          const shopifyError = handleShopifyError(response.data.cartLinesRemove, "Error removing donation item.");
-          console.error("[CartContext] Error removing donation item from Shopify:", shopifyError);
-          return currentCart; 
-        }
-        return response.data?.cartLinesRemove?.cart || null; 
+        return response.data?.cartLinesRemove?.cart || currentCart; 
       } catch (e: any) {
         console.error("[CartContext] Exception removing donation item:", e.message);
         return currentCart; 
       }
+    } 
+    // Case 2: Donation item should exist but doesn't. ADD IT.
+    else if (!donationItemLine && shouldHaveDonation) {
+        try {
+            const donationAttributes = [{
+                key: "Donation Trigger",
+                value: qualifyingEyeglassesCount > 0 
+                    ? "Eyewear Purchase" 
+                    : `${totalContactLensBoxes} Contact Lens Boxes`
+            }];
+            const variables = {
+                cartId: currentCart.id,
+                lines: [{ merchandiseId: DONATION_PRODUCT_VARIANT_ID, quantity: 1, attributes: donationAttributes }],
+            };
+            const response = await storeFront(CART_LINES_ADD_MUTATION, variables);
+            return response.data?.cartLinesAdd?.cart || currentCart;
+        } catch (e: any) {
+            console.error("[CartContext] Exception adding donation item:", e.message);
+            return currentCart;
+        }
     }
+    
+    // Case 3: State is correct, no change needed.
     return currentCart; 
   };
 
@@ -211,10 +231,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
 
   const fetchCart = useCallback(async (id: string) => {
     if (!id) {
-      setIsInitializing(false); // Ensure initializing is false if no id
+      setIsInitializing(false);
       return;
     }
-    setLoading(true); // setLoading should be true when fetching
+    setLoading(true);
     setError(null);
     try {
       const response = await storeFront(GET_CART_QUERY, { id });
@@ -236,7 +256,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       await createCart();
     } finally {
       setLoading(false);
-      setIsInitializing(false); // Set to false after fetch/create attempt
+      setIsInitializing(false);
     }
   }, [createCart]); 
 
@@ -245,7 +265,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     setIsInitializing(true);
     const storedCartId = localStorage.getItem("focalCartId");
     if (storedCartId) {
-      fetchCart(storedCartId); // This will set isInitializing to false in its finally block
+      fetchCart(storedCartId);
     } else {
       createCart().finally(() => setIsInitializing(false));
     }
@@ -397,7 +417,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     localStorage.removeItem("focalCartId");
     setCart(null);
     setCartId(null);
-    setIsInitializing(true); // Set initializing true before creating a new cart
+    setIsInitializing(true); 
     await createCart().finally(() => setIsInitializing(false)); 
   }, [createCart]);
 
@@ -412,7 +432,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         cart,
         cartId,
         loading,
-        isInitializing, // Expose isInitializing
+        isInitializing,
         error,
         createCart,
         fetchCart,

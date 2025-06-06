@@ -17,10 +17,6 @@ import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
 import { useRouter } from "next/navigation";
 
-// IMPORTANT: Ensure this is your actual Donation Product Variant GID
-const DONATION_PRODUCT_VARIANT_ID: any =
-  "gid://shopify/ProductVariant/46334706581757";
-
 export interface EyeglassRxDetails {
   prescriptionName?: string;
   shippingState?: string;
@@ -49,56 +45,11 @@ interface EyeglassesPrescriptionModalProps {
 }
 
 const US_STATES = [
-  "AL",
-  "AK",
-  "AZ",
-  "AR",
-  "CA",
-  "CO",
-  "CT",
-  "DE",
-  "FL",
-  "GA",
-  "HI",
-  "ID",
-  "IL",
-  "IN",
-  "IA",
-  "KS",
-  "KY",
-  "LA",
-  "ME",
-  "MD",
-  "MA",
-  "MI",
-  "MN",
-  "MS",
-  "MO",
-  "MT",
-  "NE",
-  "NV",
-  "NH",
-  "NJ",
-  "NM",
-  "NY",
-  "NC",
-  "ND",
-  "OH",
-  "OK",
-  "OR",
-  "PA",
-  "RI",
-  "SC",
-  "SD",
-  "TN",
-  "TX",
-  "UT",
-  "VT",
-  "VA",
-  "WA",
-  "WV",
-  "WI",
-  "WY",
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
 const generateRangeOptions = (
@@ -175,7 +126,7 @@ const EyeglassesPrescriptionModal: React.FC<
   const [uploadedRxFile, setUploadedRxFile] = useState<File | null>(null);
   const [uploadedRxLabel, setUploadedRxLabel] = useState<string>("");
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -197,7 +148,7 @@ const EyeglassesPrescriptionModal: React.FC<
       );
       setError(null);
       setSuccessMessage(null);
-      setIsProcessing(false);
+      setIsProcessingPageAction(false);
       if (cartErrorHook) clearCartError();
     }
     prevIsOpenRef.current = isOpen;
@@ -328,7 +279,7 @@ const EyeglassesPrescriptionModal: React.FC<
   const handleFinalAddToCart = async (
     prescriptionMethod: "manual" | "upload" | "later"
   ) => {
-    setIsProcessing(true);
+    setIsProcessingPageAction(true);
     setError(null);
     setSuccessMessage(null);
     if (cartErrorHook) clearCartError();
@@ -340,11 +291,11 @@ const EyeglassesPrescriptionModal: React.FC<
         setError(
           "Please confirm the prescription information is correct before adding to cart."
         );
-        setIsProcessing(false);
+        setIsProcessingPageAction(false);
         return;
       }
       if (!validatePatientInfo() || !validateEyeRx() || !validatePd()) {
-        setIsProcessing(false);
+        setIsProcessingPageAction(false);
         return;
       }
       prescriptionAttributes = [
@@ -417,12 +368,12 @@ const EyeglassesPrescriptionModal: React.FC<
         });
       } catch (e: any) {
         setError(`Prescription Upload Error: ${e.message}`);
-        setIsProcessing(false);
+        setIsProcessingPageAction(false);
         return;
       }
     } else if (prescriptionMethod === "upload" && !uploadedRxFile) {
       setError("Please select a prescription file to upload.");
-      setIsProcessing(false);
+      setIsProcessingPageAction(false);
       return;
     } else if (prescriptionMethod === "later") {
       prescriptionAttributes.push({
@@ -431,7 +382,7 @@ const EyeglassesPrescriptionModal: React.FC<
       });
     } else {
       setError("Invalid prescription method.");
-      setIsProcessing(false);
+      setIsProcessingPageAction(false);
       return;
     }
 
@@ -441,6 +392,7 @@ const EyeglassesPrescriptionModal: React.FC<
     }));
 
     const allAttributes = [
+      { key: "FocalProductType", value: "Eyeglasses" },
       ...lensOptionAttributes,
       ...prescriptionAttributes,
       {
@@ -456,67 +408,9 @@ const EyeglassesPrescriptionModal: React.FC<
     ];
 
     try {
-      // console.log("[EyeglassesRxModal] Attempting to add eyeglasses to cart. Attributes:", JSON.stringify(allAttributes, null, 2));
       const success = await addLineItem(selectedVariant.id, 1, allAttributes);
-      // console.log("[EyeglassesRxModal] Eyeglasses addLineItem success status:", success);
 
       if (success) {
-        console.log(
-          "[EyeglassesRxModal] Main eyewear product added successfully."
-        );
-        // For Eyewear, always add donation if the main product was added successfully (unless 'later')
-        if (
-          prescriptionMethod !== "later" &&
-          DONATION_PRODUCT_VARIANT_ID !==
-            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
-        ) {
-          console.log(
-            `[EyeglassesRxModal] Attempting to add donation product: ${DONATION_PRODUCT_VARIANT_ID}`
-          );
-          const donationSuccess = await addLineItem(
-            DONATION_PRODUCT_VARIANT_ID,
-            1,
-            [{ key: "Donation Trigger", value: "Eyewear Purchase" }]
-          );
-          console.log(
-            "[EyeglassesRxModal] Donation product addLineItem call complete. Success:",
-            donationSuccess
-          );
-          if (!donationSuccess) {
-            console.warn(
-              "[EyeglassesRxModal] Failed to add donation product to cart. Cart Error (if any):",
-              cartErrorHook
-            );
-          }
-        } else if (
-          prescriptionMethod === "later" &&
-          DONATION_PRODUCT_VARIANT_ID !==
-            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
-        ) {
-          // Also add donation if "Add Rx Later" is chosen for eyewear
-          console.log(
-            `[EyeglassesRxModal] 'Add Rx Later' chosen. Attempting to add donation product: ${DONATION_PRODUCT_VARIANT_ID}`
-          );
-          const donationSuccessLater = await addLineItem(
-            DONATION_PRODUCT_VARIANT_ID,
-            1,
-            [{ key: "Donation Trigger", value: "Eyewear Purchase (Rx Later)" }]
-          );
-          console.log(
-            "[EyeglassesRxModal] Donation product (Rx Later) add status:",
-            donationSuccessLater
-          );
-          if (!donationSuccessLater) {
-            console.warn(
-              "[EyeglassesRxModal] Failed to add donation product (Rx Later) to cart. Cart Error (if any):",
-              cartErrorHook
-            );
-          }
-        } else {
-          console.log(
-            "[EyeglassesRxModal] Donation Product Variant ID is placeholder or condition not met. Skipping donation."
-          );
-        }
         setSuccessMessage("Eyeglasses added to cart!");
         onClose();
         router.push("/cart");
@@ -524,19 +418,11 @@ const EyeglassesPrescriptionModal: React.FC<
         setError(
           cartErrorHook || "Failed to add eyeglasses to cart. Please try again."
         );
-        console.error(
-          "[EyeglassesRxModal] Failed to add main eyewear product. Cart Error:",
-          cartErrorHook
-        );
       }
     } catch (e: any) {
       setError(e.message || "An unexpected error occurred.");
-      console.error(
-        "[EyeglassesRxModal] Catch block error during add to cart:",
-        e
-      );
     } finally {
-      setIsProcessing(false);
+      setIsProcessingPageAction(false);
     }
   };
 
@@ -568,10 +454,10 @@ const EyeglassesPrescriptionModal: React.FC<
         </button>
         <button
           onClick={() => handleFinalAddToCart("later")}
-          disabled={isProcessing || cartLoading}
+          disabled={isProcessingPageAction || cartLoading}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-70"
         >
-          {isProcessing || cartLoading ? (
+          {isProcessingPageAction || cartLoading ? (
             <Loader2 className="animate-spin h-4 w-4" />
           ) : (
             <ClockFading size={16} />
@@ -677,13 +563,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(sphField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {sphOptions.map((o) => (
                 <option key={`${eye}-sph-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -699,13 +584,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(cylField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {cylOptions.map((o) => (
                 <option key={`${eye}-cyl-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -727,13 +611,12 @@ const EyeglassesPrescriptionModal: React.FC<
               disabled={isAxisDisabled}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black disabled:bg-gray-200 disabled:cursor-not-allowed"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {axisOptions.map((o) => (
                 <option key={`${eye}-axis-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -749,13 +632,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(addField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {addOptions.map((o) => (
                 <option key={`${eye}-add-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
         </div>
@@ -964,7 +846,7 @@ const EyeglassesPrescriptionModal: React.FC<
           {currentStep !== "initialChoice" && (
             <button
               onClick={handlePrevious}
-              disabled={isProcessing}
+              disabled={isProcessingPageAction}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 flex items-center"
             >
               <ArrowLeft size={16} className="mr-1.5" /> Previous
@@ -972,12 +854,10 @@ const EyeglassesPrescriptionModal: React.FC<
           )}
           <div className="flex-grow"></div>
 
-          {currentStep === "initialChoice" &&
-            /* No "Next" button here; choices lead to actions */ null}
           {currentStep === "manualInput_patientInfo" && (
             <button
               onClick={handleNext}
-              disabled={isProcessing}
+              disabled={isProcessingPageAction}
               className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 flex items-center"
             >
               Next <ArrowRight size={16} className="ml-1.5" />
@@ -986,7 +866,7 @@ const EyeglassesPrescriptionModal: React.FC<
           {currentStep === "manualInput_eyeRx" && (
             <button
               onClick={handleNext}
-              disabled={isProcessing}
+              disabled={isProcessingPageAction}
               className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 flex items-center"
             >
               Next <ArrowRight size={16} className="ml-1.5" />
@@ -996,30 +876,29 @@ const EyeglassesPrescriptionModal: React.FC<
             <button
               onClick={handleNext}
               disabled={
-                isProcessing || !rxDetails.prescriptionConfirmed || cartLoading
+                isProcessingPageAction || !rxDetails.prescriptionConfirmed || cartLoading
               }
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
-              {" "}
-              {isProcessing || cartLoading ? (
+              {isProcessingPageAction || cartLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <CheckCircle size={16} className="mr-1.5" />
-              )}{" "}
+              )}
               Add to Cart
             </button>
           )}
           {currentStep === "uploadRx" && (
             <button
               onClick={() => handleFinalAddToCart("upload")}
-              disabled={isProcessing || !uploadedRxFile || cartLoading}
+              disabled={isProcessingPageAction || !uploadedRxFile || cartLoading}
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
-              {isProcessing || cartLoading ? (
+              {isProcessingPageAction || cartLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <UploadCloud size={16} className="mr-1.5" />
-              )}{" "}
+              )}
               Upload & Add to Cart
             </button>
           )}

@@ -1,7 +1,7 @@
 // File: src/app/cart/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useCart } from "@/context/CartContext"; 
 import { useSession } from "next-auth/react"; 
 import { useRouter } from "next/navigation"; 
@@ -24,11 +24,11 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const CartPage = () => {
+function CartPageContent() {
   const {
     cart,
     loading: cartContextLoading, 
-    isInitializing, // Destructure isInitializing from context
+    isInitializing,
     error: cartContextError,
     updateLineItem,
     removeLineItem,
@@ -56,11 +56,11 @@ const CartPage = () => {
   };
 
   useEffect(() => {
-    if (cartContextError && cart) {
+    if (cartContextError) {
       const timer = setTimeout(() => clearCartError(), 5000);
       return () => clearTimeout(timer);
     }
-  }, [cartContextError, cart, clearCartError]);
+  }, [cartContextError, clearCartError]);
 
   const lineItemsWithDisplayPrice = useMemo(() => {
     if (!cart?.lines?.edges) return [];
@@ -142,12 +142,19 @@ const CartPage = () => {
     
     try {
       setCheckoutMessage("Processing your order...");
+      
+      const cartToken = cart?.checkoutUrl.split('/cart/')[1]?.split('?')[0];
+      if (!cartToken) {
+          throw new Error("Could not determine cart token for reordering.");
+      }
+
       const response = await fetch("/api/checkout/create-draft-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lineItems: draftOrderLineItems,
           customerInfo: customerInfoPayload,
+          cartToken: cartToken, 
         }),
       });
 
@@ -173,8 +180,7 @@ const CartPage = () => {
        setIsProcessingCheckout(false); 
     } 
   };
-
-  // Updated loading condition to use isInitializing from context
+  
   if (isInitializing || (cartContextLoading && !cart)) { 
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
@@ -389,7 +395,7 @@ const CartPage = () => {
                   {isProcessingCheckout || cartContextLoading || sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
-                    <CreditCard className="w-5 h-5 mr-2" />
+                    <CreditCard className="w-5 w-5 mr-2" />
                   )}
                   Proceed to Secure Checkout
                 </button>
@@ -412,6 +418,12 @@ const CartPage = () => {
       </div>
     </div>
   );
-};
+}
 
-export default CartPage;
+export default function CartPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="h-12 w-12 animate-spin"/></div>}>
+            <CartPageContent />
+        </Suspense>
+    )
+}
