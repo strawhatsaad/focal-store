@@ -17,10 +17,6 @@ import { useCart } from "@/context/CartContext";
 import type { LensCustomizationData } from "@/sections/Products/EyeglassesModal";
 import { useRouter } from "next/navigation";
 
-// IMPORTANT: Ensure this is your actual Donation Product Variant GID
-const DONATION_PRODUCT_VARIANT_ID: any =
-  "gid://shopify/ProductVariant/46334706581757";
-
 export interface EyeglassRxDetails {
   prescriptionName?: string;
   shippingState?: string;
@@ -430,7 +426,6 @@ const EyeglassesPrescriptionModal: React.FC<
     }
   };
 
-
   const sphOptions = generateRangeOptions(-20, 20, 0.25, true);
   const cylOptions = generateRangeOptions(-10, 10, 0.25, true);
   const axisOptions = generateRangeOptions(0, 180, 1, false, "°");
@@ -568,13 +563,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(sphField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {sphOptions.map((o) => (
                 <option key={`${eye}-sph-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -590,13 +584,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(cylField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {cylOptions.map((o) => (
                 <option key={`${eye}-cyl-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -618,13 +611,12 @@ const EyeglassesPrescriptionModal: React.FC<
               disabled={isAxisDisabled}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black disabled:bg-gray-200 disabled:cursor-not-allowed"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {axisOptions.map((o) => (
                 <option key={`${eye}-axis-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
           <div>
@@ -640,13 +632,12 @@ const EyeglassesPrescriptionModal: React.FC<
               onChange={(e) => handleInputChange(addField, e.target.value)}
               className="mt-1 w-full text-sm p-2 border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
             >
-              {" "}
-              <option value="">Select</option>{" "}
+              <option value="">Select</option>
               {addOptions.map((o) => (
                 <option key={`${eye}-add-${o}`} value={o}>
                   {o}
                 </option>
-              ))}{" "}
+              ))}
             </select>
           </div>
         </div>
@@ -863,8 +854,6 @@ const EyeglassesPrescriptionModal: React.FC<
           )}
           <div className="flex-grow"></div>
 
-          {currentStep === "initialChoice" &&
-            /* No "Next" button here; choices lead to actions */ null}
           {currentStep === "manualInput_patientInfo" && (
             <button
               onClick={handleNext}
@@ -891,12 +880,11 @@ const EyeglassesPrescriptionModal: React.FC<
               }
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
             >
-              {" "}
               {isProcessingPageAction || cartLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <CheckCircle size={16} className="mr-1.5" />
-              )}{" "}
+              )}
               Add to Cart
             </button>
           )}
@@ -910,7 +898,7 @@ const EyeglassesPrescriptionModal: React.FC<
                 <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
               ) : (
                 <UploadCloud size={16} className="mr-1.5" />
-              )}{" "}
+              )}
               Upload & Add to Cart
             </button>
           )}

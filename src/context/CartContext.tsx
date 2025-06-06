@@ -153,10 +153,12 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     currentLines.forEach(edge => {
       if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return; 
 
-      const focalProductTypeAttr = edge.node.attributes.find(attr => attr.key === "FocalProductType");
-      if (focalProductTypeAttr?.value === "Eyeglasses") {
-        qualifyingEyeglassesCount++;
-      } else if (focalProductTypeAttr?.value === "ContactLenses") {
+      const isContactLens = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "ContactLenses");
+      const isEyeglasses = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "Eyeglasses");
+
+      if (isEyeglasses) {
+        qualifyingEyeglassesCount += edge.node.quantity;
+      } else if (isContactLens) {
         totalContactLensBoxes += edge.node.quantity;
       }
     });

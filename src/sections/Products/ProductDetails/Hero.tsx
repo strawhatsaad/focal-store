@@ -337,6 +337,7 @@ const Hero = ({ product }: any) => {
     }
   };
 
+
   const handleThumbnailClick = (src: string) => {
     setSelectedImage(src);
     setHasUserManuallySelectedImage(true);
@@ -673,22 +674,19 @@ const Hero = ({ product }: any) => {
               </div>
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
-                  {" "}
                   <CheckCircle size={16} className="mr-1" /> Item(s) added to
-                  cart!{" "}
+                  cart!
                 </p>
               )}
               {actionError && (
                 <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
-                  {" "}
-                  <AlertTriangle size={16} className="mr-1" /> {actionError}{" "}
+                  <AlertTriangle size={16} className="mr-1" /> {actionError}
                 </p>
               )}
               {cartContextError && !actionError && (
                 <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
-                  {" "}
                   <AlertTriangle size={16} className="mr-1" /> Cart Error:{" "}
-                  {cartContextError}{" "}
+                  {cartContextError}
                 </p>
               )}
             </div>
