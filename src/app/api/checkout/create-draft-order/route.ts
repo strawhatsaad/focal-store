@@ -5,7 +5,7 @@ import { createShopifyDraftOrder } from "../../../../../utils"; // Adjust path i
 
 // Helper to parse price string to float, robustly
 const parsePriceToFloat = (priceStr: string | number | undefined | null): number => {
-    if (priceStr === null || priceStr === undefined) return 0.0;
+    if (priceStr === null || priceStr === undefined) return 0.0; // Corrected variable name here
     if (typeof priceStr === 'number') return isNaN(priceStr) ? 0.0 : priceStr;
     const numericString = String(priceStr).replace(/[^0-9.]/g, ""); // Allow dot for decimals
     const parsed = parseFloat(numericString);
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
 
     try {
-        const { lineItems, customerInfo, cartId } = await request.json(); // Added cartId
+        const { lineItems, customerInfo, cartToken } = await request.json(); // Using cartToken
 
         if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
             return Response.json({ message: "Line items are required." }, { status: 400 });
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
             lineItems: draftOrderLineItems,
         };
 
-        // Add the cartId as a tag for future reordering
-        if (cartId) {
-            draftOrderInput.tags = [`reorder_cart_id_${cartId}`];
+        // Add the cartToken as a tag for future reordering. It's unique and under 40 chars.
+        if (cartToken) {
+            draftOrderInput.tags = [cartToken];
         }
 
         if (session?.user?.shopifyCustomerId) {

@@ -197,13 +197,19 @@ function CartPageContent() {
     
     try {
       setCheckoutMessage("Processing your order...");
+      
+      const cartToken = cart?.checkoutUrl.split('/cart/')[1]?.split('?')[0];
+      if (!cartToken) {
+          throw new Error("Could not determine cart token for reordering.");
+      }
+
       const response = await fetch("/api/checkout/create-draft-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lineItems: draftOrderLineItems,
           customerInfo: customerInfoPayload,
-          cartId: cartId, // Pass the cartId to be tagged
+          cartToken: cartToken, // Pass the cart token to be tagged
         }),
       });
 
@@ -444,7 +450,7 @@ function CartPageContent() {
                   {isProcessingCheckout || cartContextLoading || sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
-                    <CreditCard className="w-5 h-5 mr-2" />
+                    <CreditCard className="w-5 w-5 mr-2" />
                   )}
                   Proceed to Secure Checkout
                 </button>
