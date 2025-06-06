@@ -29,6 +29,7 @@ interface CartContextType {
   loading: boolean;
   isInitializing: boolean; 
   error: string | null;
+  isFirstTimeCustomer: boolean | undefined; // For discount
   createCart: () => Promise<string | null>; 
   fetchCart: (id: string) => Promise<void>;
   addLineItem: (
@@ -104,7 +105,6 @@ interface Cart {
   note?: string | null;
 }
 
-
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const useCart = () => {
@@ -121,7 +121,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [loading, setLoading] = useState<boolean>(false); 
   const [isInitializing, setIsInitializing] = useState<boolean>(true); 
   const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState<boolean | undefined>(undefined); // Start as undefined
+  const { data: session, status: sessionStatus } = useSession();
 
   const clearCartError = () => setError(null);
 
@@ -137,6 +138,33 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
     return defaultMessage;
   };
+
+  useEffect(() => {
+    const checkStatus = async () => {
+        if (sessionStatus === 'loading') {
+            return;
+        }
+        if (sessionStatus === 'unauthenticated') {
+            setIsFirstTimeCustomer(true);
+            return;
+        }
+        if (sessionStatus === 'authenticated') {
+            try {
+                const res = await fetch('/api/account/status');
+                const data = await res.json();
+                if (res.ok) {
+                    setIsFirstTimeCustomer(data.isFirstTimeCustomer);
+                } else {
+                    setIsFirstTimeCustomer(false);
+                }
+            } catch {
+                setIsFirstTimeCustomer(false);
+            }
+        }
+    };
+    checkStatus();
+  }, [sessionStatus]);
+
 
   const checkAndManageDonationProduct = async (currentCart: Cart | null): Promise<Cart | null> => {
     if (!currentCart || !currentCart.id || !currentCart.lines?.edges) return currentCart;
@@ -179,12 +207,18 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     // Case 2: Donation item should exist but doesn't. ADD IT.
     else if (!donationItemLine && shouldHaveDonation) {
         try {
-            const donationAttributes = [{
-                key: "Donation Trigger",
-                value: qualifyingEyeglassesCount > 0 
-                    ? "Eyewear Purchase" 
-                    : `${totalContactLensBoxes} Contact Lens Boxes`
-            }];
+            let donationAttributes = [];
+            if (qualifyingEyeglassesCount > 0) {
+                 donationAttributes = [{
+                    key: "Donation Message",
+                    value: "You're Not Just Buying Glasses — You're Giving Someone Their Sight Back. Your purchase has donated a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+                }];
+            } else { // This means it was triggered by contact lenses
+                 donationAttributes = [{
+                    key: "Donation Message",
+                    value: "You're Not Just Buying Contacts — You're Giving Someone Their Sight Back. Stock up with 4 boxes, and you donate a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+                }];
+            }
             const variables = {
                 cartId: currentCart.id,
                 lines: [{ merchandiseId: DONATION_PRODUCT_VARIANT_ID, quantity: 1, attributes: donationAttributes }],
@@ -434,6 +468,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         loading,
         isInitializing,
         error,
+        isFirstTimeCustomer,
         createCart,
         fetchCart,
         addLineItem,

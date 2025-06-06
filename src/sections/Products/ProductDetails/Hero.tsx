@@ -20,6 +20,28 @@ import {
   HeartIcon as DonationIcon,
 } from "lucide-react";
 
+// Helper function to render discounted price
+const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string, isFirstTimeCustomer: boolean | undefined }) => {
+  const priceNum = parseFloat(originalPrice.replace('$', ''));
+  
+  if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+    return <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">{originalPrice}</p>;
+  }
+
+  if (isFirstTimeCustomer) {
+    const discountedPrice = priceNum * 0.80;
+    return (
+      <div className="mt-1 flex items-baseline gap-2">
+        <p className="text-lg sm:text-2xl font-extrabold text-black">${discountedPrice.toFixed(2)}</p>
+        <p className="text-sm sm:text-lg font-semibold text-red-600 line-through">${priceNum.toFixed(2)}</p>
+      </div>
+    );
+  }
+
+  return <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">${priceNum.toFixed(2)}</p>;
+};
+
+
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -29,6 +51,7 @@ const Hero = ({ product }: any) => {
     loading: cartLoading,
     error: cartContextError,
     clearCartError,
+    isFirstTimeCustomer, // Get the discount status from context
   } = useCart();
 
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
@@ -217,116 +240,78 @@ const Hero = ({ product }: any) => {
       finalPrescriptionReference = "Will Provide Later";
     }
 
-    const totalQuantity =
-      (rightEyeEnabled ? rightEyeQty : 0) + (leftEyeEnabled ? leftEyeQty : 0);
-    if (totalQuantity === 0) {
-      setActionError("No quantity selected for either eye.");
-      setIsProcessingPageAction(false);
-      return;
-    }
-
-    const combinedAttributes = [
-      { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-      { key: "Prescription Ref", value: finalPrescriptionReference },
-      { key: "FocalProductType", value: "ContactLenses" },
+    const lineItemsToAdd: {variantId: string, quantity: number, attributes: any[]}[] = [];
+    const baseAttributes = [
+        { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
+        { key: "Prescription Ref", value: finalPrescriptionReference },
+        { key: "FocalProductType", value: "ContactLenses" },
     ];
 
+    // Right eye
     if (rightEyeEnabled && rightEyeQty > 0) {
-      combinedAttributes.push({
-        key: "Right Eye (OD)",
-        value: `${rightEyeQty} boxe(s)`,
-      });
-      combinedAttributes.push({
-        key: "OD SPH",
-        value: prescriptionData.odValues.sph || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OD BC",
-        value: prescriptionData.odValues.bc || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OD DIA",
-        value: prescriptionData.odValues.dia || "N/A",
-      });
-      if (
-        prescriptionData.odValues.cyl &&
-        prescriptionData.odValues.cyl !== "0.00"
-      ) {
-        combinedAttributes.push({
-          key: "OD CYL",
-          value: prescriptionData.odValues.cyl,
-        });
-        if (prescriptionData.odValues.axis) {
-          combinedAttributes.push({
-            key: "OD Axis",
-            value: prescriptionData.odValues.axis,
-          });
+        const rightEyeAttributes = [
+            ...baseAttributes,
+            { key: "Eye", value: "Right (OD)" },
+            { key: "SPH", value: prescriptionData.odValues.sph || "N/A" },
+            { key: "BC", value: prescriptionData.odValues.bc || "N/A" },
+            { key: "DIA", value: prescriptionData.odValues.dia || "N/A" },
+        ];
+        if (prescriptionData.odValues.cyl && prescriptionData.odValues.cyl !== "0.00") {
+            rightEyeAttributes.push({ key: "CYL", value: prescriptionData.odValues.cyl });
+            if (prescriptionData.odValues.axis) {
+            rightEyeAttributes.push({ key: "Axis", value: prescriptionData.odValues.axis });
+            }
         }
-      }
-      if (prescriptionData.odValues.add) {
-        combinedAttributes.push({
-          key: "OD ADD",
-          value: prescriptionData.odValues.add,
-        });
-      }
+        if (prescriptionData.odValues.add) {
+            rightEyeAttributes.push({ key: "ADD", value: prescriptionData.odValues.add });
+        }
+        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: rightEyeQty, attributes: rightEyeAttributes });
     }
 
+    // Left eye
     if (leftEyeEnabled && leftEyeQty > 0) {
-      combinedAttributes.push({
-        key: "Left Eye (OS)",
-        value: `${leftEyeQty} boxe(s)`,
-      });
-      combinedAttributes.push({
-        key: "OS SPH",
-        value: prescriptionData.osValues.sph || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OS BC",
-        value: prescriptionData.osValues.bc || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OS DIA",
-        value: prescriptionData.osValues.dia || "N/A",
-      });
-      if (
-        prescriptionData.osValues.cyl &&
-        prescriptionData.osValues.cyl !== "0.00"
-      ) {
-        combinedAttributes.push({
-          key: "OS CYL",
-          value: prescriptionData.osValues.cyl,
-        });
-        if (prescriptionData.osValues.axis) {
-          combinedAttributes.push({
-            key: "OS Axis",
-            value: prescriptionData.osValues.axis,
-          });
+        const leftEyeAttributes = [
+            ...baseAttributes,
+            { key: "Eye", value: "Left (OS)" },
+            { key: "SPH", value: prescriptionData.osValues.sph || "N/A" },
+            { key: "BC", value: prescriptionData.osValues.bc || "N/A" },
+            { key: "DIA", value: prescriptionData.osValues.dia || "N/A" },
+        ];
+        if (prescriptionData.osValues.cyl && prescriptionData.osValues.cyl !== "0.00") {
+            leftEyeAttributes.push({ key: "CYL", value: prescriptionData.osValues.cyl });
+            if (prescriptionData.osValues.axis) {
+            leftEyeAttributes.push({ key: "Axis", value: prescriptionData.osValues.axis });
+            }
         }
-      }
-      if (prescriptionData.osValues.add) {
-        combinedAttributes.push({
-          key: "OS ADD",
-          value: prescriptionData.osValues.add,
-        });
-      }
+        if (prescriptionData.osValues.add) {
+            leftEyeAttributes.push({ key: "ADD", value: prescriptionData.osValues.add });
+        }
+        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: leftEyeQty, attributes: leftEyeAttributes });
+    }
+    
+    if (lineItemsToAdd.length === 0) {
+        setActionError("No quantity selected for either eye.");
+        setIsProcessingPageAction(false);
+        return;
     }
 
     try {
-      const success = await addLineItem(
-        selectedVariant.id,
-        totalQuantity,
-        combinedAttributes
-      );
-
-      if (success) {
-        setActionSuccess(true);
-        router.push("/cart");
-      } else {
-        setActionError(
-          cartContextError || "The contact lens item could not be added."
-        );
-        setTimeout(() => setActionError(null), 5000);
-      }
+        let allItemsAddedSuccessfully = true;
+        for (const item of lineItemsToAdd) {
+            const success = await addLineItem(item.variantId, item.quantity, item.attributes);
+            if (!success) {
+                allItemsAddedSuccessfully = false;
+                break; 
+            }
+        }
+        
+        if (allItemsAddedSuccessfully) {
+            setActionSuccess(true);
+            router.push("/cart");
+        } else {
+            setActionError(cartContextError || "Failed to add one or more items to the cart.");
+            setTimeout(() => setActionError(null), 5000);
+        }
     } catch (e: any) {
       setActionError(
         e.message || "An error occurred while adding items to cart."
@@ -392,18 +377,18 @@ const Hero = ({ product }: any) => {
   let donationSpecifics = "";
   if (isContactLensProduct) {
     donationSpecifics =
-      "When you buy four boxes of contact lenses, we donate an additional cataract lens on your behalf!";
+      "When you buy four boxes of contact lenses, ";
   } else if (isEyewearProduct) {
     donationSpecifics =
-      "When you buy a pair of eyeglasses, we donate an additional cataract lens on your behalf!";
+      "When you buy a pair of eyeglasses, ";
   }
 
   return (
-    <section className="py-8 bg-white md:py-16 antialiased">
+    <section className="py-6 bg-white md:py-8 antialiased">
       <div className="max-w-screen-xl px-4 mx-auto 2xl:px-0 container">
         <div className="lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-16">
           <div className="shrink-0 max-w-md lg:max-w-lg mx-auto">
-            <div className="w-full h-[300px] md:h-[400px] flex justify-center items-center bg-transparent overflow-hidden border border-gray-200 rounded-lg p-2">
+            <div className="w-[180px] mx-auto h-[180px] md:w-full md:h-[400px] flex justify-center items-center bg-transparent overflow-hidden border border-gray-200 rounded-lg p-2">
               <img
                 src={getDisplayedImage()}
                 alt={
@@ -423,7 +408,7 @@ const Hero = ({ product }: any) => {
               />
             </div>
             {product?.images && product.images.length > 1 && (
-              <div className="relative mt-4">
+              <div className="relative mt-2">
                 <button
                   onClick={() => scrollThumbnails("left")}
                   disabled={isScrollLeftDisabled}
@@ -439,7 +424,7 @@ const Hero = ({ product }: any) => {
                   {product.images.map((img: any, index: number) => (
                     <div
                       key={img.id || `thumb-${index}`}
-                      className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 cursor-pointer"
+                      className="flex-shrink-0 w-12 h-12 md:w-20 md:h-20 cursor-pointer"
                       onClick={() => handleThumbnailClick(img.src)}
                     >
                       <img
@@ -475,7 +460,7 @@ const Hero = ({ product }: any) => {
                 </button>
               </div>
             )}
-            <div className="hidden lg:block mt-8">
+            <div className="hidden lg:block mt-6">
               <ProductFeatures
                 product={product}
                 selectedVariant={displayedVariantName}
@@ -486,19 +471,17 @@ const Hero = ({ product }: any) => {
           <div className="relative">
             <div
               className={twMerge(
-                "lg:sticky",
-                showFrameVariants ? "lg:top-32" : "lg:top-28"
+                "lg:sticky lg:top-24",
               )}
             >
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-6 sm:mt-8 lg:mt-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 mt-4 sm:mt-6 lg:mt-0">
                 {product?.name}
               </h1>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
-                {displayedPrice}
-              </p>
-
+              
+              <PriceDisplay originalPrice={displayedPrice} isFirstTimeCustomer={isFirstTimeCustomer} />
+              
               {showFrameVariants && product?.variants && (
-                <div className="mt-6 mb-4">
+                <div className="mt-3 mb-3">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
                     {" "}
                     Style:{" "}
@@ -513,7 +496,7 @@ const Hero = ({ product }: any) => {
                         onClick={() => handleFrameVariantClick(variant)}
                         title={variant.name || variant.title || "Variant"}
                         className={twMerge(
-                          "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
+                          "w-full py-2 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
                           selectedVariant?.id === variant.id
                             ? "bg-black text-white border-black ring-black"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
@@ -530,7 +513,7 @@ const Hero = ({ product }: any) => {
               )}
 
               {showContactLensVariantSection && product?.variants && (
-                <div className="mt-5">
+                <div className="mt-3">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
                     {" "}
                     Pack Size:{" "}
@@ -548,7 +531,7 @@ const Hero = ({ product }: any) => {
                           key={variant.id || `cl-variant-${index}`}
                           onClick={() => handleFrameVariantClick(variant)}
                           className={twMerge(
-                            "py-2.5 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
+                            "py-2 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
                             selectedVariant?.id === variant.id
                               ? "bg-black text-white border-black ring-black"
                               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
@@ -566,7 +549,7 @@ const Hero = ({ product }: any) => {
               )}
 
               {isContactLensProduct && (
-                <div className="mt-6 space-y-3">
+                <div className="mt-3 space-y-2">
                   <h3 className="text-sm font-medium text-gray-900">
                     {" "}
                     Select quantity (boxes per eye):{" "}
@@ -574,7 +557,7 @@ const Hero = ({ product }: any) => {
                   {["Right eye (OD)", "Left eye (OS)"].map((label, idx) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between border rounded-lg px-4 py-3 bg-gray-50/50"
+                      className="flex items-center justify-between border rounded-lg px-4 py-2 bg-gray-50/50"
                     >
                       <label className="flex items-center space-x-3 cursor-pointer">
                         <input
@@ -637,17 +620,17 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                <DonationIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-blue-700">
-                  With every purchase at Focal, we donate to CureBlindness.org.
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                <DonationIcon className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+                <p className="text-xs text-blue-700">
                   {donationSpecifics && (
-                    <span className="block mt-1">{donationSpecifics}</span>
+                    <span className="mt-0.5">{donationSpecifics}</span>
                   )}
+                  you donate an additional cataract lens to someone in need! This is BEYOND the ordinary donation we make to the Cure Blindness Foundation for every purchase made.
                 </p>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-4">
                 <button
                   onClick={handlePrimaryAction}
                   disabled={
@@ -656,7 +639,7 @@ const Hero = ({ product }: any) => {
                     !selectedVariant ||
                     sessionStatus === "loading"
                   }
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-white bg-black rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out"
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-black rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 ease-in-out"
                 >
                   {isProcessingPageAction ||
                   cartLoading ||
@@ -672,23 +655,12 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
-              {actionSuccess && (
-                <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
-                  <CheckCircle size={16} className="mr-1" /> Item(s) added to
-                  cart!
-                </p>
-              )}
               {actionError && (
-                <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
+                <p className="mt-2 text-sm text-red-600 font-medium flex items-center">
                   <AlertTriangle size={16} className="mr-1" /> {actionError}
                 </p>
               )}
-              {cartContextError && !actionError && (
-                <p className="mt-3 text-sm text-red-600 font-medium flex items-center">
-                  <AlertTriangle size={16} className="mr-1" /> Cart Error:{" "}
-                  {cartContextError}
-                </p>
-              )}
+              
             </div>
           </div>
         </div>

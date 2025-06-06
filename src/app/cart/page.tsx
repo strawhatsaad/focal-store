@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CreditCard,
   LogIn, 
+  Tag,
 } from "lucide-react";
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
@@ -23,6 +24,8 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   const parsed = parseFloat(numericString);
   return isNaN(parsed) ? 0 : parsed;
 };
+
+const DONATION_PRODUCT_VARIANT_ID = "gid://shopify/ProductVariant/46334706581757";
 
 function CartPageContent() {
   const {
@@ -34,6 +37,7 @@ function CartPageContent() {
     removeLineItem,
     clearCartError,
     clearCartAndCreateNew, 
+    isFirstTimeCustomer,
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter(); 
@@ -95,11 +99,21 @@ function CartPageContent() {
       };
     });
   }, [cart]);
-
+  
   const uiCalculatedSubtotal = lineItemsWithDisplayPrice.reduce(
-    (acc, item) => acc + item.displayTotalPrice,
+    (acc, item) => {
+        // Exclude donation product from subtotal calculation
+        if (item.merchandise.id === DONATION_PRODUCT_VARIANT_ID) {
+            return acc;
+        }
+        return acc + item.displayTotalPrice
+    },
     0
   );
+
+  const discountAmount = isFirstTimeCustomer ? uiCalculatedSubtotal * 0.20 : 0;
+  const finalSubtotal = uiCalculatedSubtotal - discountAmount;
+  
   const currencyCode = cart?.cost?.subtotalAmount?.currencyCode || "USD";
 
   const handleProceedToCheckout = async () => {
@@ -270,121 +284,160 @@ function CartPageContent() {
         ) : (
           <div className="bg-white p-3 xs:p-4 sm:p-6 md:p-8 rounded-xl shadow-xl"> 
             <ul role="list" className="divide-y divide-gray-200">
-              {lineItemsWithDisplayPrice.map((line) => (
-                <li key={line.id} className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8"> 
-                  <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0"> 
-                    <img 
-                      src={
-                        line.merchandise.image?.url ||
-                        "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"
-                      }
-                      alt={
-                        line.merchandise.image?.altText ||
-                        line.merchandise.product.title
-                      }
-                      width={128} 
-                      height={128}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col"> 
-                    <div>
-                      <div className="flex flex-col md:flex-row justify-between text-sm sm:text-base font-medium text-gray-900"> 
-                        <h3 className="mb-1 md:mb-0 break-words md:pr-2">  
-                          <Link
-                            href={`/products/${line.merchandise.product.handle}`}
-                            className="hover:underline"
-                          >
-                            {line.title}
-                          </Link>
-                        </h3>
-                        <p className="flex-shrink-0 self-start md:self-auto"> 
-                          ${line.displayTotalPrice.toFixed(2)}
-                        </p>
-                      </div>
-                      {line.attributes && line.attributes.length > 0 && (
-                        <div className="mt-1 space-y-0.5">
-                          {line.attributes
-                            .filter(
-                              (attr) => attr.key !== "_finalCalculatedPrice" 
-                            )
-                            .map((attr) => (
-                              <p key={attr.key} className="text-xs text-gray-500 break-words">
-                                <span className="font-medium">{attr.key}:</span>{" "}
-                                {attr.value}
-                              </p>
-                            ))}
-                        </div>
-                      )}
-                      {line.isCustomizedEyeglass && (
-                        <p className="mt-1 text-xs text-blue-600">
-                          Price includes customizations ($
-                          {line.customizedUnitPrice.toFixed(2)} each).
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between text-xs sm:text-sm mt-3 md:mt-4 gap-3 md:gap-0"> 
-                      <div className="flex items-center border border-gray-300 rounded">
-                        <button
-                          onClick={() => handleQuantityChange(line.id, line.quantity - 1)}
-                          disabled={updatingItemId === line.id || line.quantity <= 0 || isProcessingCheckout }
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
-                          aria-label="Decrease quantity"
-                        > &ndash; </button>
-                        <span className="px-2.5 sm:px-3 py-1 text-center w-8 sm:w-10 border-l border-r border-gray-300">
-                          {updatingItemId === line.id && cartContextLoading ? (
-                            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
-                          ) : ( line.quantity )}
-                        </span>
-                        <button
-                          onClick={() => handleQuantityChange(line.id, line.quantity + 1)}
-                          disabled={updatingItemId === line.id || isProcessingCheckout}
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
-                          aria-label="Increase quantity"
-                        > + </button>
-                      </div>
+              {lineItemsWithDisplayPrice.map((line) => {
+                const isDonation = line.merchandise.id === DONATION_PRODUCT_VARIANT_ID;
+                const itemDiscount = isFirstTimeCustomer && !isDonation ? line.displayTotalPrice * 0.20 : 0;
+                const itemFinalPrice = line.displayTotalPrice - itemDiscount;
 
-                      <div className="flex mt-2 md:mt-0"> 
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(line.id)}
-                          disabled={updatingItemId === line.id || isProcessingCheckout}
-                          className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50 px-2 py-1 rounded-md hover:bg-red-50"
-                        >
-                          {updatingItemId === line.id && cartContextLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-1" /> 
-                          ) : ( 
-                            <Trash2 size={16} className="mr-1" /> 
-                          )}
-                          Remove
-                        </button>
+                return (
+                  <li key={line.id} className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8"> 
+                    <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0"> 
+                      <img 
+                        src={
+                          line.merchandise.image?.url ||
+                          "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"
+                        }
+                        alt={
+                          line.merchandise.image?.altText ||
+                          line.merchandise.product.title
+                        }
+                        width={128} 
+                        height={128}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col"> 
+                      <div>
+                        <div className="flex flex-col md:flex-row justify-between text-sm sm:text-base font-medium text-gray-900"> 
+                          <h3 className="mb-1 md:mb-0 break-words md:pr-2">  
+                            <Link
+                              href={`/products/${line.merchandise.product.handle}`}
+                              className="hover:underline"
+                            >
+                              {line.title}
+                            </Link>
+                          </h3>
+                          <div className="flex-shrink-0 self-start md:self-auto text-right">
+                            {!isDonation && (
+                                <>
+                                {isFirstTimeCustomer ? (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-black font-bold">${itemFinalPrice.toFixed(2)}</p>
+                                        <p className="text-red-600 line-through text-xs">${line.displayTotalPrice.toFixed(2)}</p>
+                                    </div>
+                                ) : (
+                                    <p>${line.displayTotalPrice.toFixed(2)}</p>
+                                )}
+                                </>
+                            )}
+                          </div>
+                        </div>
+                        {line.attributes && line.attributes.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {line.attributes
+                              .filter(
+                                (attr) => attr.key !== "_finalCalculatedPrice"
+                              )
+                              .map((attr) => {
+                                if (attr.key === "Donation Message") {
+                                    return (
+                                        <p key={attr.key} className="text-xs text-gray-500 rounded-md mt-1 max-w-md">
+                                            {attr.value}
+                                        </p>
+                                    )
+                                }
+                                return (
+                                <p key={attr.key} className="text-xs text-gray-500 break-words">
+                                  <span className="font-medium">{attr.key}:</span>{" "}
+                                  {attr.value}
+                                </p>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {line.isCustomizedEyeglass && (
+                          <p className="mt-1 text-xs text-blue-600">
+                            Price includes customizations ($
+                            {line.customizedUnitPrice.toFixed(2)} each).
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between text-xs sm:text-sm mt-3 md:mt-4 gap-3 md:gap-0"> 
+                        {isDonation ? (
+                            <div className="flex items-center">
+                                <p className="text-gray-600 font-medium">Quantity: 1</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center border border-gray-300 rounded">
+                                <button
+                                onClick={() => handleQuantityChange(line.id, line.quantity - 1)}
+                                disabled={updatingItemId === line.id || line.quantity <= 1 || isProcessingCheckout }
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l"
+                                aria-label="Decrease quantity"
+                                > &ndash; </button>
+                                <span className="px-2.5 sm:px-3 py-1 text-center w-8 sm:w-10 border-l border-r border-gray-300">
+                                {updatingItemId === line.id && cartContextLoading ? (
+                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
+                                ) : ( line.quantity )}
+                                </span>
+                                <button
+                                onClick={() => handleQuantityChange(line.id, line.quantity + 1)}
+                                disabled={updatingItemId === line.id || isProcessingCheckout}
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r"
+                                aria-label="Increase quantity"
+                                > + </button>
+                            </div>
+                        )}
+
+                        <div className="flex mt-2 md:mt-0"> 
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(line.id)}
+                            disabled={updatingItemId === line.id || isProcessingCheckout || isDonation}
+                            className="font-medium text-red-600 hover:text-red-500 flex items-center disabled:opacity-50 disabled:text-red-300 disabled:cursor-not-allowed px-2 py-1 rounded-md hover:bg-red-50"
+                          >
+                            {updatingItemId === line.id && cartContextLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" /> 
+                            ) : ( 
+                              <Trash2 size={16} className="mr-1" /> 
+                            )}
+                            Remove
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
 
             <div className="border-t border-gray-200 pt-6 mt-6">
-              <div className="flex justify-between text-base font-medium text-gray-900">
-                <p>Subtotal</p>
-                <p>
-                  ${uiCalculatedSubtotal.toFixed(2)} {currencyCode}
-                </p>
-              </div>
-              {cart?.cost.totalTaxAmount &&
-                parsePrice(cart.cost.totalTaxAmount.amount) > 0 && (
-                  <div className="flex justify-between mt-1 text-sm text-gray-600">
-                    <p>Taxes (estimated by Shopify based on variant prices)</p>
-                    <p>
-                      ${parsePrice(cart.cost.totalTaxAmount.amount).toFixed(2)}{" "}
-                      {cart.cost.totalTaxAmount.currencyCode}
-                    </p>
+              <div className="space-y-1 text-sm text-gray-700">
+                  <div className="flex justify-between">
+                      <p>Subtotal</p>
+                      <p>${uiCalculatedSubtotal.toFixed(2)}</p>
                   </div>
-                )}
+                  {isFirstTimeCustomer && (
+                    <div className="flex justify-between text-green-600 font-medium">
+                        <p className="flex items-center gap-1"><Tag size={14} /> First-Time Discount (20%)</p>
+                        <p>-${discountAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                  {cart?.cost.totalTaxAmount && parsePrice(cart.cost.totalTaxAmount.amount) > 0 && (
+                      <div className="flex justify-between text-sm text-gray-600">
+                          <p>Taxes (estimated)</p>
+                          <p>${parsePrice(cart.cost.totalTaxAmount.amount).toFixed(2)}</p>
+                      </div>
+                  )}
+              </div>
+
+              <div className="flex justify-between text-base font-bold text-gray-900 mt-4 pt-4 border-t">
+                  <p>Estimated Total</p>
+                  <p>${finalSubtotal.toFixed(2)}</p>
+              </div>
+
               <p className="mt-1 text-xs sm:text-sm text-gray-500">
-                Shipping calculated at Shopify checkout. Final price including
-                customizations will be shown on the Shopify payment page.
+                Shipping and final taxes calculated at Shopify checkout.
               </p>
               <div className="mt-6">
                 <button
