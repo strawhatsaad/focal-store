@@ -441,3 +441,75 @@ export async function deleteShopifyFile(fileIds) {
     }
     return shopifyAdminRequest(FILE_DELETE_MUTATION, { fileIds });
 }
+
+// ... (keep all existing code in the file)
+
+// --- Reorder Logic (Admin API) ---
+
+export const GET_ORDER_LINE_ITEMS_QUERY = `
+  query getOrderLineItems($orderId: ID!) {
+    order(id: $orderId) {
+      id
+      customer {
+        id
+      }
+      lineItems(first: 50) {
+        edges {
+          node {
+            quantity
+            variant {
+              id
+            }
+            customAttributes {
+              key
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Fetches the line items from a specific order using the Admin API.
+ * @param {string} orderId The GID of the Shopify Order.
+ * @returns {Promise<any>} The Shopify Admin API response containing the order details.
+ */
+export async function getShopifyOrderLineItems(orderId) {
+  if (!orderId) {
+    throw new Error("Order ID is required to fetch line items.");
+  }
+  return shopifyAdminRequest(GET_ORDER_LINE_ITEMS_QUERY, { orderId });
+}
+
+// --- Find Order By Tag (Admin API) ---
+
+export const GET_ORDER_BY_TAG_QUERY = `
+  query getOrderByTag($query: String!) {
+    orders(first: 1, query: $query) {
+      edges {
+        node {
+          id
+          customer {
+            id
+          }
+          lineItems(first: 50) {
+            edges {
+              node {
+                quantity
+                variant {
+                  id
+                }
+                customAttributes {
+                  key
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
