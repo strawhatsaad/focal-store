@@ -29,6 +29,7 @@ interface CartContextType {
   loading: boolean;
   isInitializing: boolean; 
   error: string | null;
+  isFirstTimeCustomer: boolean | undefined; // For discount
   createCart: () => Promise<string | null>; 
   fetchCart: (id: string) => Promise<void>;
   addLineItem: (
@@ -104,7 +105,6 @@ interface Cart {
   note?: string | null;
 }
 
-
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const useCart = () => {
@@ -121,7 +121,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [loading, setLoading] = useState<boolean>(false); 
   const [isInitializing, setIsInitializing] = useState<boolean>(true); 
   const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState<boolean | undefined>(undefined); // Start as undefined
+  const { data: session, status: sessionStatus } = useSession();
 
   const clearCartError = () => setError(null);
 
@@ -137,6 +138,40 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
     return defaultMessage;
   };
+
+  useEffect(() => {
+    const checkStatus = async () => {
+        console.log('[CartContext] Checking customer status. Session status:', sessionStatus);
+        if (sessionStatus === 'loading') {
+            console.log('[CartContext] Session is loading, waiting...');
+            return;
+        }
+        if (sessionStatus === 'unauthenticated') {
+            console.log('[CartContext] Session is unauthenticated. Setting isFirstTimeCustomer: true');
+            setIsFirstTimeCustomer(true);
+            return;
+        }
+        if (sessionStatus === 'authenticated') {
+            console.log('[CartContext] Session is authenticated. Fetching status from API.');
+            try {
+                const res = await fetch('/api/account/status');
+                const data = await res.json();
+                console.log('[CartContext] Received status from API:', data);
+                if (res.ok) {
+                    setIsFirstTimeCustomer(data.isFirstTimeCustomer);
+                } else {
+                    console.log('[CartContext] API call not ok. Setting isFirstTimeCustomer: false');
+                    setIsFirstTimeCustomer(false);
+                }
+            } catch (err) {
+                console.error('[CartContext] API fetch error. Setting isFirstTimeCustomer: false', err);
+                setIsFirstTimeCustomer(false); // Fail safe on network error
+            }
+        }
+    };
+    checkStatus();
+  }, [sessionStatus]);
+
 
   const checkAndManageDonationProduct = async (currentCart: Cart | null): Promise<Cart | null> => {
     if (!currentCart || !currentCart.id || !currentCart.lines?.edges) return currentCart;
@@ -434,6 +469,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         loading,
         isInitializing,
         error,
+        isFirstTimeCustomer,
         createCart,
         fetchCart,
         addLineItem,

@@ -1,7 +1,8 @@
 // File: src/app/api/checkout/create-draft-order/route.ts
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { createShopifyDraftOrder } from "../../../../../utils";
+import { createShopifyDraftOrder, shopifyAdminRequest } from "../../../../../utils";
+import { NextResponse } from "next/server";
 
 const parsePriceToFloat = (priceStr: string | number | undefined | null): number => {
     if (priceStr === null || priceStr === undefined) return 0.0;
@@ -11,8 +12,18 @@ const parsePriceToFloat = (priceStr: string | number | undefined | null): number
     return isNaN(parsed) ? 0.0 : parsed;
 };
 
+// Admin query to check order count
+const CUSTOMER_ORDER_COUNT_QUERY = `
+  query customerOrderCount($id: ID!) {
+    customer(id: $id) {
+      numberOfOrders
+    }
+  }
+`;
+
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
+    let isFirstTimeCustomer = false;
 
     try {
         const { lineItems, customerInfo, cartToken } = await request.json();
@@ -20,6 +31,19 @@ export async function POST(request: Request) {
         if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
             return Response.json({ message: "Line items are required." }, { status: 400 });
         }
+
+        // Determine if the customer is eligible for the first-time discount
+        if (session?.user?.shopifyCustomerId) {
+            // Logged-in user: check their order history
+            const orderCountResponse = await shopifyAdminRequest(CUSTOMER_ORDER_COUNT_QUERY, { id: session.user.shopifyCustomerId });
+            if (orderCountResponse.data?.customer?.numberOfOrders === 0) {
+                isFirstTimeCustomer = true;
+            }
+        } else {
+             // Guest user: assume they are a first-time customer
+             isFirstTimeCustomer = true;
+        }
+
 
         const draftOrderLineItems = lineItems.map((item: any) => {
             if (!item.variantId || typeof item.customizedPrice === 'undefined' || !item.quantity || !item.title) {
@@ -29,7 +53,7 @@ export async function POST(request: Request) {
             return {
                 variantId: item.variantId,
                 quantity: parseInt(item.quantity, 10),
-                originalUnitPrice: unitPrice.toFixed(2),
+                originalUnitPrice: unitPrice.toFixed(2), 
                 customAttributes: item.attributes || [],
                 title: item.title,
                 requiresShipping: typeof item.requiresShipping === 'boolean' ? item.requiresShipping : true,
@@ -43,6 +67,16 @@ export async function POST(request: Request) {
         
         if (cartToken) {
             draftOrderInput.note = `reorder_token:${cartToken}`;
+        }
+
+        // CORRECTED: Apply a 20% discount if the customer is eligible
+        if (isFirstTimeCustomer) {
+            draftOrderInput.appliedDiscount = {
+                title: "First-Time Customer Discount",
+                description: "20% off for your first order!",
+                value: 20.0, // This must be a float for percentage
+                valueType: "PERCENTAGE" // This specifies the value is a percentage
+            };
         }
 
         if (session?.user?.shopifyCustomerId) {
@@ -68,10 +102,12 @@ export async function POST(request: Request) {
             if (userErrors?.length > 0) {
                 errorMessage = userErrors.map((e: any) => e.message).join("; ");
             }
+            console.error("[Create Draft Order] Shopify User Errors:", userErrors);
             throw new Error(errorMessage);
         }
 
     } catch (error: any) {
+        console.error("[Create Draft Order] Server Error:", error);
         return Response.json({ message: error.message || "Internal Server Error." }, { status: 500 });
     }
 }

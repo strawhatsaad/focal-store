@@ -20,6 +20,28 @@ import {
   HeartIcon as DonationIcon,
 } from "lucide-react";
 
+// Helper function to render discounted price
+const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string, isFirstTimeCustomer: boolean | undefined }) => {
+  const priceNum = parseFloat(originalPrice.replace('$', ''));
+  
+  if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+    return <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">{originalPrice}</p>;
+  }
+
+  if (isFirstTimeCustomer) {
+    const discountedPrice = priceNum * 0.80;
+    return (
+      <div className="mt-2 flex items-baseline gap-2">
+        <p className="text-2xl sm:text-3xl font-extrabold text-black">${discountedPrice.toFixed(2)}</p>
+        <p className="text-lg sm:text-xl font-semibold text-red-600 line-through">${priceNum.toFixed(2)}</p>
+      </div>
+    );
+  }
+
+  return <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">${priceNum.toFixed(2)}</p>;
+};
+
+
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -29,6 +51,7 @@ const Hero = ({ product }: any) => {
     loading: cartLoading,
     error: cartContextError,
     clearCartError,
+    isFirstTimeCustomer, // Get the discount status from context
   } = useCart();
 
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
@@ -493,10 +516,9 @@ const Hero = ({ product }: any) => {
               <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-6 sm:mt-8 lg:mt-0">
                 {product?.name}
               </h1>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
-                {displayedPrice}
-              </p>
-
+              
+              <PriceDisplay originalPrice={displayedPrice} isFirstTimeCustomer={isFirstTimeCustomer} />
+              
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">

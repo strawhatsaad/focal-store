@@ -6,7 +6,8 @@ import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
 import { storeFront } from "../../../../utils";
-import { Loader2, Filter, Search, X as XIcon } from "lucide-react"; // Added Search and XIcon
+import { Loader2, Filter, Search, X as XIcon } from "lucide-react";
+import { useCart } from "@/context/CartContext"; // Import useCart
 
 interface ProductImage {
   url: string;
@@ -84,6 +85,7 @@ const FEATURES_OPTIONS = [
 const NOSE_BRIDGE_OPTIONS = ["Standard bridge", "Low Bridge Fit"].sort();
 
 const EyewearPage = () => {
+  const { isFirstTimeCustomer } = useCart(); // Get status from cart context
   const [allProducts, setAllProducts] = useState<MappedProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<MappedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,7 +95,7 @@ const EyewearPage = () => {
     Record<string, string | null>
   >({});
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // State for search term
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -107,7 +109,7 @@ const EyewearPage = () => {
           const fetchedProducts =
             result.data.collectionByHandle.products.edges.map(
               ({ node }: ProductEdge) => {
-                const searchFiltersValue = node.searchFiltersMetafield?.value; // Using consistent metafield key
+                const searchFiltersValue = node.searchFiltersMetafield?.value;
                 let parsedEyewearFilters: string[] = [];
 
                 if (searchFiltersValue) {
@@ -143,7 +145,7 @@ const EyewearPage = () => {
                   eyewearFilters: parsedEyewearFilters.filter(
                     (sf) => sf.length > 0
                   ),
-                  tags: node.tags || [], // Add tags
+                  tags: node.tags || [],
                 };
               }
             );
@@ -178,7 +180,6 @@ const EyewearPage = () => {
       (value) => value !== null
     );
 
-    // Apply sidebar filters first
     if (hasActiveSidebarFilters) {
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) {
@@ -191,7 +192,6 @@ const EyewearPage = () => {
       });
     }
 
-    // Then apply search term filter
     if (lowerSearchTerm) {
       tempProducts = tempProducts.filter(
         (product) =>
@@ -214,7 +214,7 @@ const EyewearPage = () => {
 
   const clearAllFilters = () => {
     setActiveFilters({});
-    setSearchTerm(""); // Also clear search term
+    setSearchTerm("");
   };
 
   const filterSections = [
@@ -275,7 +275,6 @@ const EyewearPage = () => {
               headline="Discover our premium Eyewear Collection—a curated selection of stylish, comfortable, and vision-enhancing glasses designed to suit every face and lifestyle."
             />
 
-            {/* Search Input */}
             <div className="my-6 lg:my-8 relative">
               <input
                 type="text"
@@ -363,6 +362,7 @@ const EyewearPage = () => {
                 <ProductsSection
                   products={filteredProducts}
                   heading="All Eyewear"
+                  isFirstTimeCustomer={isFirstTimeCustomer}
                 />
               ) : (
                 <div className="text-center py-16 bg-white rounded-lg shadow-sm">
@@ -402,7 +402,7 @@ const productQueryForEyewear = gql`
             id
             title
             handle
-            tags # Fetch product tags
+            tags
             featuredImage {
               url
               altText
@@ -413,7 +413,6 @@ const productQueryForEyewear = gql`
                 currencyCode
               }
             }
-            # Using the same metafield key "search_filters"
             searchFiltersMetafield: metafield(
               namespace: "custom"
               key: "search_filters"
