@@ -182,7 +182,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartId(updatedCart?.id || null);
         localStorage.setItem("focalCartId", updatedCart!.id);
       } else {
-        // If the cart is not found, we should clear local storage and create a new one.
         localStorage.removeItem("focalCartId");
         await createCart();
       }
@@ -190,7 +189,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const errorMessage = handleShopifyError(err, "Failed to fetch cart.");
       setError(errorMessage);
       console.error("Fetch cart error:", err);
-      // If fetching fails, create a new cart to recover gracefully.
       await createCart();
     } finally {
       setLoading(false);

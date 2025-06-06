@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Current Cart ID is required." }, { status: 400 });
         }
 
-        // --- FIX: Construct the full Shopify GraphQL ID (GID) ---
-        // The URL provides a numeric ID, but the Admin API needs the full GID format.
         const fullShopifyOrderId = `gid://shopify/Order/${orderId}`;
 
         const orderDetailsResponse = await getShopifyOrderDetailsAdmin(fullShopifyOrderId);
