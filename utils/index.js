@@ -446,48 +446,13 @@ export async function deleteShopifyFile(fileIds) {
 
 // --- Reorder Logic (Admin API) ---
 
-export const GET_ORDER_LINE_ITEMS_QUERY = `
-  query getOrderLineItems($orderId: ID!) {
-    order(id: $orderId) {
-      id
-      customer {
-        id
-      }
-      lineItems(first: 50) {
-        edges {
-          node {
-            quantity
-            variant {
-              id
-            }
-            customAttributes {
-              key
-              value
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-/**
- * Fetches the line items from a specific order using the Admin API.
- * @param {string} orderId The GID of the Shopify Order.
- * @returns {Promise<any>} The Shopify Admin API response containing the order details.
- */
-export async function getShopifyOrderLineItems(orderId) {
-  if (!orderId) {
-    throw new Error("Order ID is required to fetch line items.");
-  }
-  return shopifyAdminRequest(GET_ORDER_LINE_ITEMS_QUERY, { orderId });
-}
+// ... (keep all existing code in the file)
 
 // --- Find Order By Tag (Admin API) ---
 
-export const GET_ORDER_BY_TAG_QUERY = `
-  query getOrderByTag($query: String!) {
-    orders(first: 1, query: $query) {
+export const GET_ORDER_BY_NOTE_QUERY = `
+  query getOrderByNote($query: String!) {
+    orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
       edges {
         node {
           id
@@ -513,3 +478,15 @@ export const GET_ORDER_BY_TAG_QUERY = `
     }
   }
 `;
+
+/**
+ * Fetches the line items from a specific order using the Admin API.
+ * @param {string} orderId The GID of the Shopify Order.
+ * @returns {Promise<any>} The Shopify Admin API response containing the order details.
+ */
+export async function getShopifyOrderLineItems(orderId) {
+  if (!orderId) {
+    throw new Error("Order ID is required to fetch line items.");
+  }
+  return shopifyAdminRequest(GET_ORDER_LINE_ITEMS_QUERY, { orderId });
+}
