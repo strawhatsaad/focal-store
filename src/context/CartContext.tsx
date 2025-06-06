@@ -77,7 +77,6 @@ interface CartContextType {
   associateCartWithCustomer: (customerAccessToken: string) => Promise<void>;
   itemCount: number;
   clearCartAndCreateNew: () => Promise<void>;
-  loadCartFromId: (newCartId: string) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -199,28 +198,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const loadCartFromId = useCallback(async (newCartId: string) => {
-    if (!newCartId || newCartId === cartId) {
-      setIsInitializing(false);
-      return;
-    }
-    setIsInitializing(true);
-    setLoading(true);
-    setError(null);
-    setCart(null);
-    return fetchCart(newCartId);
-  }, [cartId, fetchCart]);
-
   useEffect(() => {
     const storedCartId = localStorage.getItem("focalCartId");
     if (storedCartId) {
       fetchCart(storedCartId).catch(() => {
-        localStorage.removeItem("focalCartId");
-        setCart(null);
-        setCartId(null);
+        // If fetching the stored cart fails (e.g., expired), create a new one.
+        createCart();
       });
     } else {
-      setIsInitializing(false);
+      createCart();
     }
   }, []);
 
@@ -325,8 +311,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const itemCount = useMemo(() => cart?.totalQuantity || 0, [cart]);
 
+  // The loadCartFromId function was removed as it's part of a flawed approach.
+  // The correct approach is to use the reorder API.
   return (
-    <CartContext.Provider value={{ cart, cartId, loading, isInitializing, error, createCart, fetchCart, addLineItem, updateLineItem, removeLineItem, clearCartError, associateCartWithCustomer, itemCount, clearCartAndCreateNew, loadCartFromId }}>
+    <CartContext.Provider value={{ cart, cartId, loading, isInitializing, error, createCart, fetchCart, addLineItem, updateLineItem, removeLineItem, clearCartError, associateCartWithCustomer, itemCount, clearCartAndCreateNew } as CartContextType}>
       {children}
     </CartContext.Provider>
   );

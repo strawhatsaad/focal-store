@@ -12,14 +12,12 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // The client will now send the cartId along with the orderId
         const { orderId, cartId } = await request.json();
 
         if (!orderId || !cartId) {
-            return NextResponse.json({ message: "Shopify Order ID and Cart ID are required." }, { status: 400 });
+            return NextResponse.json({ message: "Shopify Order ID and current Cart ID are required." }, { status: 400 });
         }
 
-        // Step 1: Fetch the original order details using the Shopify Admin API.
         const orderDetailsResponse = await getShopifyOrderDetailsAdmin(orderId);
         const orderNode = orderDetailsResponse.data?.order;
 
@@ -28,8 +26,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: errorMsg }, { status: 404 });
         }
 
-        // Step 2: Prepare line items for the new cart from the old order's data.
-        // The `cartLinesAdd` mutation expects the key `merchandiseId`.
         const lineItems = orderNode.lineItems.edges.map((edge: any) => ({
             merchandiseId: edge.node.variant.id,
             quantity: edge.node.quantity,
@@ -43,12 +39,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Original order contains no items to reorder." }, { status: 400 });
         }
 
-        // Step 3: Add these items to the user's current cart using the Storefront API.
         const addLinesResponse = await addLinesToShopifyCart(cartId, lineItems);
         const updatedCart = addLinesResponse.data?.cartLinesAdd?.cart;
 
         if (updatedCart) {
-            // Step 4: Return a success response. The client will handle UI updates.
             return NextResponse.json({ success: true, cart: updatedCart });
         } else {
             const userErrors = addLinesResponse.data?.cartLinesAdd?.userErrors;

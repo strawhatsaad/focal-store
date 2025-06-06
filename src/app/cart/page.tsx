@@ -29,7 +29,7 @@ function CartPageComponent() {
   const {
     cart,
     cartId,
-    loadCartFromId,
+    fetchCart,
     loading: cartContextLoading,
     isInitializing,
     error: cartContextError,
@@ -40,46 +40,57 @@ function CartPageComponent() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const cartLinkId = searchParams.get("cart_link_id");
+  // We look for 'order_id', not 'cart_link_id'.
+  const reorderId = searchParams.get("order_id");
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
-  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
-  const [isProcessingCartLink, setIsProcessingCartLink] = useState(!!cartLinkId);
+  const [actionMessage, setActionMessage] = useState<{type: 'info' | 'error' | 'success', text: string} | null>(null);
+  const [isReordering, setIsReordering] = useState(!!reorderId);
 
   useEffect(() => {
-    if (cartLinkId) {
-      const fullCartGid = cartLinkId.startsWith("gid://shopify/Cart/")
-        ? cartLinkId
-        : `gid://shopify/Cart/${cartLinkId}`;
+    if (reorderId && sessionStatus === 'authenticated' && cartId) {
+      setIsReordering(true);
+      setActionMessage({type: 'info', text: "Re-ordering items..."});
 
-      if (fullCartGid !== cartId) { 
-        setIsProcessingCartLink(true);
-        setCheckoutMessage("Loading your previous order into the cart...");
+      const handleReorder = async () => {
+        try {
+          const response = await fetch('/api/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: `gid://shopify/Order/${reorderId}`,
+              cartId: cartId,
+            }),
+          });
 
-        const handleCartLink = async () => {
-          try {
-            await loadCartFromId(fullCartGid);
-            setCheckoutMessage("Your previous order has been restored successfully.");
-          } catch (error: any) {
-            console.error("Failed to load cart from link:", error);
-            // The error message is now set inside the context, so no need to set it here.
-          } finally {
-            setIsProcessingCartLink(false);
-            router.replace("/cart", { scroll: false }); 
-            setTimeout(() => setCheckoutMessage(null), 7000);
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Failed to process reorder.');
           }
-        };
 
-        // Delay execution slightly to ensure context is fully initialized
-        setTimeout(handleCartLink, 100);
-      } else {
-        setIsProcessingCartLink(false);
-      }
-    } else {
-      setIsProcessingCartLink(false);
+          await fetchCart(cartId);
+          setActionMessage({type: 'success', text: "Your previous order has been added to the cart."});
+        } catch (error: any) {
+          console.error('Reorder failed:', error);
+          setActionMessage({type: 'error', text: `Reorder failed: ${error.message}`});
+        } finally {
+          setIsReordering(false);
+          router.replace('/cart', { scroll: false }); 
+          setTimeout(() => setActionMessage(null), 7000);
+        }
+      };
+      
+      handleReorder();
+    } else if (reorderId && sessionStatus === 'unauthenticated') {
+        const reorderCallbackUrl = window.location.href;
+        router.push(`/auth/signin?callbackUrl=${encodeURIComponent(reorderCallbackUrl)}`);
+    } else if (reorderId) {
+        setIsReordering(false);
     }
-  }, [cartLinkId, cartId, loadCartFromId, router]);
+  }, [reorderId, sessionStatus, cartId, router, fetchCart]);
+
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -131,29 +142,29 @@ function CartPageComponent() {
   const currencyCode = cart?.cost?.subtotalAmount?.currencyCode || "USD";
 
   const handleProceedToCheckout = async () => {
-    setCheckoutMessage(null);
+    setActionMessage(null);
     setIsProcessingCheckout(true);
 
     if (sessionStatus === "loading") {
-      setCheckoutMessage("Verifying your session...");
+      setActionMessage({type: 'info', text: "Verifying your session..."});
       setIsProcessingCheckout(false);
       return;
     }
 
     if (!session) {
-      setCheckoutMessage("Redirecting to sign in...");
+      setActionMessage({type: 'info', text: "Redirecting to sign in..."});
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
 
     if (!lineItemsWithDisplayPrice.length) {
-      setCheckoutMessage("Your cart is empty.");
+      setActionMessage({type: 'error', text: "Your cart is empty."});
       setIsProcessingCheckout(false);
       return;
     }
     
     try {
-      setCheckoutMessage("Processing your order...");
+      setActionMessage({type: 'info', text: "Processing your order..."});
       const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
         variantId: item.variantId, 
         quantity: item.quantity,
@@ -175,23 +186,23 @@ function CartPageComponent() {
       if (!response.ok) throw new Error(result.message || "Failed to create draft order.");
 
       if (result.invoiceUrl) {
-        setCheckoutMessage("Redirecting to Shopify checkout...");
+        setActionMessage({type: 'info', text: "Redirecting to Shopify checkout..."});
         window.location.href = result.invoiceUrl;
       } else {
         throw new Error("Invoice URL not received.");
       }
     } catch (err: any) {
-      setCheckoutMessage(`Error: ${err.message}`);
+      setActionMessage({type: 'error', text: `Error: ${err.message}`});
       setIsProcessingCheckout(false);
     }
   };
 
-  if (isInitializing || isProcessingCartLink) {
+  if (isInitializing || isReordering) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
         <p className="ml-3 text-lg font-medium text-gray-700 mt-4">
-          {isProcessingCartLink ? "Restoring your previous order..." : "Loading your cart..."}
+          {isReordering ? "Re-ordering items..." : "Loading your cart..."}
         </p>
       </div>
     );
@@ -216,11 +227,11 @@ function CartPageComponent() {
             </div>
           </div>
         )}
-        {checkoutMessage && !cartContextError && (
-          <div className={`p-3 sm:p-4 rounded-md shadow-md mb-6 border-l-4 text-sm ${checkoutMessage.includes("Error") || checkoutMessage.includes("failed") ? "bg-red-100 border-red-500 text-red-700" : "bg-blue-100 border-blue-500 text-blue-700"}`} role="alert">
+        {actionMessage && !cartContextError && (
+          <div className={`p-3 sm:p-4 rounded-md shadow-md mb-6 border-l-4 text-sm ${actionMessage.type === 'error' ? "bg-red-100 border-red-500 text-red-700" : "bg-blue-100 border-blue-500 text-blue-700"}`} role="alert">
             <div className="flex items-center">
-              {checkoutMessage.includes("Error") ? <AlertCircle className="h-5 w-5 mr-2" /> : checkoutMessage.includes("restored") ? <CheckCircle className="h-5 w-5 mr-2" /> : <Loader2 className="h-5 w-5 animate-spin mr-2" />}
-              <p>{checkoutMessage}</p>
+              {actionMessage.type === 'error' ? <AlertCircle className="h-5 w-5 mr-2" /> : actionMessage.type === 'success' ? <CheckCircle className="h-5 w-5 mr-2" /> : <Loader2 className="h-5 w-5 animate-spin mr-2" />}
+              <p>{actionMessage.text}</p>
             </div>
           </div>
         )}
@@ -242,7 +253,7 @@ function CartPageComponent() {
               {lineItemsWithDisplayPrice.map((line) => (
                 <li key={line.id} className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8">
                   <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0">
-                    <img src={line.merchandise.image?.url || "[https://placehold.co/128x128/F7F4EE/333333?text=No+Image](https://placehold.co/128x128/F7F4EE/333333?text=No+Image)"} alt={line.merchandise.image?.altText || line.merchandise.product.title} width={128} height={128} className="w-full h-full object-contain" />
+                    <img src={line.merchandise.image?.url || "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"} alt={line.merchandise.image?.altText || line.merchandise.product.title} width={128} height={128} className="w-full h-full object-contain" />
                   </div>
                   <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col">
                     <div>
