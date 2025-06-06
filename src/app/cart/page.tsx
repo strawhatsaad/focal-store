@@ -1,10 +1,10 @@
 // File: src/app/cart/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/context/CartContext"; 
 import { useSession } from "next-auth/react"; 
-import { useRouter, useSearchParams } from "next/navigation"; 
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import {
   Loader2,
@@ -14,7 +14,6 @@ import {
   AlertCircle,
   CreditCard,
   LogIn, 
-  RefreshCw,
 } from "lucide-react";
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
@@ -25,12 +24,11 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-
-function CartPageComponent() {
+const CartPage = () => {
   const {
     cart,
     loading: cartContextLoading, 
-    isInitializing,
+    isInitializing, // Destructure isInitializing from context
     error: cartContextError,
     updateLineItem,
     removeLineItem,
@@ -39,60 +37,10 @@ function CartPageComponent() {
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter(); 
-  const searchParams = useSearchParams();
-  const reorderId = searchParams.get("order_id");
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); 
-  const [isReordering, setIsReordering] = useState(!!reorderId);
-
-  // --- REORDER LOGIC ---
-  useEffect(() => {
-    if (reorderId && sessionStatus === 'authenticated') {
-      setIsReordering(true);
-      const handleReorder = async () => {
-        try {
-          const response = await fetch('/api/reorder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId: `gid://shopify/Order/${reorderId}` }),
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            if (response.status === 401) {
-              // Should not happen due to sessionStatus check, but as a fallback
-              router.push(`/auth/signin?callbackUrl=${window.location.href}`);
-              return;
-            }
-            throw new Error(result.message || 'Failed to process reorder.');
-          }
-
-          if (result.checkoutUrl) {
-            // Clear local cart since we are redirecting to a new checkout
-            await clearCartAndCreateNew();
-            window.location.href = result.checkoutUrl;
-          } else {
-            throw new Error('Could not retrieve checkout URL for reorder.');
-          }
-        } catch (error: any) {
-          console.error('Reorder failed:', error);
-          setCheckoutMessage(`Reorder failed: ${error.message}`);
-          setIsReordering(false);
-          // Remove the order_id from the URL to prevent re-triggering
-          router.replace('/cart', { scroll: false });
-        }
-      };
-
-      handleReorder();
-    } else if (reorderId && sessionStatus === 'unauthenticated') {
-      // If user is not logged in, redirect to sign-in page, preserving the reorder intent
-      const reorderCallbackUrl = window.location.href;
-      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(reorderCallbackUrl)}`);
-    }
-  }, [reorderId, sessionStatus, router, clearCartAndCreateNew]);
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -135,7 +83,7 @@ function CartPageComponent() {
       }
       return {
         ...line,
-        variantId: line.merchandise.id, 
+        merchandiseId: line.merchandise.id, 
         customizedUnitPrice: finalCalculatedPrice, 
         displayTotalPrice: finalCalculatedPrice * line.quantity,
         isCustomizedEyeglass,
@@ -177,7 +125,7 @@ function CartPageComponent() {
     }
 
     const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
-      variantId: item.variantId, 
+      variantId: item.merchandiseId, 
       quantity: item.quantity,
       customizedPrice: item.customizedUnitPrice.toFixed(2), 
       attributes: item.attributes.map((attr) => ({
@@ -226,14 +174,13 @@ function CartPageComponent() {
     } 
   };
 
-  // --- RENDER LOGIC ---
-
-  if (isReordering || isInitializing || (cartContextLoading && !cart)) { 
+  // Updated loading condition to use isInitializing from context
+  if (isInitializing || (cartContextLoading && !cart)) { 
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
         <p className="ml-3 text-lg font-medium text-gray-700 mt-4">
-          {isReordering ? "Processing your reorder..." : "Loading your cart..."}
+          Loading your cart...
         </p>
       </div>
     );
@@ -465,24 +412,6 @@ function CartPageComponent() {
       </div>
     </div>
   );
-}
+};
 
-// Wrap the main component in Suspense to handle searchParams
-export default function CartPage() {
-    return (
-        <Suspense fallback={<CartPageLoadingFallback />}>
-            <CartPageComponent />
-        </Suspense>
-    );
-}
-
-function CartPageLoadingFallback() {
-    return (
-        <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
-            <Loader2 className="h-12 w-12 animate-spin text-black" />
-            <p className="ml-3 text-lg font-medium text-gray-700 mt-4">
-                Loading Cart...
-            </p>
-        </div>
-    );
-}
+export default CartPage;
