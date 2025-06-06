@@ -1,25 +1,51 @@
 // File: src/sections/Products/Products.tsx
 import Link from "next/link";
 import Image from "next/image"; // Using Next/Image for potential optimization
+import { useEffect } from "react";
+
+// Helper component to display price with optional discount
+const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string; isFirstTimeCustomer: boolean | undefined }) => {
+    const priceNum = parseFloat(originalPrice.replace('$', ''));
+
+    // If price is invalid or status is not yet determined, show the original price.
+    if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+        return <p className="mt-1 text-sm sm:text-base font-semibold text-gray-900">{originalPrice}</p>;
+    }
+  
+    // If it is a first-time customer, show the discounted price and the original price.
+    if (isFirstTimeCustomer) {
+      const discountedPrice = priceNum * 0.80;
+      return (
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <p className="text-sm sm:text-base font-bold text-black">${discountedPrice.toFixed(2)}</p>
+          <p className="text-xs sm:text-sm font-medium text-red-600 line-through">${priceNum.toFixed(2)}</p>
+        </div>
+      );
+    }
+  
+    // Otherwise, show the regular price.
+    return <p className="mt-1 text-sm sm:text-base font-semibold text-gray-900">${priceNum.toFixed(2)}</p>;
+};
+
 
 const ProductsSection = ({
   products,
   heading,
+  isFirstTimeCustomer, // Accept the new prop
 }: {
   products: any[];
   heading: string;
+  isFirstTimeCustomer: boolean | undefined;
 }) => {
+  // Add console log for debugging
+  useEffect(() => {
+    console.log("[ProductsSection] Received isFirstTimeCustomer:", isFirstTimeCustomer);
+  }, [isFirstTimeCustomer]);
+
   const productData = products;
   return (
     <div className="bg-white" id="products">
-      {/* Removed mx-auto and max-w from here, parent will control width */}
       <div className="w-full px-0 py-8 sm:py-12">
-        {" "}
-        {/* Adjusted padding for section */}
-        {/* <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8 sm:mb-10 md:mb-12">
-          {heading}
-        </h2> */}
-        {/* Responsive grid for products */}
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10">
           {productData.map((product: any) => (
             <Link
@@ -32,8 +58,8 @@ const ProductsSection = ({
                   <Image
                     alt={product.imageAlt || product.name || "Product Image"}
                     src={product.imageSrc}
-                    width={300} // Provide aspect ratio, layout="responsive" will handle size
-                    height={225} // Example 4:3 aspect ratio
+                    width={300}
+                    height={225}
                     layout="responsive"
                     className="object-contain w-full h-full group-hover:opacity-90 transition-opacity duration-300"
                     onError={(e) =>
@@ -50,9 +76,7 @@ const ProductsSection = ({
               <h3 className="mt-3 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black truncate">
                 {product.name}
               </h3>
-              <p className="mt-1 text-sm sm:text-base font-semibold text-gray-900">
-                {product.price}
-              </p>
+              <PriceDisplay originalPrice={product.price} isFirstTimeCustomer={isFirstTimeCustomer} />
             </Link>
           ))}
         </div>

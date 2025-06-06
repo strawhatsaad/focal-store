@@ -20,6 +20,28 @@ import {
   HeartIcon as DonationIcon,
 } from "lucide-react";
 
+// Helper function to render discounted price
+const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string, isFirstTimeCustomer: boolean | undefined }) => {
+  const priceNum = parseFloat(originalPrice.replace('$', ''));
+  
+  if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+    return <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">{originalPrice}</p>;
+  }
+
+  if (isFirstTimeCustomer) {
+    const discountedPrice = priceNum * 0.80;
+    return (
+      <div className="mt-2 flex items-baseline gap-2">
+        <p className="text-2xl sm:text-3xl font-extrabold text-black">${discountedPrice.toFixed(2)}</p>
+        <p className="text-lg sm:text-xl font-semibold text-red-600 line-through">${priceNum.toFixed(2)}</p>
+      </div>
+    );
+  }
+
+  return <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">${priceNum.toFixed(2)}</p>;
+};
+
+
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -29,6 +51,7 @@ const Hero = ({ product }: any) => {
     loading: cartLoading,
     error: cartContextError,
     clearCartError,
+    isFirstTimeCustomer, // Get the discount status from context
   } = useCart();
 
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
@@ -217,116 +240,78 @@ const Hero = ({ product }: any) => {
       finalPrescriptionReference = "Will Provide Later";
     }
 
-    const totalQuantity =
-      (rightEyeEnabled ? rightEyeQty : 0) + (leftEyeEnabled ? leftEyeQty : 0);
-    if (totalQuantity === 0) {
-      setActionError("No quantity selected for either eye.");
-      setIsProcessingPageAction(false);
-      return;
-    }
-
-    const combinedAttributes = [
-      { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-      { key: "Prescription Ref", value: finalPrescriptionReference },
-      { key: "FocalProductType", value: "ContactLenses" },
+    const lineItemsToAdd: {variantId: string, quantity: number, attributes: any[]}[] = [];
+    const baseAttributes = [
+        { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
+        { key: "Prescription Ref", value: finalPrescriptionReference },
+        { key: "FocalProductType", value: "ContactLenses" },
     ];
 
+    // Right eye
     if (rightEyeEnabled && rightEyeQty > 0) {
-      combinedAttributes.push({
-        key: "Right Eye (OD)",
-        value: `${rightEyeQty} boxe(s)`,
-      });
-      combinedAttributes.push({
-        key: "OD SPH",
-        value: prescriptionData.odValues.sph || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OD BC",
-        value: prescriptionData.odValues.bc || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OD DIA",
-        value: prescriptionData.odValues.dia || "N/A",
-      });
-      if (
-        prescriptionData.odValues.cyl &&
-        prescriptionData.odValues.cyl !== "0.00"
-      ) {
-        combinedAttributes.push({
-          key: "OD CYL",
-          value: prescriptionData.odValues.cyl,
-        });
-        if (prescriptionData.odValues.axis) {
-          combinedAttributes.push({
-            key: "OD Axis",
-            value: prescriptionData.odValues.axis,
-          });
+        const rightEyeAttributes = [
+            ...baseAttributes,
+            { key: "Eye", value: "Right (OD)" },
+            { key: "SPH", value: prescriptionData.odValues.sph || "N/A" },
+            { key: "BC", value: prescriptionData.odValues.bc || "N/A" },
+            { key: "DIA", value: prescriptionData.odValues.dia || "N/A" },
+        ];
+        if (prescriptionData.odValues.cyl && prescriptionData.odValues.cyl !== "0.00") {
+            rightEyeAttributes.push({ key: "CYL", value: prescriptionData.odValues.cyl });
+            if (prescriptionData.odValues.axis) {
+            rightEyeAttributes.push({ key: "Axis", value: prescriptionData.odValues.axis });
+            }
         }
-      }
-      if (prescriptionData.odValues.add) {
-        combinedAttributes.push({
-          key: "OD ADD",
-          value: prescriptionData.odValues.add,
-        });
-      }
+        if (prescriptionData.odValues.add) {
+            rightEyeAttributes.push({ key: "ADD", value: prescriptionData.odValues.add });
+        }
+        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: rightEyeQty, attributes: rightEyeAttributes });
     }
 
+    // Left eye
     if (leftEyeEnabled && leftEyeQty > 0) {
-      combinedAttributes.push({
-        key: "Left Eye (OS)",
-        value: `${leftEyeQty} boxe(s)`,
-      });
-      combinedAttributes.push({
-        key: "OS SPH",
-        value: prescriptionData.osValues.sph || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OS BC",
-        value: prescriptionData.osValues.bc || "N/A",
-      });
-      combinedAttributes.push({
-        key: "OS DIA",
-        value: prescriptionData.osValues.dia || "N/A",
-      });
-      if (
-        prescriptionData.osValues.cyl &&
-        prescriptionData.osValues.cyl !== "0.00"
-      ) {
-        combinedAttributes.push({
-          key: "OS CYL",
-          value: prescriptionData.osValues.cyl,
-        });
-        if (prescriptionData.osValues.axis) {
-          combinedAttributes.push({
-            key: "OS Axis",
-            value: prescriptionData.osValues.axis,
-          });
+        const leftEyeAttributes = [
+            ...baseAttributes,
+            { key: "Eye", value: "Left (OS)" },
+            { key: "SPH", value: prescriptionData.osValues.sph || "N/A" },
+            { key: "BC", value: prescriptionData.osValues.bc || "N/A" },
+            { key: "DIA", value: prescriptionData.osValues.dia || "N/A" },
+        ];
+        if (prescriptionData.osValues.cyl && prescriptionData.osValues.cyl !== "0.00") {
+            leftEyeAttributes.push({ key: "CYL", value: prescriptionData.osValues.cyl });
+            if (prescriptionData.osValues.axis) {
+            leftEyeAttributes.push({ key: "Axis", value: prescriptionData.osValues.axis });
+            }
         }
-      }
-      if (prescriptionData.osValues.add) {
-        combinedAttributes.push({
-          key: "OS ADD",
-          value: prescriptionData.osValues.add,
-        });
-      }
+        if (prescriptionData.osValues.add) {
+            leftEyeAttributes.push({ key: "ADD", value: prescriptionData.osValues.add });
+        }
+        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: leftEyeQty, attributes: leftEyeAttributes });
+    }
+    
+    if (lineItemsToAdd.length === 0) {
+        setActionError("No quantity selected for either eye.");
+        setIsProcessingPageAction(false);
+        return;
     }
 
     try {
-      const success = await addLineItem(
-        selectedVariant.id,
-        totalQuantity,
-        combinedAttributes
-      );
-
-      if (success) {
-        setActionSuccess(true);
-        router.push("/cart");
-      } else {
-        setActionError(
-          cartContextError || "The contact lens item could not be added."
-        );
-        setTimeout(() => setActionError(null), 5000);
-      }
+        let allItemsAddedSuccessfully = true;
+        for (const item of lineItemsToAdd) {
+            const success = await addLineItem(item.variantId, item.quantity, item.attributes);
+            if (!success) {
+                allItemsAddedSuccessfully = false;
+                break; 
+            }
+        }
+        
+        if (allItemsAddedSuccessfully) {
+            setActionSuccess(true);
+            router.push("/cart");
+        } else {
+            setActionError(cartContextError || "Failed to add one or more items to the cart.");
+            setTimeout(() => setActionError(null), 5000);
+        }
     } catch (e: any) {
       setActionError(
         e.message || "An error occurred while adding items to cart."
@@ -493,10 +478,9 @@ const Hero = ({ product }: any) => {
               <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-6 sm:mt-8 lg:mt-0">
                 {product?.name}
               </h1>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-black">
-                {displayedPrice}
-              </p>
-
+              
+              <PriceDisplay originalPrice={displayedPrice} isFirstTimeCustomer={isFirstTimeCustomer} />
+              
               {showFrameVariants && product?.variants && (
                 <div className="mt-6 mb-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">

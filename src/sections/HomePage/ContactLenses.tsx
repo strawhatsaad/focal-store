@@ -5,29 +5,48 @@ import { twMerge } from "tailwind-merge";
 import ArrowIcon from "@/assets/arrow-right.svg";
 import { motion, useDragControls } from "framer-motion";
 import Link from "next/link";
+import { useCart } from "@/context/CartContext";
+
+// Helper component to display price with optional discount
+const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string; isFirstTimeCustomer: boolean | undefined }) => {
+    const priceNum = parseFloat(originalPrice.replace('$', ''));
+
+    if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+        return <p className="text-xs sm:text-sm font-bold text-gray-900">{originalPrice}</p>;
+    }
+  
+    if (isFirstTimeCustomer) {
+      const discountedPrice = priceNum * 0.80;
+      return (
+        <div className="flex items-center justify-center gap-1.5">
+          <p className="text-xs sm:text-sm font-bold text-black">${discountedPrice.toFixed(2)}</p>
+          <p className="text-[10px] sm:text-xs font-medium text-red-600 line-through">${priceNum.toFixed(2)}</p>
+        </div>
+      );
+    }
+  
+    return <p className="text-xs sm:text-sm font-bold text-gray-900">${priceNum.toFixed(2)}</p>;
+};
 
 export const ContactLenses = ({ products }: any) => {
+  const { isFirstTimeCustomer } = useCart(); // Get status from cart context
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const controls = useDragControls();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Determine chunk size based on screen size for better responsiveness
-  const [chunkSize, setChunkSize] = useState(1); // Default to 1 for very small screens
+  const [chunkSize, setChunkSize] = useState(1);
 
   useEffect(() => {
     const updateChunkSize = () => {
       if (window.innerWidth >= 1024) {
-        // lg
         setChunkSize(3);
       } else if (window.innerWidth >= 768) {
-        // md
         setChunkSize(2);
       } else if (window.innerWidth >= 640) {
-        // sm (Tailwind's default, adjust if your sm is different)
-        setChunkSize(2); // Or 1 if 2 feels too cramped on your 'sm'
+        setChunkSize(2);
       } else {
-        setChunkSize(1); // Smallest screens
+        setChunkSize(1);
       }
     };
 
@@ -38,7 +57,7 @@ export const ContactLenses = ({ products }: any) => {
 
   const totalChunks = products ? Math.ceil(products.length / chunkSize) : 0;
 
-  const productChunks = [];
+  const productChunks: any[][] = [];
   if (products) {
     for (let i = 0; i < products.length; i += chunkSize) {
       productChunks.push(products.slice(i, i + chunkSize));
@@ -57,8 +76,7 @@ export const ContactLenses = ({ products }: any) => {
 
   const handleDragEnd = (event: any, info: any) => {
     if (totalChunks <= 1) return;
-    const dragThreshold =
-      (containerRef.current?.offsetWidth || 300) / (chunkSize * 2.5); // Adjust threshold based on visible items
+    const dragThreshold = (containerRef.current?.offsetWidth || 300) / (chunkSize * 2.5);
     if (info.offset.x < -dragThreshold) {
       setSelectedCardIndex((prev) => (prev >= totalChunks - 1 ? 0 : prev + 1));
     } else if (info.offset.x > dragThreshold) {
@@ -66,7 +84,6 @@ export const ContactLenses = ({ products }: any) => {
     }
   };
 
-  // Ensure selectedCardIndex is valid after chunkSize changes
   useEffect(() => {
     if (selectedCardIndex >= totalChunks && totalChunks > 0) {
       setSelectedCardIndex(totalChunks - 1);
@@ -90,10 +107,8 @@ export const ContactLenses = ({ products }: any) => {
 
   return (
     <section>
-      {/* Adjusted top margin for different screen sizes */}
       <div className="mt-12 sm:mt-[50px] md:mt-[70px] lg:mt-[100px]">
         <div>
-          {/* Adjusted text sizes and bottom margin */}
           <div className="text-center flex flex-col gap-1 md:gap-2 mb-8 sm:mb-12 md:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-tight font-extrabold">
               Contact Lenses
@@ -103,29 +118,24 @@ export const ContactLenses = ({ products }: any) => {
             </p>
           </div>
 
-          {/* Slider container */}
-          {/* Added overflow-hidden to parent to prevent scrollbars from drag */}
           <div className="container overflow-hidden">
             <motion.div
               ref={containerRef}
-              className="flex cursor-grab active:cursor-grabbing" // Removed gap-6 here, gap is per-chunk
+              className="flex cursor-grab active:cursor-grabbing"
               drag="x"
               dragControls={controls}
               dragConstraints={{
-                left: -(
-                  (totalChunks - 1) *
-                  (containerRef.current?.offsetWidth || 0)
-                ),
+                left: -((totalChunks - 1) * (containerRef.current?.offsetWidth || 0)),
                 right: 0,
-              }} // Approximate constraints
+              }}
               onDragEnd={handleDragEnd}
               animate={{
-                x: `-${selectedCardIndex * 100}%`, // Each chunk takes 100% of its calculated width
+                x: `-${selectedCardIndex * 100}%`,
               }}
               transition={{
                 type: "spring",
-                stiffness: 200, // Slightly increased stiffness
-                damping: 30, // Slightly increased damping
+                stiffness: 200,
+                damping: 30,
               }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
@@ -133,23 +143,18 @@ export const ContactLenses = ({ products }: any) => {
               {productChunks.map((chunk, chunkIndex) => (
                 <motion.div
                   key={`chunk-${chunkIndex}`}
-                  // Each chunk div takes full width of the draggable area and uses flex for items
                   className="flex-shrink-0 w-full flex justify-center"
                   style={{
-                    // Dynamically set gap based on chunkSize
-                    gap: chunkSize > 1 ? "1rem" : "0", // md:gap-4, lg:gap-6 equivalent
+                    gap: chunkSize > 1 ? "1rem" : "0",
                   }}
                 >
                   {chunk.map((product: any, cardIndex: any) => (
                     <div
                       key={`${product.id}-${cardIndex}`}
-                      // Calculate width based on chunkSize, with fallback for safety
                       className="inline-flex flex-shrink-0 transition-all duration-500"
                       style={{ width: `${100 / Math.max(1, chunkSize)}%` }}
                     >
                       <div className="group relative p-2 w-full">
-                        {" "}
-                        {/* Added padding to the card container */}
                         <div className="w-full px-2 py-3 sm:px-4 sm:py-6 border border-gray-300 bg-transparent rounded-lg group-hover:scale-105 transition-transform duration-300 flex flex-col items-center">
                           <img
                             alt={product.imageAlt || "Product Image"}
@@ -157,12 +162,10 @@ export const ContactLenses = ({ products }: any) => {
                               product.imageSrc ||
                               "https://placehold.co/200x200/F7F4EE/333333?text=No+Image"
                             }
-                            className="w-full h-24 sm:h-32 md:h-48 lg:h-64 object-contain" // Adjusted image heights
+                            className="w-full h-24 sm:h-32 md:h-48 lg:h-64 object-contain"
                           />
                         </div>
                         <div className="mt-2 sm:mt-4 flex flex-col text-center w-full">
-                          {" "}
-                          {/* Centered text */}
                           <div>
                             <h3 className="text-[11px] xs:text-xs sm:text-sm text-gray-700 truncate">
                               <a href={product.href}>
@@ -174,9 +177,7 @@ export const ContactLenses = ({ products }: any) => {
                               </a>
                             </h3>
                           </div>
-                          <p className="text-xs sm:text-sm font-bold text-gray-900">
-                            {product.price}
-                          </p>
+                          <PriceDisplay originalPrice={product.price} isFirstTimeCustomer={isFirstTimeCustomer} />
                         </div>
                       </div>
                     </div>
@@ -187,22 +188,18 @@ export const ContactLenses = ({ products }: any) => {
           </div>
         </div>
 
-        {/* Pagination and View All Button */}
         <div className="flex flex-col items-center justify-center mt-6 sm:mt-8 md:mt-12 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {totalChunks > 1 && (
             <div className="flex justify-center">
               <div className="bg-black/10 inline-flex gap-1.5 sm:gap-2 md:gap-3 lg:gap-2 py-1.5 px-3 sm:py-2 sm:px-4 md:py-3 md:px-5 lg:py-3 lg:px-5 rounded-full hover:scale-110 transition-all duration-[350ms]">
                 {Array.from({ length: totalChunks }).map(
-                  (
-                    _,
-                    cardIndex // Use Array.from for pagination dots
-                  ) => (
+                  (_, cardIndex) => (
                     <div
                       key={`dot-${cardIndex}`}
                       className={twMerge(
                         "h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:size-2.5 bg-zinc-400 rounded-full cursor-pointer hover:scale-125 transition-all duration-300",
                         cardIndex === selectedCardIndex &&
-                          "bg-black scale-110 sm:scale-125" // Emphasize selected dot
+                          "bg-black scale-110 sm:scale-125"
                       )}
                       onClick={() => setSelectedCardIndex(cardIndex)}
                     ></div>

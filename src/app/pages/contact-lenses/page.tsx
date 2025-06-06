@@ -6,7 +6,8 @@ import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
 import { storeFront } from "../../../../utils/index";
-import { Loader2, Filter, Search, X as XIcon } from "lucide-react"; // Added Search and XIcon
+import { Loader2, Filter, Search, X as XIcon } from "lucide-react";
+import { useCart } from "@/context/CartContext"; // Import useCart
 
 interface ProductImage {
   url: string;
@@ -29,7 +30,7 @@ interface ProductNode {
   id: string;
   title: string;
   handle: string;
-  tags: string[]; // Added tags
+  tags: string[];
   featuredImage: ProductImage;
   priceRange: {
     minVariantPrice: Price;
@@ -49,7 +50,7 @@ interface MappedProduct {
   imageSrc: string;
   imageAlt: string | null;
   searchFilters?: string[];
-  tags?: string[]; // Added tags
+  tags?: string[];
 }
 
 const ALL_BRANDS_OPTIONS = [
@@ -97,6 +98,7 @@ const POPULAR_BRANDS_DISPLAY = [
 ];
 
 const ContactLensesPage = () => {
+  const { isFirstTimeCustomer } = useCart(); // Get status from cart context
   const [allProducts, setAllProducts] = useState<MappedProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<MappedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +108,7 @@ const ContactLensesPage = () => {
     Record<string, string | null>
   >({});
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // State for search term
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -156,7 +158,7 @@ const ContactLensesPage = () => {
                   searchFilters: parsedSearchFilters.filter(
                     (sf) => sf.length > 0
                   ),
-                  tags: node.tags || [], // Add tags
+                  tags: node.tags || [],
                 };
               }
             );
@@ -180,14 +182,12 @@ const ContactLensesPage = () => {
     fetchProducts();
   }, []);
 
-  // useEffect for filtering products based on activeFilters AND searchTerm
   useEffect(() => {
     if (isLoading) return;
 
     let tempProducts = [...allProducts];
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
 
-    // Apply sidebar filters first
     const hasActiveSidebarFilters = Object.values(activeFilters).some(
       (value) => value !== null
     );
@@ -203,14 +203,13 @@ const ContactLensesPage = () => {
       });
     }
 
-    // Then apply search term filter on the result of sidebar filters
     if (lowerSearchTerm) {
       tempProducts = tempProducts.filter(
         (product) =>
-          product.name.toLowerCase().includes(lowerSearchTerm) || // Search in name
+          product.name.toLowerCase().includes(lowerSearchTerm) ||
           product.tags?.some((tag) =>
             tag.toLowerCase().includes(lowerSearchTerm)
-          ) // Search in tags
+          )
       );
     }
 
@@ -225,7 +224,7 @@ const ContactLensesPage = () => {
   };
 
   const handlePopularBrandClick = (brandName: string) => {
-    setSearchTerm(""); // Clear search when a popular brand is clicked
+    setSearchTerm("");
     setActiveFilters((prev) => ({
       brand: prev.brand === brandName ? null : brandName,
       lensType: null,
@@ -235,7 +234,7 @@ const ContactLensesPage = () => {
 
   const clearAllFilters = () => {
     setActiveFilters({});
-    setSearchTerm(""); // Also clear search term
+    setSearchTerm("");
   };
 
   const filterSections = [
@@ -284,7 +283,6 @@ const ContactLensesPage = () => {
               headline="Explore our premium selection of prescription and colored contact lenses designed for comfort, clarity, and style."
             />
 
-            {/* Search Input */}
             <div className="my-6 lg:my-8 relative">
               <input
                 type="text"
@@ -393,6 +391,7 @@ const ContactLensesPage = () => {
               <ProductsSection
                 products={filteredProducts}
                 heading="Our Contact Lenses"
+                isFirstTimeCustomer={isFirstTimeCustomer}
               />
             ) : (
               <div className="text-center py-16 bg-white rounded-lg shadow-sm">
@@ -431,7 +430,7 @@ const productQueryWithMetafields = gql`
             id
             title
             handle
-            tags # Fetch product tags
+            tags
             featuredImage {
               url
               altText
