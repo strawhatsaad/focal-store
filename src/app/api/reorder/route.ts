@@ -25,7 +25,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "A new, active cart ID is required." }, { status: 400 });
         }
 
-        // **FIX**: Correctly construct the query to search the order's note field.
         const orderQueryString = `note:"reorder_token:${cartIdFromUrl}"`;
 
         const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_NOTE_QUERY, { query: orderQueryString });
@@ -36,7 +35,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Could not find a previous order associated with this link." }, { status: 404 });
         }
 
-        // Security Check: Ensure the order belongs to the logged-in customer
         if (orderData.customer?.id !== session.user.shopifyCustomerId) {
             return NextResponse.json({ message: "You are not authorized to reorder these items." }, { status: 403 });
         }
@@ -46,19 +44,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "No items found in the previous order to reorder." }, { status: 404 });
         }
 
-        // Prepare line items for the new cart
         const newCartLines = lineItemsFromOrder.map((edge: any) => {
-            if (!edge.node.variant?.id) {
-                console.warn("Skipping line item from previous order with missing variant ID:", edge.node);
-                return null;
-            }
+            if (!edge.node.variant?.id) { return null; }
             return {
                 merchandiseId: edge.node.variant.id,
                 quantity: edge.node.quantity,
-                attributes: edge.node.customAttributes.map((attr: { key: string; value: string }) => ({
-                    key: attr.key,
-                    value: attr.value,
-                })),
+                attributes: edge.node.customAttributes.map((attr: { key: string; value: string }) => ({ key: attr.key, value: attr.value })),
             };
         }).filter(Boolean);
 
@@ -66,13 +57,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "No valid items could be reordered from the previous order." }, { status: 400 });
         }
 
-        // Add items to the user's current (new) cart using Storefront API
         const addLinesResponse = await storeFront(
             CART_LINES_ADD_MUTATION,
-            {
-                cartId: newCartId,
-                lines: newCartLines,
-            },
+            { cartId: newCartId, lines: newCartLines },
             session.shopifyAccessToken
         );
 

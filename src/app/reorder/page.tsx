@@ -2,85 +2,75 @@
 "use client";
 
 import { useEffect, Suspense, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 function ReorderPageContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
+    const router = useRouter(); // Keep for initial push if needed
     const { cartId, fetchCart } = useCart();
-    const [error, setError] = useState<string | null>(null);
-    const [statusMessage, setStatusMessage] = useState('Recreating your order, please wait...');
+    const [statusMessage, setStatusMessage] = useState('Initializing your cart...');
+    const [hasStarted, setHasStarted] = useState(false); // Flag to ensure the process runs only once
 
     useEffect(() => {
         const reorderCartId = searchParams.get('cart_link_id');
 
-        if (!reorderCartId) {
-            setError('No order information found in link. Redirecting to your account...');
-            setTimeout(() => router.push('/account/orders'), 3000);
+        // Exit if the process has already started or if we're waiting for the cart
+        if (hasStarted || !cartId) {
             return;
         }
 
-        if (!cartId) {
-            // This message will show while CartProvider initializes
-            setStatusMessage('Initializing your cart...');
+        // If for some reason the ID is missing, just go to the cart page.
+        if (!reorderCartId) {
+            router.push('/cart');
             return;
         }
+
+        // Set the flag immediately to prevent this effect from running again
+        setHasStarted(true);
 
         const reorder = async () => {
             try {
                 setStatusMessage('Finding previous order...');
-                const response = await fetch('/api/reorder', {
+                await fetch('/api/reorder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cartIdFromUrl: reorderCartId, newCartId: cartId }),
                 });
 
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.message || 'Failed to recreate the order.');
-                }
-
-                setStatusMessage('Adding items to your cart...');
-                await fetchCart(cartId); // Refresh the cart data with new items
-
-                setStatusMessage('Success! Redirecting to your cart...');
-                router.push('/cart');
+                // Per your request, we don't need to check the response.
+                // We'll proceed to the cart page regardless.
+                
+                setStatusMessage('Updating your cart...');
+                await fetchCart(cartId); // Refresh cart state with new items
 
             } catch (err: any) {
-                setError(err.message);
-                setStatusMessage('Could not recreate order.');
+                // Log any critical network errors but don't show them to the user
+                console.error("A critical error occurred during reorder:", err.message);
+            } finally {
+                // **THE FIX**: Use window.location.href for a full page reload to the cart.
+                // This ensures the cart state is fresh and avoids the stuck screen.
+                setStatusMessage('Redirecting to your cart...');
+                window.location.href = '/cart';
             }
         };
 
         reorder();
-    }, [searchParams, router, cartId, fetchCart]);
+    
+    // The dependency array is carefully constructed to run this logic once cartId is available.
+    }, [router, cartId, fetchCart, hasStarted, searchParams]);
 
+    // This page will now only show a loading state, as it will always redirect.
     return (
         <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 p-4 text-center">
-            {error ? (
-                <>
-                    <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-                    <h1 className="text-2xl font-semibold text-gray-800 mb-2">Error</h1>
-                    <p className="text-gray-600">{error}</p>
-                    <button onClick={() => router.push('/account/orders')} className="mt-6 px-6 py-2 bg-black text-white rounded-md">
-                        Back to My Orders
-                    </button>
-                </>
-            ) : (
-                <>
-                    <Loader2 className="h-16 w-16 animate-spin text-black mb-4" />
-                    <h1 className="text-2xl font-semibold text-gray-800">Please Wait</h1>
-                    <p className="text-gray-600 mt-2">{statusMessage}</p>
-                </>
-            )}
+            <Loader2 className="h-16 w-16 animate-spin text-black mb-4" />
+            <h1 className="text-2xl font-semibold text-gray-800">Please Wait</h1>
+            <p className="text-gray-600 mt-2">{statusMessage}</p>
         </div>
     );
 }
 
-// Suspense boundary for useSearchParams is crucial for Next.js App Router
 export default function ReorderPage() {
     return (
         <Suspense fallback={
