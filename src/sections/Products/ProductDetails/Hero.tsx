@@ -180,10 +180,12 @@ const Hero = ({ product }: any) => {
     setIsProcessingPageAction(true);
     setActionSuccess(false);
     setActionError(null);
+    if (cartContextError) clearCartError();
 
     let finalPrescriptionReference =
       prescriptionData.prescriptionReferenceValue;
 
+    // Handle new file upload if necessary
     if (
       prescriptionData.prescriptionReferenceType === "new" &&
       prescriptionData.uploadedFile
@@ -215,153 +217,67 @@ const Hero = ({ product }: any) => {
         setIsProcessingPageAction(false);
         return;
       }
-    } else if (prescriptionData.prescriptionReferenceType === "existing") {
-      finalPrescriptionReference = prescriptionData.prescriptionReferenceValue;
     } else if (prescriptionData.prescriptionReferenceType === "later") {
       finalPrescriptionReference = "Will Provide Later";
     }
 
-    const baseAttributes = [
-      { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-      { key: "Prescription Ref", value: finalPrescriptionReference },
-    ];
-    let itemsSuccessfullyAdded = 0;
-    let anyErrorInMainItems = false;
-    let totalContactLensBoxesOrdered = 0;
-
+    // Combine left and right eye info into a single line item
     try {
-      if (rightEyeEnabled && rightEyeQty > 0) {
-        const odAttributes = [
-          ...baseAttributes,
-          { key: "Eye", value: "Right (OD)" },
-          { key: "SPH (OD)", value: prescriptionData.odValues.sph || "N/A" },
-          { key: "BC (OD)", value: prescriptionData.odValues.bc || "N/A" },
-          { key: "DIA (OD)", value: prescriptionData.odValues.dia || "N/A" },
-        ];
-        if (
-          prescriptionData.odValues.cyl &&
-          prescriptionData.odValues.cyl !== "0.00"
-        )
-          odAttributes.push({
-            key: "CYL (OD)",
-            value: prescriptionData.odValues.cyl,
-          });
-        if (
-          prescriptionData.odValues.axis &&
-          prescriptionData.odValues.cyl &&
-          prescriptionData.odValues.cyl !== "0.00"
-        )
-          odAttributes.push({
-            key: "Axis (OD)",
-            value: prescriptionData.odValues.axis,
-          });
-        if (prescriptionData.odValues.add)
-          odAttributes.push({
-            key: "ADD (OD)",
-            value: prescriptionData.odValues.add,
-          });
+      const totalQuantity =
+        (rightEyeEnabled ? rightEyeQty : 0) +
+        (leftEyeEnabled ? leftEyeQty : 0);
 
-        const successOD = await addLineItem(
-          selectedVariant.id,
-          rightEyeQty,
-          odAttributes
-        );
-        if (successOD) {
-          itemsSuccessfullyAdded++;
-          totalContactLensBoxesOrdered += rightEyeQty;
-        } else anyErrorInMainItems = true;
+      if (totalQuantity <= 0 && prescriptionData.prescriptionReferenceType !== 'later') {
+        setActionError("Please select a quantity for at least one eye.");
+        setIsProcessingPageAction(false);
+        return;
+      }
+      
+      const combinedAttributes: { key: string; value: string }[] = [
+        { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
+        { key: "Prescription Ref", value: finalPrescriptionReference },
+        { key: "FocalProductType", value: "ContactLenses" },
+      ];
+
+      if (rightEyeEnabled && rightEyeQty > 0) {
+        combinedAttributes.push({ key: "Right Eye Boxes", value: String(rightEyeQty) });
+        combinedAttributes.push({ key: "OD SPH", value: prescriptionData.odValues.sph || "N/A" });
+        combinedAttributes.push({ key: "OD BC", value: prescriptionData.odValues.bc || "N/A" });
+        combinedAttributes.push({ key: "OD DIA", value: prescriptionData.odValues.dia || "N/A" });
+        if (prescriptionData.odValues.cyl && prescriptionData.odValues.cyl !== "0.00") combinedAttributes.push({ key: "OD CYL", value: prescriptionData.odValues.cyl });
+        if (prescriptionData.odValues.axis && prescriptionData.odValues.cyl && prescriptionData.odValues.cyl !== "0.00") combinedAttributes.push({ key: "OD Axis", value: prescriptionData.odValues.axis });
+        if (prescriptionData.odValues.add) combinedAttributes.push({ key: "OD ADD", value: prescriptionData.odValues.add });
       }
 
       if (leftEyeEnabled && leftEyeQty > 0) {
-        const osAttributes = [
-          ...baseAttributes,
-          { key: "Eye", value: "Left (OS)" },
-          { key: "SPH (OS)", value: prescriptionData.osValues.sph || "N/A" },
-          { key: "BC (OS)", value: prescriptionData.osValues.bc || "N/A" },
-          { key: "DIA (OS)", value: prescriptionData.osValues.dia || "N/A" },
-        ];
-        if (
-          prescriptionData.osValues.cyl &&
-          prescriptionData.osValues.cyl !== "0.00"
-        )
-          osAttributes.push({
-            key: "CYL (OS)",
-            value: prescriptionData.osValues.cyl,
-          });
-        if (
-          prescriptionData.osValues.axis &&
-          prescriptionData.osValues.cyl &&
-          prescriptionData.osValues.cyl !== "0.00"
-        )
-          osAttributes.push({
-            key: "Axis (OS)",
-            value: prescriptionData.osValues.axis,
-          });
-        if (prescriptionData.osValues.add)
-          osAttributes.push({
-            key: "ADD (OS)",
-            value: prescriptionData.osValues.add,
-          });
-
-        const successOS = await addLineItem(
-          selectedVariant.id,
-          leftEyeQty,
-          osAttributes
-        );
-        if (successOS) {
-          itemsSuccessfullyAdded++;
-          totalContactLensBoxesOrdered += leftEyeQty;
-        } else anyErrorInMainItems = true;
+        combinedAttributes.push({ key: "Left Eye Boxes", value: String(leftEyeQty) });
+        combinedAttributes.push({ key: "OS SPH", value: prescriptionData.osValues.sph || "N/A" });
+        combinedAttributes.push({ key: "OS BC", value: prescriptionData.osValues.bc || "N/A" });
+        combinedAttributes.push({ key: "OS DIA", value: prescriptionData.osValues.dia || "N/A" });
+        if (prescriptionData.osValues.cyl && prescriptionData.osValues.cyl !== "0.00") combinedAttributes.push({ key: "OS CYL", value: prescriptionData.osValues.cyl });
+        if (prescriptionData.osValues.axis && prescriptionData.osValues.cyl && prescriptionData.osValues.cyl !== "0.00") combinedAttributes.push({ key: "OS Axis", value: prescriptionData.osValues.axis });
+        if (prescriptionData.osValues.add) combinedAttributes.push({ key: "OS ADD", value: prescriptionData.osValues.add });
       }
 
-      const totalEyesSelected =
-        (rightEyeEnabled && rightEyeQty > 0 ? 1 : 0) +
-        (leftEyeEnabled && leftEyeQty > 0 ? 1 : 0);
+      // Add the single consolidated line item to the cart
+      const success = await addLineItem(
+        selectedVariant.id,
+        totalQuantity,
+        combinedAttributes
+      );
 
-      if (
-        (!anyErrorInMainItems &&
-          itemsSuccessfullyAdded === totalEyesSelected &&
-          totalEyesSelected > 0) ||
-        (prescriptionData.prescriptionReferenceType === "later" &&
-          totalEyesSelected > 0)
-      ) {
-        if (
-          totalContactLensBoxesOrdered >= 4 &&
-          DONATION_PRODUCT_VARIANT_ID !==
-            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
-        ) {
-          await addLineItem(DONATION_PRODUCT_VARIANT_ID, 1, [
-            {
-              key: "Donation Trigger",
-              value: `${totalContactLensBoxesOrdered} Contact Lens Boxes`,
-            },
-          ]);
+      if (success) {
+        // Add donation if applicable
+        if (totalQuantity >= 4 && DONATION_PRODUCT_VARIANT_ID !== "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE") {
+            await addLineItem(DONATION_PRODUCT_VARIANT_ID, 1, [{ key: "Donation Trigger", value: `${totalQuantity} Contact Lens Boxes` }]);
         }
         setActionSuccess(true);
         router.push("/cart");
-      } else if (anyErrorInMainItems) {
-        setActionError(
-          cartContextError ||
-            "One or more contact lens items could not be added. Please check cart."
-        );
-        setTimeout(() => setActionError(null), 5000);
-      } else if (
-        totalEyesSelected === 0 &&
-        prescriptionData.prescriptionReferenceType !== "later"
-      ) {
-        setActionError("No quantity selected for either eye.");
-        setTimeout(() => setActionError(null), 3000);
-      } else if (
-        totalEyesSelected === 0 &&
-        prescriptionData.prescriptionReferenceType === "later"
-      ) {
-        setActionError("Please enable and set quantity for at least one eye.");
-        setTimeout(() => setActionError(null), 4000);
+      } else {
+        throw new Error(cartContextError || "Failed to add contact lenses to cart.");
       }
     } catch (e: any) {
-      setActionError(
-        e.message || "An error occurred while adding items to cart."
-      );
+      setActionError(e.message || "An error occurred while adding items to cart.");
       setTimeout(() => setActionError(null), 4000);
     } finally {
       setIsProcessingPageAction(false);
@@ -546,7 +462,7 @@ const Hero = ({ product }: any) => {
                         onClick={() => handleFrameVariantClick(variant)}
                         title={variant.name || variant.title || "Variant"}
                         className={twMerge(
-                          "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
+                          "w-full py-2.5 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black text-center truncate",
                           selectedVariant?.id === variant.id
                             ? "bg-black text-white border-black ring-black"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
