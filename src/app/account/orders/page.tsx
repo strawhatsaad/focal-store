@@ -8,13 +8,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   Loader2,
-  ShoppingBag,
-  ArrowLeft,
   PackageSearch,
   AlertCircle,
   UserCircle,
+  ArrowLeft
 } from "lucide-react";
-import { storeFront, GET_CUSTOMER_ORDERS_QUERY } from "../../../../utils"; // Adjust path if your utils is in src, e.g., "@/utils"
 
 interface OrderLineItem {
   node: {
@@ -65,69 +63,32 @@ const OrderHistoryPage = () => {
     }
 
     const fetchOrders = async () => {
-      // Ensure shopifyAccessToken is either a string or null.
-      // The JSDoc in utils/index.js for storeFront clarifies its third parameter type.
-      const token: any = session?.shopifyAccessToken || null;
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/account/orders');
+        const data = await response.json();
 
-      if (token) {
-        try {
-          setIsLoading(true);
-          setError(null);
-          const variables = {
-            customerAccessToken: token, // This token is a string here, matching String! in GQL
-            first: 10,
-          };
-          // The third argument to storeFront is the customerAccessToken for the header.
-          // With JSDoc on storeFront, this call should no longer cause the specific type error
-          // "Argument of type 'string' is not assignable to parameter of type 'null | undefined'".
-          const response = await storeFront(
-            GET_CUSTOMER_ORDERS_QUERY,
-            variables,
-            token
-          );
-
-          if (response.data?.customer?.orders?.edges) {
-            setOrders(response.data.customer.orders.edges);
-          } else if (response.errors) {
-            // Error handling improved in storeFront to throw, so this might be less likely to be hit directly
-            // unless storeFront is modified to not throw on GraphQL errors.
-            console.error("Shopify API errors after call:", response.errors);
-            setError(
-              `Could not fetch orders. ${response.errors
-                .map((e: any) => e.message)
-                .join("; ")}`
-            );
-          } else if (!response.data?.customer) {
-            // This can happen if the token is invalid or expired, Shopify returns data: { customer: null }
-            console.warn(
-              "Customer data not found with the provided access token. Token might be invalid or expired."
-            );
-            setError(
-              "Could not retrieve customer data. Your session might have expired. Please try signing out and signing back in."
-            );
-            setOrders([]);
-          } else {
-            setOrders([]); // No orders or unexpected response structure
-          }
-        } catch (err: any) {
-          console.error("Failed to fetch orders (catch block in page):", err);
-          setError(
-            err.message || "An error occurred while fetching your orders."
-          );
-        } finally {
-          setIsLoading(false);
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch orders.");
         }
-      } else {
-        setError(
-          "Could not authenticate with Shopify to fetch orders. Access token is missing."
-        );
+
+        setOrders(data.orders || []);
+        if(data.error) {
+            setError(data.error);
+        }
+
+      } catch (err: any) {
+        setError(err.message || "An error occurred while fetching your orders.");
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchOrders();
   }, [session, sessionStatus, router]);
-
+  
   if (sessionStatus === "loading" || isLoading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 p-4">

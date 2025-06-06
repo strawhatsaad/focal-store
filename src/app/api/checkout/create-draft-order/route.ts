@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             lineItems: draftOrderLineItems,
         };
         
-        // **FIX**: Store the reorder identifier in the order's note field.
+        // Store the reorder identifier in the order's note field.
         if (cartToken) {
             draftOrderInput.note = `reorder_token:${cartToken}`;
         }

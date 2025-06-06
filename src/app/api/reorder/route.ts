@@ -25,8 +25,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "A new, active cart ID is required." }, { status: 400 });
         }
 
-        // **FIX**: Construct a query to search the order's note field.
-        const orderQueryString = `note:'reorder_token:${cartIdFromUrl}'`;
+        // **FIX**: Correctly construct the query to search the order's note field.
+        const orderQueryString = `note:"reorder_token:${cartIdFromUrl}"`;
 
         const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_NOTE_QUERY, { query: orderQueryString });
 
