@@ -450,9 +450,9 @@ export async function deleteShopifyFile(fileIds) {
 
 // --- Find Order By Tag (Admin API) ---
 
-export const GET_ORDER_BY_TAG_QUERY = `
-  query getOrderByTag($query: String!) {
-    orders(first: 1, query: $query) {
+export const GET_ORDER_BY_NOTE_QUERY = `
+  query getOrderByNote($query: String!) {
+    orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
       edges {
         node {
           id

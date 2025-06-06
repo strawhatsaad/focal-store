@@ -1,7 +1,7 @@
 // File: src/app/api/checkout/create-draft-order/route.ts
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { createShopifyDraftOrder } from "../../../../../utils/index";
+import { createShopifyDraftOrder } from "../../../../../utils";
 
 const parsePriceToFloat = (priceStr: string | number | undefined | null): number => {
     if (priceStr === null || priceStr === undefined) return 0.0;
@@ -41,10 +41,9 @@ export async function POST(request: Request) {
             lineItems: draftOrderLineItems,
         };
         
-        // Create a short, unique tag that respects Shopify's 40-character limit.
+        // **FIX**: Store the reorder identifier in the order's note field.
         if (cartToken) {
-            const reorderTag = `reorder-id-${cartToken}`;
-            draftOrderInput.tags = [reorderTag];
+            draftOrderInput.note = `reorder_token:${cartToken}`;
         }
 
         if (session?.user?.shopifyCustomerId) {

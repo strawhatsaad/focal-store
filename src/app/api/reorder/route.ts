@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { 
-    GET_ORDER_BY_TAG_QUERY, 
+    GET_ORDER_BY_NOTE_QUERY, 
     shopifyAdminRequest, 
     storeFront, 
     CART_LINES_ADD_MUTATION 
@@ -25,11 +25,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "A new, active cart ID is required." }, { status: 400 });
         }
 
-        // Construct the tag to search for based on the incoming cartId/token from the URL.
-        const reorderTagToFind = `reorder-id-${cartIdFromUrl}`;
-        const orderQueryString = `tag:'${reorderTagToFind}'`;
+        // **FIX**: Construct a query to search the order's note field.
+        const orderQueryString = `note:'reorder_token:${cartIdFromUrl}'`;
 
-        const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_TAG_QUERY, { query: orderQueryString });
+        const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_NOTE_QUERY, { query: orderQueryString });
 
         const orderData = orderResponse.data?.orders?.edges?.[0]?.node;
 
