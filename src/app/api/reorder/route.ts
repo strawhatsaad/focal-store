@@ -2,24 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { getShopifyOrderDetailsAdmin, addLinesToShopifyCart } from "../../../../utils";
+import { getShopifyOrderDetailsAdmin, createShopifyCheckout } from "../../../../utils";
 
 export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
+    // If the user is not authenticated, return a 401 error.
+    // The frontend will handle redirecting to the sign-in page.
     if (!session?.user?.shopifyCustomerId || !session.shopifyAccessToken) {
         return NextResponse.json({ message: "User not authenticated." }, { status: 401 });
     }
 
     try {
-        const { orderId, cartId } = await request.json();
+        const { orderId } = await request.json();
 
-        if (!orderId || !cartId) {
-            return NextResponse.json({ message: "Shopify Order ID and current Cart ID are required." }, { status: 400 });
+        if (!orderId) {
+            return NextResponse.json({ message: "Shopify Order ID is required." }, { status: 400 });
         }
 
-        const fullShopifyOrderId = `gid://shopify/Order/${orderId}`;
-        const orderDetailsResponse = await getShopifyOrderDetailsAdmin(fullShopifyOrderId);
+        // Step 1: Fetch the original order details using the Shopify Admin API.
+        const orderDetailsResponse = await getShopifyOrderDetailsAdmin(orderId);
         const orderNode = orderDetailsResponse.data?.order;
 
         if (!orderNode) {
@@ -27,58 +29,40 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: errorMsg }, { status: 404 });
         }
 
-        const lineItemsToAdd = orderNode.lineItems.edges.map((edge: any) => ({
-            merchandiseId: edge.node.variant.id,
+        // Step 2: Prepare line items for the new checkout from the old order's data.
+        const lineItems = orderNode.lineItems.edges.map((edge: any) => ({
+            variantId: edge.node.variant.id,
             quantity: edge.node.quantity,
-            attributes: edge.node.customAttributes.map((attr: {key: string, value: string}) => ({ key: attr.key, value: attr.value })),
-            title: edge.node.title // Keep title for error reporting
+            customAttributes: edge.node.customAttributes.map((attr: {key: string, value: string}) => ({
+                key: attr.key,
+                value: attr.value,
+            })),
         }));
 
-        if (lineItemsToAdd.length === 0) {
+        if (lineItems.length === 0) {
             return NextResponse.json({ message: "Original order contains no items to reorder." }, { status: 400 });
         }
 
-        let currentCartId = cartId;
-        const failedItems: { title: string, message: string }[] = [];
-        let successfulAdds = 0;
-        let finalCartState = null;
-
-        // --- FIX: Process items one by one to handle individual quantity limits ---
-        for (const item of lineItemsToAdd) {
-            const { title, ...lineItem } = item; // Separate title used for logging/errors
-            const response = await addLinesToShopifyCart(currentCartId, [lineItem]);
-            
-            const cartData = response.data?.cartLinesAdd?.cart;
-            const userErrors = response.data?.cartLinesAdd?.userErrors;
-
-            if (userErrors && userErrors.length > 0) {
-                const errorMessage = userErrors.map((e: any) => e.message).join(", ");
-                failedItems.push({ title: title, message: errorMessage });
-            } else if (cartData) {
-                successfulAdds++;
-                finalCartState = cartData; // Always use the latest cart state
-                currentCartId = cartData.id; // The cart ID should not change, but good practice
-            } else {
-                failedItems.push({ title: title, message: "An unknown error occurred while adding this item." });
-            }
-        }
-
-        if (successfulAdds === 0) {
-            const errorMessage = failedItems.map(f => `${f.title}: ${f.message}`).join('; ');
-            return NextResponse.json({ message: `Could not reorder any items. Errors: ${errorMessage}` }, { status: 400 });
-        }
-
-        const responsePayload: { success: boolean; cart: any; message?: string } = {
-            success: true,
-            cart: finalCartState,
+        // Step 3: Create a new checkout with these line items using the Storefront API.
+        const checkoutInput = {
+            lineItems,
+            allowPartialAddresses: true,
         };
+        
+        // Associate the new checkout with the logged-in customer.
+        const checkoutResponse = await createShopifyCheckout(checkoutInput, session.shopifyAccessToken);
 
-        if (failedItems.length > 0) {
-            const failedItemsMessage = failedItems.map(f => f.title).join(', ');
-            responsePayload.message = `Successfully added ${successfulAdds} item(s). The following could not be added due to quantity limits or other issues: ${failedItemsMessage}.`;
+        const checkoutUrl = checkoutResponse.data?.checkoutCreate?.checkout?.webUrl;
+
+        if (checkoutUrl) {
+            // Step 4: Return the new checkout URL to the frontend.
+            return NextResponse.json({ checkoutUrl });
+        } else {
+            const userErrors = checkoutResponse.data?.checkoutCreate?.checkoutUserErrors;
+            const errorMsg = userErrors?.map((e: any) => e.message).join(", ") || "Failed to create a new checkout for reorder.";
+            console.error("Reorder Checkout Creation Error:", userErrors);
+            return NextResponse.json({ message: errorMsg }, { status: 500 });
         }
-
-        return NextResponse.json(responsePayload);
 
     } catch (error: any) {
         console.error("[API Reorder] Error:", error.message);
