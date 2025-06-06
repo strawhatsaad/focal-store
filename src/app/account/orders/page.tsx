@@ -60,7 +60,7 @@ const OrderHistoryPage = () => {
   useEffect(() => {
     if (sessionStatus === "loading") return;
     if (!session) {
-      router.push("/api/auth/signin?callbackUrl=/account/orders");
+      router.push("/auth/signin?callbackUrl=/account/orders");
       return;
     }
 
@@ -101,7 +101,9 @@ const OrderHistoryPage = () => {
   }, [session, sessionStatus, router]);
 
   const getNumericalId = (gid: string): string => {
-    return gid.split('/').pop() || "";
+    if (!gid) return "";
+    const parts = gid.split('/');
+    return parts[parts.length - 1];
   }
 
   if (sessionStatus === "loading" || isLoading) {
@@ -119,7 +121,7 @@ const OrderHistoryPage = () => {
         <UserCircle className="h-16 w-16 text-gray-400 mb-4" />
         <h1 className="text-2xl font-semibold text-gray-700 mb-2">Access Denied</h1>
         <p className="text-gray-500 mb-6">Please sign in to view your order history.</p>
-        <button onClick={() => router.push("/api/auth/signin?callbackUrl=/account/orders")} className="px-6 py-2.5 bg-black text-white font-medium text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors">Sign In</button>
+        <button onClick={() => router.push("/auth/signin?callbackUrl=/account/orders")} className="px-6 py-2.5 bg-black text-white font-medium text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors">Sign In</button>
       </div>
     );
   }

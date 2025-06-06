@@ -252,7 +252,7 @@ function CartPageComponent() {
               {lineItemsWithDisplayPrice.map((line) => (
                 <li key={line.id} className="flex flex-col md:flex-row py-4 xs:py-6 sm:py-8">
                   <div className="flex-shrink-0 w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border border-gray-200 rounded-md overflow-hidden mx-auto md:mx-0">
-                    <img src={line.merchandise.image?.url || "[https://placehold.co/128x128/F7F4EE/333333?text=No+Image](https://placehold.co/128x128/F7F4EE/333333?text=No+Image)"} alt={line.merchandise.image?.altText || line.merchandise.product.title} width={128} height={128} className="w-full h-full object-contain" />
+                    <img src={line.merchandise.image?.url || "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"} alt={line.merchandise.image?.altText || line.merchandise.product.title} width={128} height={128} className="w-full h-full object-contain" />
                   </div>
                   <div className="ml-0 md:ml-4 mt-3 md:mt-0 flex-1 flex flex-col">
                     <div>
