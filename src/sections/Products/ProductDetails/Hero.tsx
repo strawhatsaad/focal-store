@@ -20,10 +20,6 @@ import {
   HeartIcon as DonationIcon,
 } from "lucide-react";
 
-// IMPORTANT: Ensure this is your actual Donation Product Variant GID
-const DONATION_PRODUCT_VARIANT_ID: any =
-  "gid://shopify/ProductVariant/46334706581757";
-
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -172,7 +168,7 @@ const Hero = ({ product }: any) => {
     setIsEyeglassesLensModalOpen(false);
     setIsEyeglassesRxModalOpen(true);
   };
-
+  
   const handleClPrescriptionComplete = async (
     prescriptionData: ContactLensPrescriptionData
   ) => {
@@ -232,6 +228,7 @@ const Hero = ({ product }: any) => {
     const combinedAttributes = [
       { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
       { key: "Prescription Ref", value: finalPrescriptionReference },
+      { key: "FocalProductType", value: "ContactLenses" },
     ];
 
     if (rightEyeEnabled && rightEyeQty > 0) {
@@ -322,18 +319,6 @@ const Hero = ({ product }: any) => {
       );
 
       if (success) {
-        if (
-          totalQuantity >= 4 &&
-          DONATION_PRODUCT_VARIANT_ID !==
-            "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE"
-        ) {
-          await addLineItem(DONATION_PRODUCT_VARIANT_ID, 1, [
-            {
-              key: "Donation Trigger",
-              value: `${totalQuantity} Contact Lens Boxes`,
-            },
-          ]);
-        }
         setActionSuccess(true);
         router.push("/cart");
       } else {
@@ -403,7 +388,6 @@ const Hero = ({ product }: any) => {
     ? `$${parseFloat(selectedVariant.priceV2.amount).toFixed(2)}`
     : selectedVariant?.price || product?.price || "$0.00";
 
-  // Determine the specific disclaimer text
   let donationSpecifics = "";
   if (isContactLensProduct) {
     donationSpecifics =
@@ -417,7 +401,6 @@ const Hero = ({ product }: any) => {
     <section className="py-8 bg-white md:py-16 antialiased">
       <div className="max-w-screen-xl px-4 mx-auto 2xl:px-0 container">
         <div className="lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-16">
-          {/* Image Section */}
           <div className="shrink-0 max-w-md lg:max-w-lg mx-auto">
             <div className="w-full h-[300px] md:h-[400px] flex justify-center items-center bg-transparent overflow-hidden border border-gray-200 rounded-lg p-2">
               <img
@@ -499,7 +482,6 @@ const Hero = ({ product }: any) => {
             </div>
           </div>
 
-          {/* Product Details & Actions Section */}
           <div className="relative">
             <div
               className={twMerge(
@@ -654,7 +636,6 @@ const Hero = ({ product }: any) => {
                 </div>
               )}
 
-              {/* Disclaimer Section */}
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
                 <DonationIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-blue-700">
@@ -665,7 +646,6 @@ const Hero = ({ product }: any) => {
                 </p>
               </div>
 
-              {/* Action Button */}
               <div className="mt-8">
                 <button
                   onClick={handlePrimaryAction}
@@ -691,7 +671,6 @@ const Hero = ({ product }: any) => {
                     : "Add to Cart"}
                 </button>
               </div>
-              {/* Feedback Messages */}
               {actionSuccess && (
                 <p className="mt-3 text-sm text-green-600 font-medium flex items-center">
                   {" "}
@@ -716,7 +695,6 @@ const Hero = ({ product }: any) => {
           </div>
         </div>
 
-        {/* Modals */}
         {isEyeglassesLensModalOpen &&
           isEyewearProduct &&
           selectedVariant &&
@@ -761,7 +739,6 @@ const Hero = ({ product }: any) => {
             />
           )}
 
-        {/* Product Features for Mobile */}
         <div className="lg:hidden mt-8">
           <ProductFeatures
             product={product}
