@@ -141,31 +141,24 @@ export const CartProvider = ({ children }: CartProviderProps) => {
 
   useEffect(() => {
     const checkStatus = async () => {
-        console.log('[CartContext] Checking customer status. Session status:', sessionStatus);
         if (sessionStatus === 'loading') {
-            console.log('[CartContext] Session is loading, waiting...');
             return;
         }
         if (sessionStatus === 'unauthenticated') {
-            console.log('[CartContext] Session is unauthenticated. Setting isFirstTimeCustomer: true');
             setIsFirstTimeCustomer(true);
             return;
         }
         if (sessionStatus === 'authenticated') {
-            console.log('[CartContext] Session is authenticated. Fetching status from API.');
             try {
                 const res = await fetch('/api/account/status');
                 const data = await res.json();
-                console.log('[CartContext] Received status from API:', data);
                 if (res.ok) {
                     setIsFirstTimeCustomer(data.isFirstTimeCustomer);
                 } else {
-                    console.log('[CartContext] API call not ok. Setting isFirstTimeCustomer: false');
                     setIsFirstTimeCustomer(false);
                 }
-            } catch (err) {
-                console.error('[CartContext] API fetch error. Setting isFirstTimeCustomer: false', err);
-                setIsFirstTimeCustomer(false); // Fail safe on network error
+            } catch {
+                setIsFirstTimeCustomer(false);
             }
         }
     };
@@ -214,12 +207,18 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     // Case 2: Donation item should exist but doesn't. ADD IT.
     else if (!donationItemLine && shouldHaveDonation) {
         try {
-            const donationAttributes = [{
-                key: "Donation Trigger",
-                value: qualifyingEyeglassesCount > 0 
-                    ? "Eyewear Purchase" 
-                    : `${totalContactLensBoxes} Contact Lens Boxes`
-            }];
+            let donationAttributes = [];
+            if (qualifyingEyeglassesCount > 0) {
+                 donationAttributes = [{
+                    key: "Donation Message",
+                    value: "You're Not Just Buying Glasses — You're Giving Someone Their Sight Back. Your purchase has donated a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+                }];
+            } else { // This means it was triggered by contact lenses
+                 donationAttributes = [{
+                    key: "Donation Message",
+                    value: "You're Not Just Buying Contacts — You're Giving Someone Their Sight Back. Stock up with 4 boxes, and you donate a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+                }];
+            }
             const variables = {
                 cartId: currentCart.id,
                 lines: [{ merchandiseId: DONATION_PRODUCT_VARIANT_ID, quantity: 1, attributes: donationAttributes }],

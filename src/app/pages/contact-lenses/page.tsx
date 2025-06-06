@@ -265,7 +265,7 @@ const ContactLensesPage = () => {
 
   return (
     <main>
-      <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
+      <div className="w-full px-6 py-4 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
           <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
             <FilterSidebar
@@ -283,7 +283,8 @@ const ContactLensesPage = () => {
               headline="Explore our premium selection of prescription and colored contact lenses designed for comfort, clarity, and style."
             />
 
-            <div className="my-6 lg:my-8 relative">
+            {/* Reduced vertical margin */}
+            <div className="my-4 lg:my-6 relative">
               <input
                 type="text"
                 value={searchTerm}
@@ -305,8 +306,9 @@ const ContactLensesPage = () => {
               )}
             </div>
 
-            <div className="mb-8">
-              <h3 className="text-base font-semibold text-gray-600 mb-3">
+            {/* Reduced vertical margin */}
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-gray-600 mb-2">
                 Popular Brands:
               </h3>
               <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -327,7 +329,7 @@ const ContactLensesPage = () => {
               </div>
             </div>
 
-            <div className="lg:hidden mb-6">
+            <div className="lg:hidden mb-4">
               <button
                 onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
                 className="w-full flex items-center justify-between text-left p-3 bg-gray-100 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-200 shadow-sm"
