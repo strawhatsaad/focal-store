@@ -151,46 +151,6 @@ export async function shopifyAdminRequest(query, variables = {}) {
   }
 }
 
-// --- Checkout (Storefront API) ---
-export const CHECKOUT_CREATE_MUTATION = `
-  mutation checkoutCreate($input: CheckoutCreateInput!, $buyerIdentity: CheckoutBuyerIdentityInput) {
-    checkoutCreate(input: $input) {
-      checkout {
-        id
-        webUrl
-      }
-      checkoutUserErrors {
-        code
-        field
-        message
-      }
-    }
-  }
-`;
-
-// --- Order Details (Admin API) ---
-export const GET_ORDER_DETAILS_ADMIN_QUERY = `
-  query getOrderById($id: ID!) {
-    order(id: $id) {
-      id
-      lineItems(first: 50) {
-        edges {
-          node {
-            quantity
-            variant {
-              id
-            }
-            customAttributes {
-              key
-              value
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
 // --- Customer Metafields (Admin API) ---
 export const METAFIELDS_SET_MUTATION = `
   mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -267,6 +227,8 @@ export const FILE_CREATE_MUTATION = `
           alt 
           image {
              originalSrc 
+             # You might also want to query 'url' here if available for MediaImage context
+             # url(transform: {maxWidth: 2048, maxHeight: 2048}) # Example if you need a transformed URL
           }
         }
         ... on Video {
@@ -275,7 +237,9 @@ export const FILE_CREATE_MUTATION = `
             fileSize
             mimeType
           }
+          # other video fields
         }
+        # ... other file types like ExternalVideo, Model3d
       }
       userErrors {
         field
@@ -299,6 +263,7 @@ export const FILE_DELETE_MUTATION = `
 `;
 
 
+// ... (Keep all existing Storefront API mutations and helpers: CREATE_SHOPIFY_CUSTOMER_MUTATION, etc.)
 // --- Customer Management (Storefront API) ---
 export const CREATE_SHOPIFY_CUSTOMER_MUTATION = `
   mutation customerCreate($input: CustomerCreateInput!) {
@@ -406,36 +371,6 @@ export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
 `;
 
 // --- Helper Functions ---
-
-/**
- * Creates a Shopify checkout using the Storefront API.
- * @param {any} input The checkout create input object.
- * @param {string | null | undefined} [customerAccessToken] The customer's access token.
- * @returns {Promise<any>} The Shopify API response.
- */
-export async function createShopifyCheckout(input, customerAccessToken) {
-    if (!input) {
-        throw new Error("Checkout input is required.");
-    }
-    const variables = {
-        input,
-        ...(customerAccessToken && { buyerIdentity: { customerAccessToken } }),
-    };
-    return storeFront(CHECKOUT_CREATE_MUTATION, variables);
-}
-
-/**
- * Fetches order details using the Shopify Admin API.
- * @param {string} orderId The GID of the order to fetch.
- * @returns {Promise<any>} The Shopify Admin API response.
- */
-export async function getShopifyOrderDetailsAdmin(orderId) {
-    if (!orderId) {
-        throw new Error("Order ID is required to fetch order details.");
-    }
-    return shopifyAdminRequest(GET_ORDER_DETAILS_ADMIN_QUERY, { id: orderId });
-}
-
 export async function createShopifyCustomer(input) { return storeFront(CREATE_SHOPIFY_CUSTOMER_MUTATION, { input }); }
 export async function createShopifyCustomerAccessToken(input) { return storeFront(CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION, { input }); }
 export async function getCustomerOrders(customerAccessToken, first, cursor = null) { return storeFront(GET_CUSTOMER_ORDERS_QUERY, { customerAccessToken, first, cursor }, customerAccessToken); }
