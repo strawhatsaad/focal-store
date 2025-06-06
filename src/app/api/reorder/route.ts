@@ -25,7 +25,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "A new, active cart ID is required." }, { status: 400 });
         }
 
-        // 1. Construct the tag to search for based on the incoming cartId/token from the URL.
+        // Construct the tag to search for based on the incoming cartId/token from the URL.
         const reorderTagToFind = `reorder-id-${cartIdFromUrl}`;
         const orderQueryString = `tag:'${reorderTagToFind}'`;
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Could not find a previous order associated with this link." }, { status: 404 });
         }
 
-        // 2. Security Check: Ensure the order belongs to the logged-in customer
+        // Security Check: Ensure the order belongs to the logged-in customer
         if (orderData.customer?.id !== session.user.shopifyCustomerId) {
             return NextResponse.json({ message: "You are not authorized to reorder these items." }, { status: 403 });
         }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "No items found in the previous order to reorder." }, { status: 404 });
         }
 
-        // 3. Prepare line items for the new cart
+        // Prepare line items for the new cart
         const newCartLines = lineItemsFromOrder.map((edge: any) => {
             if (!edge.node.variant?.id) {
                 console.warn("Skipping line item from previous order with missing variant ID:", edge.node);
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "No valid items could be reordered from the previous order." }, { status: 400 });
         }
 
-        // 4. Add items to the user's current (new) cart using Storefront API
+        // Add items to the user's current (new) cart using Storefront API
         const addLinesResponse = await storeFront(
             CART_LINES_ADD_MUTATION,
             {

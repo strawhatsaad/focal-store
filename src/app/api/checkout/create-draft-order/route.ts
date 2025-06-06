@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             lineItems: draftOrderLineItems,
         };
         
-        // **FIX**: Create a short, unique tag that respects Shopify's 40-character limit.
+        // Create a short, unique tag that respects Shopify's 40-character limit.
         if (cartToken) {
             const reorderTag = `reorder-id-${cartToken}`;
             draftOrderInput.tags = [reorderTag];
