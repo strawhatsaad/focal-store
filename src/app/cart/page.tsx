@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useCart } from "@/context/CartContext"; 
 import { useSession } from "next-auth/react"; 
-import { useRouter, useSearchParams } from "next/navigation"; 
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import {
   Loader2,
@@ -24,11 +24,9 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-
 function CartPageContent() {
   const {
     cart,
-    cartId,
     loading: cartContextLoading, 
     isInitializing,
     error: cartContextError,
@@ -36,66 +34,13 @@ function CartPageContent() {
     removeLineItem,
     clearCartError,
     clearCartAndCreateNew, 
-    fetchCart,
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter(); 
-  const searchParams = useSearchParams();
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); 
-  const [isReordering, setIsReordering] = useState(false);
-
-  // --- REORDER LOGIC ---
-  useEffect(() => {
-    const reorderCartId = searchParams.get('cart_link_id');
-    if (reorderCartId && !isReordering) {
-        setIsReordering(true);
-        setCheckoutMessage('Recreating your previous order...');
-        
-        const reorder = async () => {
-            try {
-                if (!cartId) {
-                    throw new Error("Your current cart is not available. Please try again.");
-                }
-                const response = await fetch('/api/reorder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cartIdFromUrl: reorderCartId, newCartId: cartId }),
-                });
-
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || 'Failed to find or recreate the order.');
-                }
-                
-                await fetchCart(cartId); // Refresh the cart with the new items
-                
-                // Clean the URL and messages
-                router.replace('/cart', { scroll: false }); 
-                setCheckoutMessage('Your previous order has been added to your cart!');
-                setTimeout(() => setCheckoutMessage(null), 5000);
-
-            } catch (err: any) {
-                setCheckoutMessage(`Error: ${err.message}`);
-                 setTimeout(() => setCheckoutMessage(null), 7000);
-            } finally {
-                setIsReordering(false);
-                // Clean the URL even if it fails
-                if (window.location.search.includes('cart_link_id')) {
-                    router.replace('/cart', { scroll: false });
-                }
-            }
-        };
-
-        if(cartId) { // Ensure cart is initialized before attempting reorder
-          reorder();
-        }
-    }
-  }, [searchParams, cartId, fetchCart, router, isReordering]);
-  // --- END REORDER LOGIC ---
-
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -111,11 +56,11 @@ function CartPageContent() {
   };
 
   useEffect(() => {
-    if (cartContextError && cart) {
+    if (cartContextError) {
       const timer = setTimeout(() => clearCartError(), 5000);
       return () => clearTimeout(timer);
     }
-  }, [cartContextError, cart, clearCartError]);
+  }, [cartContextError, clearCartError]);
 
   const lineItemsWithDisplayPrice = useMemo(() => {
     if (!cart?.lines?.edges) return [];
@@ -209,7 +154,7 @@ function CartPageContent() {
         body: JSON.stringify({
           lineItems: draftOrderLineItems,
           customerInfo: customerInfoPayload,
-          cartToken: cartToken, // Pass the cart token to be tagged
+          cartToken: cartToken, 
         }),
       });
 
@@ -236,12 +181,12 @@ function CartPageContent() {
     } 
   };
   
-  if (isInitializing || (cartContextLoading && !cart) || isReordering) { 
+  if (isInitializing || (cartContextLoading && !cart)) { 
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
         <p className="ml-3 text-lg font-medium text-gray-700 mt-4">
-          {isReordering ? "Recreating your previous order..." : "Loading your cart..."}
+          Loading your cart...
         </p>
       </div>
     );
