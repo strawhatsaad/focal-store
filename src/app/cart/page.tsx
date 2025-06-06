@@ -25,7 +25,6 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-// Define the donation product variant ID here
 const DONATION_PRODUCT_VARIANT_ID = "gid://shopify/ProductVariant/46334706581757";
 
 function CartPageContent() {
@@ -327,14 +326,24 @@ function CartPageContent() {
                           <div className="mt-1 space-y-0.5">
                             {line.attributes
                               .filter(
-                                (attr) => attr.key !== "_finalCalculatedPrice" 
+                                (attr) => attr.key !== "_finalCalculatedPrice"
                               )
-                              .map((attr) => (
+                              .map((attr) => {
+                                // Specific rendering for donation message
+                                if (attr.key === "Donation Message") {
+                                    return (
+                                        <p key={attr.key} className="text-xs text-gray-500 rounded-md mt-1 max-w-md">
+                                            {attr.value}
+                                        </p>
+                                    )
+                                }
+                                return (
                                 <p key={attr.key} className="text-xs text-gray-500 break-words">
                                   <span className="font-medium">{attr.key}:</span>{" "}
                                   {attr.value}
                                 </p>
-                              ))}
+                              )
+                            })}
                           </div>
                         )}
                         {line.isCustomizedEyeglass && (

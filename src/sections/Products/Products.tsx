@@ -46,21 +46,21 @@ const ProductsSection = ({
   return (
     <div className="bg-white" id="products">
       <div className="w-full px-0 py-8 sm:py-12">
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 sm:gap-x-20 gap-y-8 sm:gap-y-8">
           {productData.map((product: any) => (
             <Link
               key={product.id || product.name}
               href={product.href}
               className="group block"
             >
-              <div className="w-full aspect-[4/3] bg-gray-50 border border-gray-200 rounded-lg overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
+              <div className="w-full aspect-[1/1] bg-gray-50 border border-gray-200 rounded-lg overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
                 {product.imageSrc ? (
                   <Image
                     alt={product.imageAlt || product.name || "Product Image"}
                     src={product.imageSrc}
                     width={300}
                     height={225}
-                    className="object-contain w-full h-full group-hover:opacity-90 transition-opacity duration-300"
+                    className="object-cover w-full h-full group-hover:opacity-90 transition-opacity duration-300"
                     onError={(e) =>
                       (e.currentTarget.src =
                         "https://placehold.co/300x225/F7F4EE/333333?text=No+Image")
