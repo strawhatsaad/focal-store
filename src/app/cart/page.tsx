@@ -101,7 +101,13 @@ function CartPageContent() {
   }, [cart]);
   
   const uiCalculatedSubtotal = lineItemsWithDisplayPrice.reduce(
-    (acc, item) => acc + item.displayTotalPrice,
+    (acc, item) => {
+        // Exclude donation product from subtotal calculation
+        if (item.merchandise.id === DONATION_PRODUCT_VARIANT_ID) {
+            return acc;
+        }
+        return acc + item.displayTotalPrice
+    },
     0
   );
 
@@ -280,7 +286,7 @@ function CartPageContent() {
             <ul role="list" className="divide-y divide-gray-200">
               {lineItemsWithDisplayPrice.map((line) => {
                 const isDonation = line.merchandise.id === DONATION_PRODUCT_VARIANT_ID;
-                const itemDiscount = isFirstTimeCustomer ? line.displayTotalPrice * 0.20 : 0;
+                const itemDiscount = isFirstTimeCustomer && !isDonation ? line.displayTotalPrice * 0.20 : 0;
                 const itemFinalPrice = line.displayTotalPrice - itemDiscount;
 
                 return (
@@ -312,14 +318,18 @@ function CartPageContent() {
                             </Link>
                           </h3>
                           <div className="flex-shrink-0 self-start md:self-auto text-right">
-                              {isFirstTimeCustomer ? (
-                                  <div className="flex flex-col items-end">
-                                      <p className="text-black font-bold">${itemFinalPrice.toFixed(2)}</p>
-                                      <p className="text-red-600 line-through text-xs">${line.displayTotalPrice.toFixed(2)}</p>
-                                  </div>
-                              ) : (
-                                  <p>${line.displayTotalPrice.toFixed(2)}</p>
-                              )}
+                            {!isDonation && (
+                                <>
+                                {isFirstTimeCustomer ? (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-black font-bold">${itemFinalPrice.toFixed(2)}</p>
+                                        <p className="text-red-600 line-through text-xs">${line.displayTotalPrice.toFixed(2)}</p>
+                                    </div>
+                                ) : (
+                                    <p>${line.displayTotalPrice.toFixed(2)}</p>
+                                )}
+                                </>
+                            )}
                           </div>
                         </div>
                         {line.attributes && line.attributes.length > 0 && (
@@ -329,7 +339,6 @@ function CartPageContent() {
                                 (attr) => attr.key !== "_finalCalculatedPrice"
                               )
                               .map((attr) => {
-                                // Specific rendering for donation message
                                 if (attr.key === "Donation Message") {
                                     return (
                                         <p key={attr.key} className="text-xs text-gray-500 rounded-md mt-1 max-w-md">
