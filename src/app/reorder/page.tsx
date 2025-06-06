@@ -71,7 +71,7 @@ function ReorderPageContent() {
             ) : (
                 <>
                     <Loader2 className="h-16 w-16 animate-spin text-black mb-4" />
-                    <h1 className="text-2xl font-semibold text-gray-800">Processing Your "Buy Again" Request</h1>
+                    <h1 className="text-2xl font-semibold text-gray-800">Processing Your &ldquo;Buy Again&rdquo; Request</h1>
                     <p className="text-gray-600 mt-2">{statusMessage}</p>
                 </>
             )}
