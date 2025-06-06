@@ -19,14 +19,17 @@ export async function POST(request: Request) {
         const { cartIdFromUrl, newCartId } = await request.json();
 
         if (!cartIdFromUrl) {
-            return NextResponse.json({ message: "Original cart ID from URL is required." }, { status: 400 });
+            return NextResponse.json({ message: "Original cart identifier from URL is required." }, { status: 400 });
         }
         if (!newCartId) {
             return NextResponse.json({ message: "A new, active cart ID is required." }, { status: 400 });
         }
 
-        // 1. Find the original order by searching for the tag (which is the old cart token)
-        const orderQueryString = `tag:'${cartIdFromUrl}'`;
+        // 1. Construct the tag to search for based on the incoming cartId/token from the URL.
+        const uniquePart = cartIdFromUrl.substring(cartIdFromUrl.length - 16);
+        const reorderTagToFind = `reorder-id-${uniquePart}`;
+        const orderQueryString = `tag:'${reorderTagToFind}'`;
+
         const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_TAG_QUERY, { query: orderQueryString });
 
         const orderData = orderResponse.data?.orders?.edges?.[0]?.node;

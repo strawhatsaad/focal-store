@@ -5,7 +5,7 @@ import { createShopifyDraftOrder } from "../../../../../utils"; // Adjust path i
 
 // Helper to parse price string to float, robustly
 const parsePriceToFloat = (priceStr: string | number | undefined | null): number => {
-    if (priceStr === null || priceStr === undefined) return 0.0; // Corrected variable name here
+    if (priceStr === null || priceStr === undefined) return 0.0;
     if (typeof priceStr === 'number') return isNaN(priceStr) ? 0.0 : priceStr;
     const numericString = String(priceStr).replace(/[^0-9.]/g, ""); // Allow dot for decimals
     const parsed = parseFloat(numericString);
@@ -50,9 +50,13 @@ export async function POST(request: Request) {
             lineItems: draftOrderLineItems,
         };
 
-        // Add the cartToken as a tag for future reordering. It's unique and under 40 chars.
+        // Add a shortened, unique tag for future reordering.
         if (cartToken) {
-            draftOrderInput.tags = [cartToken];
+            // Shopify tags have a 40 character limit. A cart token can be ~35 chars.
+            // We create a shorter, prefixed tag to be safe and specific.
+            const uniquePart = cartToken.substring(cartToken.length - 16); // Get the last 16 chars for uniqueness
+            const reorderTag = `reorder-id-${uniquePart}`; // e.g., reorder-id-a1b2c3d4e5f6g7h8. Total length is 27 chars.
+            draftOrderInput.tags = [reorderTag];
         }
 
         if (session?.user?.shopifyCustomerId) {
