@@ -189,9 +189,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(`Cart with ID ${id} could not be found or has expired.`);
       }
     } catch (err: any) {
-      setError(handleShopifyError(err, "Failed to fetch cart."));
+      const errorMessage = handleShopifyError(err, "Failed to fetch cart.");
+      setError(errorMessage);
       console.error("Fetch cart error:", err);
-      throw err;
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
       setIsInitializing(false);
@@ -199,32 +200,41 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const loadCartFromId = useCallback(async (newCartId: string) => {
-    if (!newCartId || newCartId === cartId) return;
+    if (!newCartId || newCartId === cartId) {
+      setIsInitializing(false);
+      return;
+    }
     setIsInitializing(true);
     setLoading(true);
     setError(null);
     setCart(null);
-    await fetchCart(newCartId);
+    return fetchCart(newCartId);
   }, [cartId, fetchCart]);
 
   useEffect(() => {
     const storedCartId = localStorage.getItem("focalCartId");
     if (storedCartId) {
       fetchCart(storedCartId).catch(() => {
-        createCart();
+        localStorage.removeItem("focalCartId");
+        setCart(null);
+        setCartId(null);
       });
     } else {
-      createCart();
+      setIsInitializing(false);
     }
-  }, [createCart, fetchCart]);
+  }, []);
 
   const addLineItem = useCallback(async (variantId: string, quantity: number, attributes?: Array<{ key: string; value: string }>): Promise<boolean> => {
     let currentCartId = cartId;
-    if (!currentCartId) currentCartId = await createCart();
     if (!currentCartId) {
-      setError("Cart not initialized. Please try again.");
-      return false;
+      const newCartId = await createCart();
+      if (!newCartId) {
+        setError("Could not create a new cart. Please try again.");
+        return false;
+      }
+      currentCartId = newCartId;
     }
+    
     setLoading(true);
     setError(null);
     try {

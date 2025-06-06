@@ -49,14 +49,11 @@ function CartPageComponent() {
 
   useEffect(() => {
     if (cartLinkId) {
-      // Construct the full Shopify GID from the URL parameter.
-      // Shopify's Cart ID is a full GID, but often the raw ID is passed in share links.
-      // We'll construct the full GID to be safe.
       const fullCartGid = cartLinkId.startsWith("gid://shopify/Cart/")
         ? cartLinkId
         : `gid://shopify/Cart/${cartLinkId}`;
 
-      if (!isInitializing && fullCartGid !== cartId) {
+      if (fullCartGid !== cartId) { 
         setIsProcessingCartLink(true);
         setCheckoutMessage("Loading your previous order into the cart...");
 
@@ -66,17 +63,23 @@ function CartPageComponent() {
             setCheckoutMessage("Your previous order has been restored successfully.");
           } catch (error: any) {
             console.error("Failed to load cart from link:", error);
-            setCheckoutMessage(`Error: Could not load the specified cart. It may be invalid or expired.`);
+            // The error message is now set inside the context, so no need to set it here.
           } finally {
             setIsProcessingCartLink(false);
-            router.replace("/cart", { scroll: false }); // Clean URL
+            router.replace("/cart", { scroll: false }); 
             setTimeout(() => setCheckoutMessage(null), 7000);
           }
         };
-        handleCartLink();
+
+        // Delay execution slightly to ensure context is fully initialized
+        setTimeout(handleCartLink, 100);
+      } else {
+        setIsProcessingCartLink(false);
       }
+    } else {
+      setIsProcessingCartLink(false);
     }
-  }, [cartLinkId, isInitializing, cartId, loadCartFromId, router]);
+  }, [cartLinkId, cartId, loadCartFromId, router]);
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -92,11 +95,11 @@ function CartPageComponent() {
   };
 
   useEffect(() => {
-    if (cartContextError && cart) {
-      const timer = setTimeout(() => clearCartError(), 5000);
+    if (cartContextError) {
+      const timer = setTimeout(() => clearCartError(), 7000);
       return () => clearTimeout(timer);
     }
-  }, [cartContextError, cart, clearCartError]);
+  }, [cartContextError, clearCartError]);
 
   const lineItemsWithDisplayPrice = useMemo(() => {
     if (!cart?.lines?.edges) return [];
@@ -149,7 +152,6 @@ function CartPageComponent() {
       return;
     }
     
-    // Draft Order logic remains the same
     try {
       setCheckoutMessage("Processing your order...");
       const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
@@ -214,7 +216,7 @@ function CartPageComponent() {
             </div>
           </div>
         )}
-        {checkoutMessage && (
+        {checkoutMessage && !cartContextError && (
           <div className={`p-3 sm:p-4 rounded-md shadow-md mb-6 border-l-4 text-sm ${checkoutMessage.includes("Error") || checkoutMessage.includes("failed") ? "bg-red-100 border-red-500 text-red-700" : "bg-blue-100 border-blue-500 text-blue-700"}`} role="alert">
             <div className="flex items-center">
               {checkoutMessage.includes("Error") ? <AlertCircle className="h-5 w-5 mr-2" /> : checkoutMessage.includes("restored") ? <CheckCircle className="h-5 w-5 mr-2" /> : <Loader2 className="h-5 w-5 animate-spin mr-2" />}
@@ -223,12 +225,16 @@ function CartPageComponent() {
           </div>
         )}
 
-        {!cart || lineItemsWithDisplayPrice.length === 0 ? (
+        {(!cart || lineItemsWithDisplayPrice.length === 0) ? (
           <div className="text-center py-12 sm:py-16 bg-white rounded-lg shadow-xl">
-            <ShoppingBag className="h-16 w-16 sm:h-20 sm:w-20 text-gray-300 mx-auto mb-4 sm:mb-6" />
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-2 sm:mb-3">Your cart is empty</h2>
-            <p className="text-gray-500 mb-6 sm:mb-8 text-sm sm:text-base">Looks like you haven&apos;t added anything yet.</p>
-            <Link href="/" className="px-6 py-2.5 sm:px-8 sm:py-3 bg-black text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors">Start Shopping</Link>
+            {!cartContextError && (
+              <>
+                <ShoppingBag className="h-16 w-16 sm:h-20 sm:w-20 text-gray-300 mx-auto mb-4 sm:mb-6" />
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-2 sm:mb-3">Your cart is empty</h2>
+                <p className="text-gray-500 mb-6 sm:mb-8 text-sm sm:text-base">Looks like you haven&apos;t added anything yet.</p>
+                <Link href="/" className="px-6 py-2.5 sm:px-8 sm:py-3 bg-black text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors">Start Shopping</Link>
+              </>
+            )}
           </div>
         ) : (
           <div className="bg-white p-3 xs:p-4 sm:p-6 md:p-8 rounded-xl shadow-xl">
