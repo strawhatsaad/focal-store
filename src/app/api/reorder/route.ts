@@ -2,22 +2,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { getShopifyOrderDetailsAdmin, createShopifyCheckout } from "../../../../utils";
+import { getShopifyOrderDetailsAdmin, addLinesToShopifyCart } from "../../../../utils";
 
 export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
-    // If the user is not authenticated, return a 401 error.
-    // The frontend will handle redirecting to the sign-in page.
     if (!session?.user?.shopifyCustomerId || !session.shopifyAccessToken) {
         return NextResponse.json({ message: "User not authenticated." }, { status: 401 });
     }
 
     try {
-        const { orderId } = await request.json();
+        // The client will now send the cartId along with the orderId
+        const { orderId, cartId } = await request.json();
 
-        if (!orderId) {
-            return NextResponse.json({ message: "Shopify Order ID is required." }, { status: 400 });
+        if (!orderId || !cartId) {
+            return NextResponse.json({ message: "Shopify Order ID and Cart ID are required." }, { status: 400 });
         }
 
         // Step 1: Fetch the original order details using the Shopify Admin API.
@@ -29,11 +28,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: errorMsg }, { status: 404 });
         }
 
-        // Step 2: Prepare line items for the new checkout from the old order's data.
+        // Step 2: Prepare line items for the new cart from the old order's data.
+        // The `cartLinesAdd` mutation expects the key `merchandiseId`.
         const lineItems = orderNode.lineItems.edges.map((edge: any) => ({
-            variantId: edge.node.variant.id,
+            merchandiseId: edge.node.variant.id,
             quantity: edge.node.quantity,
-            customAttributes: edge.node.customAttributes.map((attr: {key: string, value: string}) => ({
+            attributes: edge.node.customAttributes.map((attr: {key: string, value: string}) => ({
                 key: attr.key,
                 value: attr.value,
             })),
@@ -43,24 +43,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Original order contains no items to reorder." }, { status: 400 });
         }
 
-        // Step 3: Create a new checkout with these line items using the Storefront API.
-        const checkoutInput = {
-            lineItems,
-            allowPartialAddresses: true,
-        };
-        
-        // Associate the new checkout with the logged-in customer.
-        const checkoutResponse = await createShopifyCheckout(checkoutInput, session.shopifyAccessToken);
+        // Step 3: Add these items to the user's current cart using the Storefront API.
+        const addLinesResponse = await addLinesToShopifyCart(cartId, lineItems);
+        const updatedCart = addLinesResponse.data?.cartLinesAdd?.cart;
 
-        const checkoutUrl = checkoutResponse.data?.checkoutCreate?.checkout?.webUrl;
-
-        if (checkoutUrl) {
-            // Step 4: Return the new checkout URL to the frontend.
-            return NextResponse.json({ checkoutUrl });
+        if (updatedCart) {
+            // Step 4: Return a success response. The client will handle UI updates.
+            return NextResponse.json({ success: true, cart: updatedCart });
         } else {
-            const userErrors = checkoutResponse.data?.checkoutCreate?.checkoutUserErrors;
-            const errorMsg = userErrors?.map((e: any) => e.message).join(", ") || "Failed to create a new checkout for reorder.";
-            console.error("Reorder Checkout Creation Error:", userErrors);
+            const userErrors = addLinesResponse.data?.cartLinesAdd?.userErrors;
+            const errorMsg = userErrors?.map((e: any) => e.message).join(", ") || "Failed to add items to the cart during reorder.";
+            console.error("Reorder - Add to Cart Error:", userErrors);
             return NextResponse.json({ message: errorMsg }, { status: 500 });
         }
 
