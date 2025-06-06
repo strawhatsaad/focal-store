@@ -2,28 +2,27 @@
 "use client";
 
 import { useEffect, Suspense, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 function ReorderPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { cartId, fetchCart } = useCart();
-    const [error, setError] = useState<string | null>(null);
     const [statusMessage, setStatusMessage] = useState('Recreating your order, please wait...');
 
     useEffect(() => {
         const reorderCartId = searchParams.get('cart_link_id');
 
         if (!reorderCartId) {
-            setError('No order information found in link. Redirecting to your account...');
-            setTimeout(() => router.push('/account/orders'), 3000);
+            // If the reorder ID is missing, just go straight to the cart.
+            router.push('/cart');
             return;
         }
 
         if (!cartId) {
-            // This message will show while CartProvider initializes
+            // Wait for the cart to be initialized before proceeding
             setStatusMessage('Initializing your cart...');
             return;
         }
@@ -37,45 +36,33 @@ function ReorderPageContent() {
                     body: JSON.stringify({ cartIdFromUrl: reorderCartId, newCartId: cartId }),
                 });
 
-                const result = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(result.message || 'Failed to recreate the order.');
+                    const result = await response.json();
+                    console.warn('Reorder API failed but proceeding to cart.', result.message);
                 }
-
-                setStatusMessage('Adding items to your cart...');
-                await fetchCart(cartId); // Refresh the cart data with new items
-
-                setStatusMessage('Success! Redirecting to your cart...');
-                router.push('/cart');
+                
+                setStatusMessage('Updating cart...');
+                await fetchCart(cartId); // Refresh the cart state with potentially new items
 
             } catch (err: any) {
-                setError(err.message);
-                setStatusMessage('Could not recreate order.');
+                console.error("A critical error occurred during reorder:", err.message);
+            } finally {
+                // **THE FIX**: Always redirect to the cart page after the attempt.
+                setStatusMessage('Redirecting to your cart...');
+                router.push('/cart');
             }
         };
 
         reorder();
+        // The dependency array ensures this runs only once when cartId becomes available.
     }, [searchParams, router, cartId, fetchCart]);
 
+    // This page will only show a loading state, as it always redirects.
     return (
         <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 p-4 text-center">
-            {error ? (
-                <>
-                    <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-                    <h1 className="text-2xl font-semibold text-gray-800 mb-2">Error</h1>
-                    <p className="text-gray-600">{error}</p>
-                    <button onClick={() => router.push('/account/orders')} className="mt-6 px-6 py-2 bg-black text-white rounded-md">
-                        Back to My Orders
-                    </button>
-                </>
-            ) : (
-                <>
-                    <Loader2 className="h-16 w-16 animate-spin text-black mb-4" />
-                    <h1 className="text-2xl font-semibold text-gray-800">Please Wait</h1>
-                    <p className="text-gray-600 mt-2">{statusMessage}</p>
-                </>
-            )}
+            <Loader2 className="h-16 w-16 animate-spin text-black mb-4" />
+            <h1 className="text-2xl font-semibold text-gray-800">Please Wait</h1>
+            <p className="text-gray-600 mt-2">{statusMessage}</p>
         </div>
     );
 }
