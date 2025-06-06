@@ -1,10 +1,10 @@
-// src/app/cart/page.tsx
+// File: src/app/cart/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/context/CartContext"; 
 import { useSession } from "next-auth/react"; 
-import { useRouter, useSearchParams } from "next/navigation"; 
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import {
   Loader2,
@@ -14,8 +14,6 @@ import {
   AlertCircle,
   CreditCard,
   LogIn, 
-  RefreshCw,
-  CheckCircle,
 } from "lucide-react";
 
 const parsePrice = (priceInput: string | number | undefined | null): number => {
@@ -26,80 +24,23 @@ const parsePrice = (priceInput: string | number | undefined | null): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-
-function CartPageComponent() {
+const CartPage = () => {
   const {
     cart,
-    cartId, // Get cartId from context
-    fetchCart, // Get fetchCart to refresh the cart state
     loading: cartContextLoading, 
-    isInitializing,
+    isInitializing, // Destructure isInitializing from context
     error: cartContextError,
     updateLineItem,
     removeLineItem,
     clearCartError,
+    clearCartAndCreateNew, 
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter(); 
-  const searchParams = useSearchParams();
-  const reorderId = searchParams.get("order_id");
 
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false); 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null); 
-  const [isReordering, setIsReordering] = useState(!!reorderId);
-
-  // --- REORDER LOGIC (UPDATED) ---
-  useEffect(() => {
-    // Trigger reorder only if we have the necessary IDs and user is logged in
-    if (reorderId && sessionStatus === 'authenticated' && cartId) {
-      setIsReordering(true);
-      setCheckoutMessage("Re-ordering items...");
-
-      const handleReorder = async () => {
-        try {
-          // The API now needs the cartId to add items to the correct cart
-          const response = await fetch('/api/reorder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: `gid://shopify/Order/${reorderId}`,
-              cartId: cartId,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.message || 'Failed to process reorder.');
-          }
-          
-          // On success, refresh the local cart state from the context
-          // instead of redirecting to a separate checkout URL.
-          await fetchCart(cartId); 
-          setCheckoutMessage("Your previous order has been added to the cart.");
-
-          // Remove the order_id from the URL to prevent re-triggering on refresh
-          router.replace('/cart', { scroll: false });
-
-        } catch (error: any) {
-          console.error('Reorder failed:', error);
-          setCheckoutMessage(`Reorder failed: ${error.message}`);
-          router.replace('/cart', { scroll: false }); // Also remove params on failure
-        } finally {
-          setIsReordering(false);
-          // Optional: clear the message after a few seconds
-          setTimeout(() => setCheckoutMessage(null), 5000);
-        }
-      };
-
-      handleReorder();
-    } else if (reorderId && sessionStatus === 'unauthenticated') {
-      const reorderCallbackUrl = window.location.href;
-      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(reorderCallbackUrl)}`);
-    }
-  }, [reorderId, sessionStatus, cartId, router, fetchCart]);
-
 
   const handleQuantityChange = async (lineId: string, newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -142,7 +83,7 @@ function CartPageComponent() {
       }
       return {
         ...line,
-        variantId: line.merchandise.id, 
+        merchandiseId: line.merchandise.id, 
         customizedUnitPrice: finalCalculatedPrice, 
         displayTotalPrice: finalCalculatedPrice * line.quantity,
         isCustomizedEyeglass,
@@ -184,7 +125,7 @@ function CartPageComponent() {
     }
 
     const draftOrderLineItems = lineItemsWithDisplayPrice.map((item) => ({
-      variantId: item.variantId, 
+      variantId: item.merchandiseId, 
       quantity: item.quantity,
       customizedPrice: item.customizedUnitPrice.toFixed(2), 
       attributes: item.attributes.map((attr) => ({
@@ -218,8 +159,7 @@ function CartPageComponent() {
 
       if (result.invoiceUrl) {
         setCheckoutMessage("Redirecting to Shopify checkout...");
-        // The draft order creation is a final step, no need to clear the local cart here
-        // as the user is leaving the site.
+        await clearCartAndCreateNew(); 
         window.location.href = result.invoiceUrl; 
       } else {
         throw new Error("Invoice URL not received from draft order creation.");
@@ -234,9 +174,8 @@ function CartPageComponent() {
     } 
   };
 
-  // --- RENDER LOGIC ---
-
-  if (isInitializing || (cartContextLoading && !cart && !isReordering)) { 
+  // Updated loading condition to use isInitializing from context
+  if (isInitializing || (cartContextLoading && !cart)) { 
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
@@ -297,8 +236,6 @@ function CartPageComponent() {
                   <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
                 ) : checkoutMessage.toLowerCase().includes("sign in") ? (
                   <LogIn className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
-                ) : checkoutMessage.toLowerCase().includes("added to the cart") ? (
-                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-green-500" />
                 ) : ( 
                   <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin mr-2 sm:mr-3" />
                 )}
@@ -308,7 +245,7 @@ function CartPageComponent() {
           </div>
         )}
 
-        {(!cart || lineItemsWithDisplayPrice.length === 0) && !isReordering ? (
+        {!cart || lineItemsWithDisplayPrice.length === 0 ? (
           <div className="text-center py-12 sm:py-16 bg-white rounded-lg shadow-xl">
             <ShoppingBag className="h-16 w-16 sm:h-20 sm:w-20 text-gray-300 mx-auto mb-4 sm:mb-6" />
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-2 sm:mb-3">
@@ -333,7 +270,7 @@ function CartPageComponent() {
                     <img 
                       src={
                         line.merchandise.image?.url ||
-                        "[https://placehold.co/128x128/F7F4EE/333333?text=No+Image](https://placehold.co/128x128/F7F4EE/333333?text=No+Image)"
+                        "https://placehold.co/128x128/F7F4EE/333333?text=No+Image"
                       }
                       alt={
                         line.merchandise.image?.altText ||
@@ -475,24 +412,6 @@ function CartPageComponent() {
       </div>
     </div>
   );
-}
+};
 
-// Wrap the main component in Suspense to handle searchParams
-export default function CartPage() {
-    return (
-        <Suspense fallback={<CartPageLoadingFallback />}>
-            <CartPageComponent />
-        </Suspense>
-    );
-}
-
-function CartPageLoadingFallback() {
-    return (
-        <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] bg-gray-50 p-4">
-            <Loader2 className="h-12 w-12 animate-spin text-black" />
-            <p className="ml-3 text-lg font-medium text-gray-700 mt-4">
-                Loading Cart...
-            </p>
-        </div>
-    );
-}
+export default CartPage;
