@@ -6,15 +6,13 @@ export function middleware(request: NextRequest) {
 
   // Check if the request is for the cart page and has the 'cart_link_id' parameter
   if (pathname === '/cart' && searchParams.has('cart_link_id')) {
-    // Create a new URL object based on the incoming request
+    // Clone the URL to preserve the search parameters
     const url = request.nextUrl.clone();
     
-    // Change the pathname to our dedicated reorder page
+    // Rewrite the path to our dedicated reorder page.
+    // The user's URL in the browser will not change, but Next.js will serve the /reorder page component.
     url.pathname = '/reorder';
     
-    // The search params from the original URL (like cart_link_id) are preserved by default when cloning.
-    // We are simply rewriting the request to be handled by the /reorder page component.
-    // The user's browser URL will remain .../cart?cart_link_id=...
     return NextResponse.rewrite(url);
   }
 

@@ -515,3 +515,15 @@ export const GET_ORDER_BY_TAG_QUERY = `
     }
   }
 `;
+
+/**
+ * Fetches the line items from a specific order using the Admin API.
+ * @param {string} orderId The GID of the Shopify Order.
+ * @returns {Promise<any>} The Shopify Admin API response containing the order details.
+ */
+export async function getShopifyOrderLineItems(orderId) {
+  if (!orderId) {
+    throw new Error("Order ID is required to fetch line items.");
+  }
+  return shopifyAdminRequest(GET_ORDER_LINE_ITEMS_QUERY, { orderId });
+}

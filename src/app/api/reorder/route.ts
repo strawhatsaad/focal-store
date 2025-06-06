@@ -26,8 +26,7 @@ export async function POST(request: Request) {
         }
 
         // 1. Construct the tag to search for based on the incoming cartId/token from the URL.
-        const uniquePart = cartIdFromUrl.substring(cartIdFromUrl.length - 16);
-        const reorderTagToFind = `reorder-id-${uniquePart}`;
+        const reorderTagToFind = `reorder-id-${cartIdFromUrl}`;
         const orderQueryString = `tag:'${reorderTagToFind}'`;
 
         const orderResponse = await shopifyAdminRequest(GET_ORDER_BY_TAG_QUERY, { query: orderQueryString });

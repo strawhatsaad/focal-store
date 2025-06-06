@@ -40,10 +40,10 @@ export async function POST(request: Request) {
         const draftOrderInput: any = {
             lineItems: draftOrderLineItems,
         };
-
+        
+        // **FIX**: Create a short, unique tag that respects Shopify's 40-character limit.
         if (cartToken) {
-            const uniquePart = cartToken.substring(cartToken.length - 16);
-            const reorderTag = `reorder-id-${uniquePart}`;
+            const reorderTag = `reorder-id-${cartToken}`;
             draftOrderInput.tags = [reorderTag];
         }
 
@@ -62,7 +62,8 @@ export async function POST(request: Request) {
         const shopifyResponse = await createShopifyDraftOrder(draftOrderInput);
 
         if (shopifyResponse.data?.draftOrderCreate?.draftOrder?.invoiceUrl) {
-            return Response.json(shopifyResponse.data.draftOrderCreate.draftOrder);
+            const draftOrder = shopifyResponse.data.draftOrderCreate.draftOrder;
+            return Response.json({ invoiceUrl: draftOrder.invoiceUrl, draftOrderId: draftOrder.id });
         } else {
             const userErrors = shopifyResponse.data?.draftOrderCreate?.userErrors;
             let errorMessage = "Failed to create draft order.";
