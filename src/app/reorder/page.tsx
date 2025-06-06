@@ -4,11 +4,11 @@
 import { useEffect, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { Loader2 } from 'lucide-react'; // AlertCircle is no longer needed
+import { Loader2 } from 'lucide-react';
 
 function ReorderPageContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
+    const router = useRouter(); // Keep for initial push if needed
     const { cartId, fetchCart } = useCart();
     const [statusMessage, setStatusMessage] = useState('Initializing your cart...');
     const [hasStarted, setHasStarted] = useState(false); // Flag to ensure the process runs only once
@@ -49,9 +49,10 @@ function ReorderPageContent() {
                 // Log any critical network errors but don't show them to the user
                 console.error("A critical error occurred during reorder:", err.message);
             } finally {
-                // **THE FIX**: Always redirect to the cart page after the attempt.
-                // The user will see their populated cart, which is the desired outcome.
-                router.push('/cart');
+                // **THE FIX**: Use window.location.href for a full page reload to the cart.
+                // This ensures the cart state is fresh and avoids the stuck screen.
+                setStatusMessage('Redirecting to your cart...');
+                window.location.href = '/cart';
             }
         };
 
