@@ -151,6 +151,39 @@ export async function shopifyAdminRequest(query, variables = {}) {
   }
 }
 
+// --- Product Search (Admin API) ---
+export const PRODUCT_SEARCH_QUERY = `
+  query productSearch($query: String!, $first: Int!) {
+    products(query: $query, first: $first) {
+      edges {
+        node {
+          id
+          title
+          handle
+          tags
+          featuredImage {
+            url(transform: {maxWidth: 300, maxHeight: 300})
+            altText
+          }
+          priceRangeV2 {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 1) {
+              edges {
+                  node {
+                      id
+                  }
+              }
+          }
+        }
+      }
+    }
+  }
+`;
+
 // --- Customer Metafields (Admin API) ---
 export const METAFIELDS_SET_MUTATION = `
   mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {

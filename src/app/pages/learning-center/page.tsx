@@ -27,10 +27,10 @@ const LearningCenterComingSoonPage = () => {
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/pages/eyewear"
+            href="/"
             className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-black hover:bg-gray-800 transition-colors duration-150 ease-in-out shadow-md"
           >
-            Explore Eyewear
+            Go Back to Homepage
             <ArrowRight size={20} className="ml-2" />
           </Link>
           <Link

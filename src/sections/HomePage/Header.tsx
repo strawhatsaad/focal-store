@@ -122,12 +122,14 @@ export const Header = () => {
               )}
 
               <div className="flex items-center md:gap-2 lg:gap-3">
-                <SearchIcon
-                  strokeWidth={2.5}
-                  color="#374151"
-                  size={24}
-                  className="hover:scale-110 transition-transform duration-200 cursor-pointer md:size-5 lg:size-6"
-                />
+                <Link href="/search" aria-label="Search">
+                    <SearchIcon
+                    strokeWidth={2.5}
+                    color="#374151"
+                    size={24}
+                    className="hover:scale-110 transition-transform duration-200 cursor-pointer md:size-5 lg:size-6"
+                    />
+                </Link>
                 <Link href="/wishlist" className="relative" aria-label="Wishlist">
                   <HeartIcon
                     strokeWidth={2.5}
@@ -203,11 +205,13 @@ export const Header = () => {
           )}
           <hr className="my-4" />
           <div className="flex justify-center space-x-6 pt-4">
-            <SearchIcon
-              strokeWidth={2.5}
-              size={26}
-              className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
-            />
+            <Link href="/search" onClick={() => setMobileMenuOpen(false)}>
+                <SearchIcon
+                strokeWidth={2.5}
+                size={26}
+                className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
+                />
+            </Link>
             <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="relative">
               <HeartIcon
                 strokeWidth={2.5}
