@@ -6,6 +6,7 @@ import { Header } from "@/sections/HomePage/Header";
 import { Footer } from "@/sections/HomePage/Footer";
 import Providers from "./providers"; // For NextAuth SessionProvider
 import { CartProvider } from "@/context/CartContext"; // For Cart Context
+import { WishlistProvider } from "@/context/WishlistContext"; // Import WishlistProvider
 
 // Configure DM Sans
 const dmSans = DM_Sans({
@@ -27,19 +28,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Apply the font variable and Tailwind's font-sans class */}
       <body className={`${dmSans.variable} font-sans antialiased`}>
         <Providers>
-          {" "}
-          {/* Wraps children with SessionProvider */}
           <CartProvider>
-            <Header />
-            <main className="min-h-screen">
-              {" "}
-              {/* Ensure main content area can fill screen */}
-              {children}
-            </main>
-            <Footer />
+            <WishlistProvider>
+              <Header />
+              <main className="min-h-screen">
+                {children}
+              </main>
+              <Footer />
+            </WishlistProvider>
           </CartProvider>
         </Providers>
       </body>
