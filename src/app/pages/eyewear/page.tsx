@@ -6,8 +6,9 @@ import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
 import { storeFront } from "../../../../utils";
-import { Loader2, Filter, Search, X as XIcon } from "lucide-react";
+import { Loader2, Filter, Search, X as XIcon, Glasses, ArrowRight, Sparkles } from "lucide-react";
 import { useCart } from "@/context/CartContext"; // Import useCart
+import Link from "next/link";
 
 interface ProductImage {
   url: string;
@@ -256,132 +257,187 @@ const EyewearPage = () => {
   }
 
   return (
-    <main>
-      <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
-          <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
-            <FilterSidebar
-              filterSections={filterSections}
-              activeFilters={activeFilters}
-              onFilterChange={handleFilterChange}
-              onClearAllFilters={clearAllFilters}
-              productCount={filteredProducts.length}
-            />
+    // <main>
+    //   <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
+    //     <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
+    //       <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
+    //         <FilterSidebar
+    //           filterSections={filterSections}
+    //           activeFilters={activeFilters}
+    //           onFilterChange={handleFilterChange}
+    //           onClearAllFilters={clearAllFilters}
+    //           productCount={filteredProducts.length}
+    //         />
+    //       </div>
+
+    //       <div className="lg:col-span-9 xl:col-span-10">
+    //         <Hero
+    //           title="Eyewear"
+    //           headline="Discover our premium Eyewear Collection—a curated selection of stylish, comfortable, and vision-enhancing glasses designed to suit every face and lifestyle."
+    //         />
+
+    //         <div className="my-6 lg:my-8 relative">
+    //           <input
+    //             type="text"
+    //             value={searchTerm}
+    //             onChange={(e) => setSearchTerm(e.target.value)}
+    //             placeholder="Search by name or tag (e.g., 'Square', 'Metal', 'Lightweight')..."
+    //             className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
+    //           />
+    //           <Search
+    //             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+    //             size={18}
+    //           />
+    //           {searchTerm && (
+    //             <button
+    //               onClick={() => setSearchTerm("")}
+    //               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+    //             >
+    //               <XIcon size={18} />
+    //             </button>
+    //           )}
+    //         </div>
+
+    //         <div className="lg:hidden my-6">
+    //           <button
+    //             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+    //             className="w-full flex items-center justify-between text-left p-3 bg-gray-100 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-200 shadow-sm"
+    //           >
+    //             <span>
+    //               Show Filters (
+    //               {Object.values(activeFilters).filter((v) => v).length}{" "}
+    //               applied)
+    //             </span>
+    //             <Filter size={20} />
+    //           </button>
+    //         </div>
+
+    //         {isMobileFilterOpen && (
+    //           <div
+    //             className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
+    //             onClick={() => setIsMobileFilterOpen(false)}
+    //           >
+    //             <div
+    //               className="fixed top-0 left-0 h-full w-4/5 max-w-xs sm:max-w-sm bg-white shadow-xl p-6 overflow-y-auto z-50 transform transition-transform ease-in-out duration-300"
+    //               style={{
+    //                 transform: isMobileFilterOpen
+    //                   ? "translateX(0)"
+    //                   : "translateX(-100%)",
+    //               }}
+    //               onClick={(e) => e.stopPropagation()}
+    //             >
+    //               <div className="flex justify-between items-center mb-6">
+    //                 <h2 className="text-xl font-semibold text-gray-900">
+    //                   Filters
+    //                 </h2>
+    //                 <button
+    //                   onClick={() => setIsMobileFilterOpen(false)}
+    //                   className="p-1 text-gray-500 hover:text-gray-700"
+    //                 >
+    //                   <XIcon size={22} />
+    //                 </button>
+    //               </div>
+    //               <FilterSidebar
+    //                 filterSections={filterSections}
+    //                 activeFilters={activeFilters}
+    //                 onFilterChange={(key, value) => {
+    //                   handleFilterChange(key, value);
+    //                 }}
+    //                 onClearAllFilters={() => {
+    //                   clearAllFilters();
+    //                 }}
+    //                 productCount={filteredProducts.length}
+    //               />
+    //             </div>
+    //           </div>
+    //         )}
+
+    //         <div className="mt-8">
+    //           {isLoading &&
+    //           filteredProducts.length === 0 &&
+    //           allProducts.length > 0 ? (
+    //             <div className="flex justify-center items-center min-h-[300px]">
+    //               <Loader2 className="h-10 w-10 animate-spin text-black" />
+    //             </div>
+    //           ) : filteredProducts.length > 0 ? (
+    //             <ProductsSection
+    //               products={filteredProducts}
+    //               heading="All Eyewear"
+    //               isFirstTimeCustomer={isFirstTimeCustomer}
+    //             />
+    //           ) : (
+    //             <div className="text-center py-16 bg-white rounded-lg shadow-sm">
+    //               <p className="text-gray-600 text-xl mb-4">
+    //                 No products match your current filters.
+    //               </p>
+    //               <p className="text-gray-500 text-sm mb-6">
+    //                 Try adjusting your selection or clear all filters.
+    //               </p>
+    //               <button
+    //                 onClick={clearAllFilters}
+    //                 className="mt-4 px-6 py-2.5 bg-black text-white text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors"
+    //               >
+    //                 Clear All Filters
+    //               </button>
+    //             </div>
+    //           )}
+    //         </div>
+    //       </div>
+    //     </div>
+    //   </div>
+    // </main>
+
+    // The existing eyewear page content is commented out and replaced with the following:
+
+    <main className="min-h-[calc(100vh-150px)] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 text-center p-6 sm:p-8">
+      <div className="max-w-md">
+        <div className="mb-8 flex justify-center">
+          <div className="p-4 bg-orange-400 rounded-full shadow-lg animate-pulse">
+            <Glasses size={48} className="text-white" />
           </div>
+        </div>
 
-          <div className="lg:col-span-9 xl:col-span-10">
-            <Hero
-              title="Eyewear"
-              headline="Discover our premium Eyewear Collection—a curated selection of stylish, comfortable, and vision-enhancing glasses designed to suit every face and lifestyle."
-            />
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
+          Shades Are on Their Way!
+        </h1>
+        <p className="mt-4 text-lg sm:text-xl text-gray-600">
+          Our new Sunglasses Collection is launching soon. Get ready to find
+          your perfect pair!
+        </p>
 
-            <div className="my-6 lg:my-8 relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or tag (e.g., 'Square', 'Metal', 'Lightweight')..."
-                className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
-              />
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  <XIcon size={18} />
-                </button>
-              )}
-            </div>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/"
+            className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-black hover:bg-gray-800 transition-colors duration-150 ease-in-out shadow-md"
+          >
+            Go Back to Homepage
+            <ArrowRight size={20} className="ml-2" />
+          </Link>
+          <Link
+            href="/pages/contact-lenses" // Link to your contact lenses collection
+            className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150 ease-in-out shadow-md"
+          >
+            Shop Contact Lenses
+          </Link>
+        </div>
 
-            <div className="lg:hidden my-6">
-              <button
-                onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                className="w-full flex items-center justify-between text-left p-3 bg-gray-100 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-200 shadow-sm"
-              >
-                <span>
-                  Show Filters (
-                  {Object.values(activeFilters).filter((v) => v).length}{" "}
-                  applied)
-                </span>
-                <Filter size={20} />
-              </button>
-            </div>
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-500">
+            Want to be the first to know?
+            {/* You can add a newsletter sign-up link or component here later */}
+            <Link
+              href="/"
+              className="font-medium text-black hover:underline ml-1"
+            >
+              Follow us for updates!
+            </Link>
+          </p>
+        </div>
 
-            {isMobileFilterOpen && (
-              <div
-                className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
-                onClick={() => setIsMobileFilterOpen(false)}
-              >
-                <div
-                  className="fixed top-0 left-0 h-full w-4/5 max-w-xs sm:max-w-sm bg-white shadow-xl p-6 overflow-y-auto z-50 transform transition-transform ease-in-out duration-300"
-                  style={{
-                    transform: isMobileFilterOpen
-                      ? "translateX(0)"
-                      : "translateX(-100%)",
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Filters
-                    </h2>
-                    <button
-                      onClick={() => setIsMobileFilterOpen(false)}
-                      className="p-1 text-gray-500 hover:text-gray-700"
-                    >
-                      <XIcon size={22} />
-                    </button>
-                  </div>
-                  <FilterSidebar
-                    filterSections={filterSections}
-                    activeFilters={activeFilters}
-                    onFilterChange={(key, value) => {
-                      handleFilterChange(key, value);
-                    }}
-                    onClearAllFilters={() => {
-                      clearAllFilters();
-                    }}
-                    productCount={filteredProducts.length}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8">
-              {isLoading &&
-              filteredProducts.length === 0 &&
-              allProducts.length > 0 ? (
-                <div className="flex justify-center items-center min-h-[300px]">
-                  <Loader2 className="h-10 w-10 animate-spin text-black" />
-                </div>
-              ) : filteredProducts.length > 0 ? (
-                <ProductsSection
-                  products={filteredProducts}
-                  heading="All Eyewear"
-                  isFirstTimeCustomer={isFirstTimeCustomer}
-                />
-              ) : (
-                <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-                  <p className="text-gray-600 text-xl mb-4">
-                    No products match your current filters.
-                  </p>
-                  <p className="text-gray-500 text-sm mb-6">
-                    Try adjusting your selection or clear all filters.
-                  </p>
-                  <button
-                    onClick={clearAllFilters}
-                    className="mt-4 px-6 py-2.5 bg-black text-white text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="mt-10 flex justify-center items-center space-x-2 text-gray-400">
+          <Sparkles size={16} />
+          <span className="text-xs">Exciting styles arriving soon</span>
+          <Sparkles size={16} />
         </div>
       </div>
     </main>
