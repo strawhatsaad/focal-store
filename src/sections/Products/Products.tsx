@@ -56,7 +56,7 @@ const ProductsSection = ({
   return (
     <div className="bg-white" id="products">
       <div className="w-full px-0 py-2 sm:py-4">
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-3 sm:gap-x-20 gap-y-4 sm:gap-y-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-3 sm:gap-x-10 md:gap-x-20 gap-y-4 sm:gap-y-6">
           {products.map((product) => (
             <div key={product.id} className="group relative">
                 <Link href={product.href} className="block">
@@ -82,7 +82,7 @@ const ProductsSection = ({
                 </Link>
                 <div className="mt-1.5 flex justify-between items-start">
                     <div className="flex-1">
-                         <h3 className="text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black truncate pr-1">
+                         <h3 className="text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black pr-1">
                            <Link href={product.href}>{product.name}</Link>
                          </h3>
                         <PriceDisplay originalPrice={product.price} isFirstTimeCustomer={isFirstTimeCustomer} />

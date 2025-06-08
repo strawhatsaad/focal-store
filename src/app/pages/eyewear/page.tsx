@@ -398,10 +398,10 @@ const EyewearPage = () => {
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
-          Shades Are on Their Way!
+          Eyeglasses Are on Their Way!
         </h1>
         <p className="mt-4 text-lg sm:text-xl text-gray-600">
-          Our new Sunglasses Collection is launching soon. Get ready to find
+          Our new Eyeglasses Collection is launching soon. Get ready to find
           your perfect pair!
         </p>
 
