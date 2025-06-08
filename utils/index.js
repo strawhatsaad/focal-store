@@ -151,6 +151,124 @@ export async function shopifyAdminRequest(query, variables = {}) {
   }
 }
 
+// --- Customer Management (Storefront API) ---
+export const CREATE_SHOPIFY_CUSTOMER_MUTATION = `
+  mutation customerCreate($input: CustomerCreateInput!) {
+    customerCreate(input: $input) {
+      customer { id firstName lastName email }
+      customerUserErrors { code field message }
+    }
+  }
+`;
+export const CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION = `
+  mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
+    customerAccessTokenCreate(input: $input) {
+      customerAccessToken { accessToken expiresAt }
+      customerUserErrors { code field message }
+    }
+  }
+`;
+export const GET_CUSTOMER_INFO_QUERY = `
+  query getCustomerInfo($customerAccessToken: String!) {
+    customer(customerAccessToken: $customerAccessToken) { id email firstName lastName }
+  }
+`;
+
+// --- Customer Update (Admin API - for password) ---
+export const CUSTOMER_UPDATE_MUTATION = `
+mutation customerUpdate($input: CustomerInput!) {
+  customerUpdate(input: $input) {
+    customer { id email }
+    userErrors { field message }
+  }
+}
+`;
+
+// --- Draft Order (Admin API) ---
+export const DRAFT_ORDER_CREATE_MUTATION = `
+  mutation draftOrderCreate($input: DraftOrderInput!) {
+    draftOrderCreate(input: $input) {
+      draftOrder { id invoiceUrl name status totalPriceSet { presentmentMoney { amount currencyCode } } }
+      userErrors { field message }
+    }
+  }
+`;
+export const DRAFT_ORDER_STATUS_QUERY = `
+  query draftOrderStatus($id: ID!) {
+    draftOrder(id: $id) {
+      status
+    }
+  }
+`;
+
+// --- Order History (Storefront API) ---
+export const GET_CUSTOMER_ORDERS_QUERY = `
+  query getCustomerOrders($customerAccessToken: String!, $first: Int!, $cursor: String) {
+    customer(customerAccessToken: $customerAccessToken) {
+      orders(first: $first, after: $cursor, sortKey: PROCESSED_AT, reverse: true) {
+        edges { node { id orderNumber processedAt financialStatus fulfillmentStatus totalPriceV2 { amount currencyCode } lineItems(first: 5) { edges { node { title quantity variant { image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } priceV2 { amount currencyCode } } } } } } } cursor }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+`;
+
+// --- Manage Addresses (Storefront API) ---
+export const GET_CUSTOMER_ADDRESSES_QUERY = `
+  query getCustomerAddresses($customerAccessToken: String!) {
+    customer(customerAccessToken: $customerAccessToken) {
+      defaultAddress { id address1 address2 city company country countryCodeV2 firstName lastName phone province provinceCode zip formatted }
+      addresses(first: 10) { edges { node { id address1 address2 city company country countryCodeV2 firstName lastName phone province provinceCode zip formatted } } }
+    }
+  }
+`;
+export const CUSTOMER_ADDRESS_CREATE_MUTATION = `
+  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
+    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) { customerAddress { id } customerUserErrors { code field message } }
+  }
+`;
+export const CUSTOMER_ADDRESS_UPDATE_MUTATION = `
+  mutation customerAddressUpdate($customerAccessToken: String!, $id: ID!, $address: MailingAddressInput!) {
+    customerAddressUpdate(customerAccessToken: $customerAccessToken, id: $id, address: $address) { customerAddress { id } customerUserErrors { code field message } }
+  }
+`;
+export const CUSTOMER_ADDRESS_DELETE_MUTATION = `
+  mutation customerAddressDelete($customerAccessToken: String!, $id: ID!) {
+    customerAddressDelete(customerAccessToken: $customerAccessToken, id: $id) { deletedCustomerAddressId customerUserErrors { code field message } }
+  }
+`;
+export const CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION = `
+  mutation customerDefaultAddressUpdate($customerAccessToken: String!, $addressId: ID!) {
+    customerDefaultAddressUpdate(customerAccessToken: $customerAccessToken, addressId: $addressId) { customer { id defaultAddress { id } } customerUserErrors { code field message } }
+  }
+`;
+
+// --- Cart Mutations and Queries (Storefront API) ---
+export const CART_FRAGMENT = `
+  fragment CartFragment on Cart {
+    id
+    checkoutUrl
+    cost { subtotalAmount { amount currencyCode } totalAmount { amount currencyCode } totalTaxAmount { amount currencyCode } }
+    lines(first: 100) { edges { node { id quantity merchandise { ... on ProductVariant { id title priceV2 { amount currencyCode } image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } product { title handle } } } attributes { key value } } } }
+    totalQuantity
+    buyerIdentity { email phone customer { id } countryCode }
+  }
+`;
+export const CART_CREATE_MUTATION = `mutation cartCreate($input: CartInput) { cartCreate(input: $input) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_ADD_MUTATION = `mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) { cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_UPDATE_MUTATION = `mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) { cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const CART_LINES_REMOVE_MUTATION = `mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) { cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
+export const GET_CART_QUERY = `query getCart($id: ID!) { cart(id: $id) { ...CartFragment } } ${CART_FRAGMENT}`;
+export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
+  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart { ...CartFragment }
+      userErrors { field message code }
+    }
+  }
+  ${CART_FRAGMENT}
+`;
+
 // --- Product Search (Admin API) ---
 export const PRODUCT_SEARCH_QUERY = `
   query productSearch($query: String!, $first: Int!) {
@@ -260,8 +378,6 @@ export const FILE_CREATE_MUTATION = `
           alt 
           image {
              originalSrc 
-             # You might also want to query 'url' here if available for MediaImage context
-             # url(transform: {maxWidth: 2048, maxHeight: 2048}) # Example if you need a transformed URL
           }
         }
         ... on Video {
@@ -270,9 +386,7 @@ export const FILE_CREATE_MUTATION = `
             fileSize
             mimeType
           }
-          # other video fields
         }
-        # ... other file types like ExternalVideo, Model3d
       }
       userErrors {
         field
@@ -295,112 +409,34 @@ export const FILE_DELETE_MUTATION = `
   }
 `;
 
-
-// ... (Keep all existing Storefront API mutations and helpers: CREATE_SHOPIFY_CUSTOMER_MUTATION, etc.)
-// --- Customer Management (Storefront API) ---
-export const CREATE_SHOPIFY_CUSTOMER_MUTATION = `
-  mutation customerCreate($input: CustomerCreateInput!) {
-    customerCreate(input: $input) {
-      customer { id firstName lastName email }
-      customerUserErrors { code field message }
-    }
-  }
-`;
-export const CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION = `
-  mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
-    customerAccessTokenCreate(input: $input) {
-      customerAccessToken { accessToken expiresAt }
-      customerUserErrors { code field message }
-    }
-  }
-`;
-export const GET_CUSTOMER_INFO_QUERY = `
-  query getCustomerInfo($customerAccessToken: String!) {
-    customer(customerAccessToken: $customerAccessToken) { id email firstName lastName }
-  }
-`;
-// --- Customer Update (Admin API - for password) ---
-export const CUSTOMER_UPDATE_MUTATION = `
-mutation customerUpdate($input: CustomerInput!) {
-  customerUpdate(input: $input) {
-    customer { id email }
-    userErrors { field message }
-  }
-}
-`;
-// --- Draft Order (Admin API) ---
-export const DRAFT_ORDER_CREATE_MUTATION = `
-  mutation draftOrderCreate($input: DraftOrderInput!) {
-    draftOrderCreate(input: $input) {
-      draftOrder { id invoiceUrl name status totalPriceSet { presentmentMoney { amount currencyCode } } }
-      userErrors { field message }
-    }
-  }
-`;
-// --- Order History (Storefront API) ---
-export const GET_CUSTOMER_ORDERS_QUERY = `
-  query getCustomerOrders($customerAccessToken: String!, $first: Int!, $cursor: String) {
-    customer(customerAccessToken: $customerAccessToken) {
-      orders(first: $first, after: $cursor, sortKey: PROCESSED_AT, reverse: true) {
-        edges { node { id orderNumber processedAt financialStatus fulfillmentStatus totalPriceV2 { amount currencyCode } lineItems(first: 5) { edges { node { title quantity variant { image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } priceV2 { amount currencyCode } } } } } } } cursor }
-        pageInfo { hasNextPage endCursor }
+// --- Reorder Logic (Admin API) ---
+export const GET_ORDER_BY_NOTE_QUERY = `
+  query getOrderByNote($query: String!) {
+    orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
+      edges {
+        node {
+          id
+          customer {
+            id
+          }
+          lineItems(first: 50) {
+            edges {
+              node {
+                quantity
+                variant {
+                  id
+                }
+                customAttributes {
+                  key
+                  value
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
-`;
-// --- Manage Addresses (Storefront API) ---
-export const GET_CUSTOMER_ADDRESSES_QUERY = `
-  query getCustomerAddresses($customerAccessToken: String!) {
-    customer(customerAccessToken: $customerAccessToken) {
-      defaultAddress { id address1 address2 city company country countryCodeV2 firstName lastName phone province provinceCode zip formatted }
-      addresses(first: 10) { edges { node { id address1 address2 city company country countryCodeV2 firstName lastName phone province provinceCode zip formatted } } }
-    }
-  }
-`;
-export const CUSTOMER_ADDRESS_CREATE_MUTATION = `
-  mutation customerAddressCreate($customerAccessToken: String!, $address: MailingAddressInput!) {
-    customerAddressCreate(customerAccessToken: $customerAccessToken, address: $address) { customerAddress { id } customerUserErrors { code field message } }
-  }
-`;
-export const CUSTOMER_ADDRESS_UPDATE_MUTATION = `
-  mutation customerAddressUpdate($customerAccessToken: String!, $id: ID!, $address: MailingAddressInput!) {
-    customerAddressUpdate(customerAccessToken: $customerAccessToken, id: $id, address: $address) { customerAddress { id } customerUserErrors { code field message } }
-  }
-`;
-export const CUSTOMER_ADDRESS_DELETE_MUTATION = `
-  mutation customerAddressDelete($customerAccessToken: String!, $id: ID!) {
-    customerAddressDelete(customerAccessToken: $customerAccessToken, id: $id) { deletedCustomerAddressId customerUserErrors { code field message } }
-  }
-`;
-export const CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION = `
-  mutation customerDefaultAddressUpdate($customerAccessToken: String!, $addressId: ID!) {
-    customerDefaultAddressUpdate(customerAccessToken: $customerAccessToken, addressId: $addressId) { customer { id defaultAddress { id } } customerUserErrors { code field message } }
-  }
-`;
-// --- Cart Mutations and Queries (Storefront API) ---
-export const CART_FRAGMENT = `
-  fragment CartFragment on Cart {
-    id
-    checkoutUrl
-    cost { subtotalAmount { amount currencyCode } totalAmount { amount currencyCode } totalTaxAmount { amount currencyCode } }
-    lines(first: 100) { edges { node { id quantity merchandise { ... on ProductVariant { id title priceV2 { amount currencyCode } image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } product { title handle } } } attributes { key value } } } }
-    totalQuantity
-    buyerIdentity { email phone customer { id } countryCode }
-  }
-`;
-export const CART_CREATE_MUTATION = `mutation cartCreate($input: CartInput) { cartCreate(input: $input) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_ADD_MUTATION = `mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) { cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_UPDATE_MUTATION = `mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) { cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const CART_LINES_REMOVE_MUTATION = `mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) { cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFragment } userErrors { field message } } } ${CART_FRAGMENT}`;
-export const GET_CART_QUERY = `query getCart($id: ID!) { cart(id: $id) { ...CartFragment } } ${CART_FRAGMENT}`;
-export const CART_BUYER_IDENTITY_UPDATE_MUTATION = `
-  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
-    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
-      cart { ...CartFragment }
-      userErrors { field message code }
-    }
-  }
-  ${CART_FRAGMENT}
 `;
 
 // --- Helper Functions ---
@@ -473,53 +509,4 @@ export async function deleteShopifyFile(fileIds) {
         throw new Error("File IDs are required for deletion.");
     }
     return shopifyAdminRequest(FILE_DELETE_MUTATION, { fileIds });
-}
-
-// ... (keep all existing code in the file)
-
-// --- Reorder Logic (Admin API) ---
-
-// ... (keep all existing code in the file)
-
-// --- Find Order By Tag (Admin API) ---
-
-export const GET_ORDER_BY_NOTE_QUERY = `
-  query getOrderByNote($query: String!) {
-    orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
-      edges {
-        node {
-          id
-          customer {
-            id
-          }
-          lineItems(first: 50) {
-            edges {
-              node {
-                quantity
-                variant {
-                  id
-                }
-                customAttributes {
-                  key
-                  value
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-/**
- * Fetches the line items from a specific order using the Admin API.
- * @param {string} orderId The GID of the Shopify Order.
- * @returns {Promise<any>} The Shopify Admin API response containing the order details.
- */
-export async function getShopifyOrderLineItems(orderId) {
-  if (!orderId) {
-    throw new Error("Order ID is required to fetch line items.");
-  }
-  return shopifyAdminRequest(GET_ORDER_LINE_ITEMS_QUERY, { orderId });
 }

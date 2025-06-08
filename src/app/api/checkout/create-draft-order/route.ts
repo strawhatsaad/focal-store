@@ -43,8 +43,6 @@ export async function POST(request: Request) {
              isFirstTimeCustomer = true;
         }
 
-        console.log(`[Create Draft Order] Is first-time customer? ${isFirstTimeCustomer}`);
-
         const draftOrderLineItems = lineItems.map((item: any) => {
             if (!item.variantId || typeof item.customizedPrice === 'undefined' || !item.quantity || !item.title) {
                 throw new Error("Each line item must have variantId, title, quantity, and customizedPrice.");
@@ -55,7 +53,6 @@ export async function POST(request: Request) {
             return {
                 variantId: item.variantId,
                 quantity: parseInt(item.quantity, 10),
-                // We send the original price and apply a discount at the order level
                 originalUnitPrice: originalUnitPrice.toFixed(2), 
                 customAttributes: item.attributes || [],
                 title: item.title,
@@ -74,7 +71,6 @@ export async function POST(request: Request) {
 
         // Apply an order-level discount if the customer is eligible
         if (isFirstTimeCustomer) {
-            console.log("[Create Draft Order] Applying 20% first-time customer discount to the draft order.");
             draftOrderInput.appliedDiscount = {
                 title: "First-Time Customer Discount",
                 description: "20% off for your first order!",
@@ -94,8 +90,6 @@ export async function POST(request: Request) {
                 };
             }
         }
-        
-        console.log("[Create Draft Order] Final draftOrderInput being sent to Shopify:", JSON.stringify(draftOrderInput, null, 2));
 
         const shopifyResponse = await createShopifyDraftOrder(draftOrderInput);
 

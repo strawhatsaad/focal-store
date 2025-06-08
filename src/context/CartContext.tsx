@@ -8,7 +8,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
-  useMemo, 
+  useMemo,
 } from "react";
 import {
   storeFront,
@@ -18,31 +18,31 @@ import {
   CART_LINES_REMOVE_MUTATION,
   GET_CART_QUERY,
   CART_BUYER_IDENTITY_UPDATE_MUTATION,
-} from "../../utils"; 
+} from "../../utils";
 import { useSession } from "next-auth/react";
 
-const DONATION_PRODUCT_VARIANT_ID: any = "gid://shopify/ProductVariant/46334706581757"; 
+const DONATION_PRODUCT_VARIANT_ID: any = "gid://shopify/ProductVariant/46334706581757";
 
 interface CartContextType {
   cart: Cart | null;
   cartId: string | null;
   loading: boolean;
-  isInitializing: boolean; 
+  isInitializing: boolean;
   error: string | null;
-  isFirstTimeCustomer: boolean | undefined; // For discount
-  createCart: () => Promise<string | null>; 
+  isFirstTimeCustomer: boolean | undefined;
+  createCart: () => Promise<string | null>;
   fetchCart: (id: string) => Promise<void>;
   addLineItem: (
     variantId: string,
     quantity: number,
     attributes?: Array<{ key: string; value: string }>
-  ) => Promise<boolean>; 
+  ) => Promise<boolean>;
   updateLineItem: (lineId: string, quantity: number) => Promise<void>;
   removeLineItem: (lineId: string) => Promise<void>;
   clearCartError: () => void;
   associateCartWithCustomer: (customerAccessToken: string) => Promise<void>;
   itemCount: number;
-  clearCartAndCreateNew: () => Promise<void>; 
+  clearCartAndCreateNew: () => Promise<void>;
 }
 
 interface CartProviderProps {
@@ -105,6 +105,7 @@ interface Cart {
   note?: string | null;
 }
 
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const useCart = () => {
@@ -118,122 +119,13 @@ export const useCart = () => {
 export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<Cart | null>(null);
   const [cartId, setCartId] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false); 
-  const [isInitializing, setIsInitializing] = useState<boolean>(true); 
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState<boolean | undefined>(undefined); // Start as undefined
+  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState<boolean | undefined>(undefined);
   const { data: session, status: sessionStatus } = useSession();
 
   const clearCartError = () => setError(null);
-
-  const handleShopifyError = (
-    errorData: any,
-    defaultMessage: string
-  ): string => {
-    if (errorData?.userErrors?.length > 0) {
-      return errorData.userErrors.map((e: any) => e.message).join(", ");
-    }
-    if (errorData?.message) {
-      return errorData.message;
-    }
-    return defaultMessage;
-  };
-
-  useEffect(() => {
-    const checkStatus = async () => {
-        if (sessionStatus === 'loading') {
-            return;
-        }
-        if (sessionStatus === 'unauthenticated') {
-            setIsFirstTimeCustomer(true);
-            return;
-        }
-        if (sessionStatus === 'authenticated') {
-            try {
-                const res = await fetch('/api/account/status');
-                const data = await res.json();
-                if (res.ok) {
-                    setIsFirstTimeCustomer(data.isFirstTimeCustomer);
-                } else {
-                    setIsFirstTimeCustomer(false);
-                }
-            } catch {
-                setIsFirstTimeCustomer(false);
-            }
-        }
-    };
-    checkStatus();
-  }, [sessionStatus]);
-
-
-  const checkAndManageDonationProduct = async (currentCart: Cart | null): Promise<Cart | null> => {
-    if (!currentCart || !currentCart.id || !currentCart.lines?.edges) return currentCart;
-    if (DONATION_PRODUCT_VARIANT_ID === "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE") {
-      return currentCart;
-    }
-
-    const currentLines = currentCart.lines.edges;
-    const donationItemLine = currentLines.find(edge => edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID);
-    
-    let qualifyingEyeglassesCount = 0;
-    let totalContactLensBoxes = 0;
-
-    currentLines.forEach(edge => {
-      if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return; 
-
-      const isContactLens = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "ContactLenses");
-      const isEyeglasses = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "Eyeglasses");
-
-      if (isEyeglasses) {
-        qualifyingEyeglassesCount += edge.node.quantity;
-      } else if (isContactLens) {
-        totalContactLensBoxes += edge.node.quantity;
-      }
-    });
-
-    const shouldHaveDonation = (qualifyingEyeglassesCount > 0) || (totalContactLensBoxes >= 4);
-    
-    // Case 1: Donation item exists but shouldn't. REMOVE IT.
-    if (donationItemLine && !shouldHaveDonation) {
-      try {
-        const variables = { cartId: currentCart.id, lineIds: [donationItemLine.node.id] };
-        const response = await storeFront(CART_LINES_REMOVE_MUTATION, variables);
-        return response.data?.cartLinesRemove?.cart || currentCart; 
-      } catch (e: any) {
-        console.error("[CartContext] Exception removing donation item:", e.message);
-        return currentCart; 
-      }
-    } 
-    // Case 2: Donation item should exist but doesn't. ADD IT.
-    else if (!donationItemLine && shouldHaveDonation) {
-        try {
-            let donationAttributes = [];
-            if (qualifyingEyeglassesCount > 0) {
-                 donationAttributes = [{
-                    key: "Donation Message",
-                    value: "You're Not Just Buying Glasses — You're Giving Someone Their Sight Back. Your purchase has donated a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
-                }];
-            } else { // This means it was triggered by contact lenses
-                 donationAttributes = [{
-                    key: "Donation Message",
-                    value: "You're Not Just Buying Contacts — You're Giving Someone Their Sight Back. Stock up with 4 boxes, and you donate a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
-                }];
-            }
-            const variables = {
-                cartId: currentCart.id,
-                lines: [{ merchandiseId: DONATION_PRODUCT_VARIANT_ID, quantity: 1, attributes: donationAttributes }],
-            };
-            const response = await storeFront(CART_LINES_ADD_MUTATION, variables);
-            return response.data?.cartLinesAdd?.cart || currentCart;
-        } catch (e: any) {
-            console.error("[CartContext] Exception adding donation item:", e.message);
-            return currentCart;
-        }
-    }
-    
-    // Case 3: State is correct, no change needed.
-    return currentCart; 
-  };
 
   const createCart = useCallback(async (): Promise<string | null> => {
     setLoading(true);
@@ -263,6 +155,131 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
   }, [session]);
 
+  const clearCartAndCreateNew = useCallback(async () => {
+    localStorage.removeItem("focalCartId");
+    setCart(null);
+    setCartId(null);
+    setIsInitializing(true);
+    await createCart().finally(() => setIsInitializing(false));
+  }, [createCart]);
+
+  const checkPendingOrderStatus = useCallback(async () => {
+    const pendingCheckoutRaw = localStorage.getItem('pendingCheckout');
+
+    if (!pendingCheckoutRaw) {
+        return;
+    }
+
+    try {
+        const { draftOrderId, cartId: completedCartId } = JSON.parse(pendingCheckoutRaw);
+        if (!draftOrderId || !completedCartId) {
+            localStorage.removeItem('pendingCheckout');
+            return;
+        }
+
+        const currentCartId = localStorage.getItem('focalCartId');
+        if (currentCartId !== completedCartId) {
+            localStorage.removeItem('pendingCheckout');
+            return;
+        }
+
+        const response = await fetch(`/api/checkout/order-status?id=${draftOrderId}`);
+        const data = await response.json();
+
+        if (data.isCompleted) {
+            await clearCartAndCreateNew();
+            localStorage.removeItem('pendingCheckout'); 
+        }
+    } catch (error) {
+        console.error("Error checking pending order status. Clearing to prevent loops.", error);
+        localStorage.removeItem('pendingCheckout');
+    }
+  }, [clearCartAndCreateNew]);
+
+  const handleShopifyError = (
+    errorData: any,
+    defaultMessage: string
+  ): string => {
+    if (errorData?.userErrors?.length > 0) {
+      return errorData.userErrors.map((e: any) => e.message).join(", ");
+    }
+    if (errorData?.message) {
+      return errorData.message;
+    }
+    return defaultMessage;
+  };
+
+  useEffect(() => {
+    const checkStatus = async () => {
+        if (sessionStatus === 'loading') return;
+        if (sessionStatus === 'unauthenticated') {
+            setIsFirstTimeCustomer(true);
+            return;
+        }
+        if (sessionStatus === 'authenticated') {
+            try {
+                const res = await fetch('/api/account/status');
+                const data = await res.json();
+                setIsFirstTimeCustomer(res.ok ? data.isFirstTimeCustomer : false);
+            } catch {
+                setIsFirstTimeCustomer(false);
+            }
+        }
+    };
+    checkStatus();
+  }, [sessionStatus]);
+
+  const checkAndManageDonationProduct = async (currentCart: Cart | null): Promise<Cart | null> => {
+    if (!currentCart || !currentCart.id || !currentCart.lines?.edges) return currentCart;
+    if (DONATION_PRODUCT_VARIANT_ID === "gid://shopify/ProductVariant/YOUR_DONATION_PRODUCT_VARIANT_ID_HERE") return currentCart;
+
+    const currentLines = currentCart.lines.edges;
+    const donationItemLine = currentLines.find(edge => edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID);
+    
+    let qualifyingEyeglassesCount = 0;
+    let totalContactLensBoxes = 0;
+
+    currentLines.forEach(edge => {
+      if (edge.node.merchandise.id === DONATION_PRODUCT_VARIANT_ID) return; 
+      const isContactLens = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "ContactLenses");
+      const isEyeglasses = edge.node.attributes.some(attr => attr.key === "FocalProductType" && attr.value === "Eyeglasses");
+      if (isEyeglasses) qualifyingEyeglassesCount += edge.node.quantity;
+      else if (isContactLens) totalContactLensBoxes += edge.node.quantity;
+    });
+
+    const shouldHaveDonation = (qualifyingEyeglassesCount > 0) || (totalContactLensBoxes >= 4);
+    
+    if (donationItemLine && !shouldHaveDonation) {
+      try {
+        const variables = { cartId: currentCart.id, lineIds: [donationItemLine.node.id] };
+        const response = await storeFront(CART_LINES_REMOVE_MUTATION, variables);
+        return response.data?.cartLinesRemove?.cart || currentCart;
+      } catch (e: any) {
+        console.error("[CartContext] Exception removing donation item:", e.message);
+        return currentCart;
+      }
+    } else if (!donationItemLine && shouldHaveDonation) {
+        try {
+            let donationAttributes = [{
+                key: "Donation Message",
+                value: qualifyingEyeglassesCount > 0 
+                    ? "You're Not Just Buying Glasses — You're Giving Someone Their Sight Back. Your purchase has donated a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+                    : "You're Not Just Buying Contacts — You're Giving Someone Their Sight Back. Stock up with 4 boxes, and you donate a cataract lens to someone who needs it most. Yep, you’re kind of amazing."
+            }];
+            const variables = {
+                cartId: currentCart.id,
+                lines: [{ merchandiseId: DONATION_PRODUCT_VARIANT_ID, quantity: 1, attributes: donationAttributes }],
+            };
+            const response = await storeFront(CART_LINES_ADD_MUTATION, variables);
+            return response.data?.cartLinesAdd?.cart || currentCart;
+        } catch (e: any) {
+            console.error("[CartContext] Exception adding donation item:", e.message);
+            return currentCart;
+        }
+    }
+    return currentCart;
+  };
+
   const fetchCart = useCallback(async (id: string) => {
     if (!id) {
       setIsInitializing(false);
@@ -279,8 +296,6 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setCartId(updatedCart?.id || null);
       } else {
         localStorage.removeItem("focalCartId");
-        setCart(null);
-        setCartId(null);
         await createCart(); 
       }
     } catch (err: any) {
@@ -292,19 +307,22 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       setLoading(false);
       setIsInitializing(false);
     }
-  }, [createCart]); 
-
+  }, [createCart]);
 
   useEffect(() => {
-    setIsInitializing(true);
-    const storedCartId = localStorage.getItem("focalCartId");
-    if (storedCartId) {
-      fetchCart(storedCartId);
-    } else {
-      createCart().finally(() => setIsInitializing(false));
+    const initialize = async () => {
+        setIsInitializing(true);
+        await checkPendingOrderStatus();
+        const storedCartId = localStorage.getItem("focalCartId");
+        if (storedCartId) {
+            await fetchCart(storedCartId);
+        } else {
+            await createCart();
+        }
+        setIsInitializing(false);
     }
-  }, [fetchCart, createCart]);
-
+    initialize();
+  }, [fetchCart, createCart, checkPendingOrderStatus]);
 
   const addLineItem = useCallback(
     async (
@@ -314,18 +332,12 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     ): Promise<boolean> => {
       let currentCartId = cartId;
       if (!currentCartId) {
-        const storedId = localStorage.getItem("focalCartId");
-        if (storedId) {
-            currentCartId = storedId;
-            setCartId(storedId); 
-        } else {
-            currentCartId = await createCart(); 
-             if (!currentCartId) {
-                console.error("[CartContext] Failed to create or retrieve cart ID before adding item.");
-                setError("Cart not initialized. Please try again.");
-                return false;
-            }
+        const newCartId = await createCart();
+        if (!newCartId) {
+            setError("Cart not initialized. Please try again.");
+            return false;
         }
+        currentCartId = newCartId;
       }
 
       setLoading(true);
@@ -338,7 +350,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         const response = await storeFront(CART_LINES_ADD_MUTATION, variables);
         if (response.data?.cartLinesAdd?.cart) {
           let updatedCart = response.data.cartLinesAdd.cart;
-          if (variantId !== DONATION_PRODUCT_VARIANT_ID) { 
+          if (variantId !== DONATION_PRODUCT_VARIANT_ID) {
              updatedCart = await checkAndManageDonationProduct(updatedCart);
           }
           setCart(updatedCart);
@@ -354,15 +366,12 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId, createCart] 
+    [cartId, createCart]
   );
 
   const removeLineItem = useCallback(
     async (lineId: string) => {
-      if (!cartId) {
-        setError("Cart not initialized.");
-        return;
-      }
+      if (!cartId) return;
       setLoading(true);
       setError(null);
       try {
@@ -382,15 +391,12 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId] 
+    [cartId]
   );
 
   const updateLineItem = useCallback(
     async (lineId: string, quantity: number) => {
-      if (!cartId) {
-        setError("Cart not initialized.");
-        return;
-      }
+      if (!cartId) return;
       if (quantity <= 0) { 
         await removeLineItem(lineId); 
         return;
@@ -414,30 +420,21 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(false);
       }
     },
-    [cartId, removeLineItem] 
+    [cartId, removeLineItem]
   );
   
   const associateCartWithCustomer = useCallback(async (customerAccessToken: string) => {
-    let currentCartId = cartId;
-    if (!currentCartId) {
-        currentCartId = localStorage.getItem("focalCartId");
-    }
-    if (!currentCartId || !customerAccessToken) {
-      console.warn("Cart ID or Customer Access Token missing for association.");
-      return;
-    }
+    if (!cartId || !customerAccessToken) return;
     setLoading(true);
     setError(null);
     try {
-      const buyerIdentity = { customerAccessToken: customerAccessToken, countryCode: "US" }; 
-      const variables = { cartId: currentCartId, buyerIdentity };
+      const buyerIdentity = { customerAccessToken, countryCode: "US" }; 
+      const variables = { cartId, buyerIdentity };
       const response = await storeFront(CART_BUYER_IDENTITY_UPDATE_MUTATION, variables);
       if (response.data?.cartBuyerIdentityUpdate?.cart) {
         setCart(response.data.cartBuyerIdentityUpdate.cart);
-      } else if (response.data?.cartBuyerIdentityUpdate?.userErrors?.length > 0) {
-        throw new Error(handleShopifyError(response.data.cartBuyerIdentityUpdate, "Failed to associate cart with customer."));
       } else {
-         throw new Error("Failed to associate cart with customer due to an unknown error.");
+        throw new Error(handleShopifyError(response.data.cartBuyerIdentityUpdate, "Failed to associate cart with customer."));
       }
     } catch (err: any) {
       setError(err.message);
@@ -447,18 +444,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
   }, [cartId]);
 
-  const clearCartAndCreateNew = useCallback(async () => {
-    localStorage.removeItem("focalCartId");
-    setCart(null);
-    setCartId(null);
-    setIsInitializing(true); 
-    await createCart().finally(() => setIsInitializing(false)); 
-  }, [createCart]);
-
   const itemCount = useMemo(() => {
     return cart?.lines.edges.reduce((sum, edge) => sum + edge.node.quantity, 0) || 0;
   }, [cart]);
-
 
   return (
     <CartContext.Provider
@@ -477,7 +465,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         clearCartError,
         associateCartWithCustomer,
         itemCount,
-        clearCartAndCreateNew, 
+        clearCartAndCreateNew,
       }}
     >
       {children}
