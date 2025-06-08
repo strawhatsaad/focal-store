@@ -454,7 +454,7 @@ function CartPageContent() {
                   {isProcessingCheckout || cartContextLoading || sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
-                    <CreditCard className="w-5 w-5 mr-2" />
+                    <CreditCard className="w-5 h-5 mr-2" />
                   )}
                   Proceed to Secure Checkout
                 </button>

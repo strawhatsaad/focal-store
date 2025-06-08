@@ -28,7 +28,7 @@ export const CureBlindnessFeatures = () => {
                 Focused on Vision
               </h2>
               <p className="text-white text-base sm:text-lg md:text-lg lg:text-2xl font-normal md:font-semibold mt-1 sm:mt-2">
-                Subtext to be added later
+                Helping you see clearly, every step of the way.
               </p>
               {/* Adjusted button sizes and gap */}
               <div className="flex flex-col xs:flex-row md:flex-row gap-2 sm:gap-3 md:gap-2 lg:gap-4 mt-3 sm:mt-4">

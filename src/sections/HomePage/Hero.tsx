@@ -69,7 +69,7 @@ export const Hero = () => {
             </div>
           </div>
           {/* Image section */}
-          <div className="w-full mt-8 md:mt-0 md:flex-1 relative order-1 md:order-2 flex justify-center items-center md:h-[648px]">
+          <div className="w-full mt-6 mb-6 md:mb-0 md:mt-0 md:flex-1 relative order-1 md:order-2 flex justify-center items-center md:h-[648px]">
             <motion.img
               src={heroImage.src}
               alt="Hero Image"
