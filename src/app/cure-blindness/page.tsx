@@ -43,8 +43,8 @@ const CureBlindnessPage = () => {
         {/* --- Hero Section --- */}
         <section className="relative bg-[#2c5b6b] text-white">
             <div className="absolute inset-0">
-                <img
-                    src={cureBlindnessHero.src}
+                <Image
+                    src={cureBlindnessHero}
                     alt="Happy people with restored vision"
                     className="w-full h-full object-cover opacity-30"
                 />
@@ -128,23 +128,23 @@ const CureBlindnessPage = () => {
                 <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-start">
                     <div>
                         <h2 className="text-3xl sm:text-4xl font-extrabold text-[#2c5b6b] tracking-tight">WHY WE HELP</h2>
-                        <p className="mt-4 text-gray-700 sm:text-lg">For millions of people, blindness is treatable. Unfortunately, 90% of people suffering from vision loss live in low- and middle-income countries where a solution isn't available. Without care, blindness dramatically affects individuals, their families and their communities.</p>
+                        <p className="mt-4 text-gray-700 sm:text-lg">For millions of people, blindness is treatable. Unfortunately, 90% of people suffering from vision loss live in low and middle-income countries where a solution isn&apos;t available. Without care, blindness dramatically affects individuals, their families and their communities.</p>
                         <ul className="mt-6 space-y-4 text-base sm:text-lg">
                             <WhyHelpItem>Blind children are more likely to die in childhood than children with good vision, especially in low-income countries.</WhyHelpItem>
                             <WhyHelpItem>Vision loss is linked to social exclusion more broadly, including the experience of negative attitudes, violence and bullying, sexual assault, and loneliness.</WhyHelpItem>
-                            <WhyHelpItem>The restoration of sight helps break the cycle of poverty and inequity. Studies show that as many as 90% of blind individuals in poor communities cannot work. 55% of the world's blind are women - and 90% of women who are blind are living in poverty.</WhyHelpItem>
+                            <WhyHelpItem>The restoration of sight helps break the cycle of poverty and inequity. Studies show that as many as 90% of blind individuals in poor communities cannot work. 55% of the world&apos;s blind are women - and 90% of women who are blind are living in poverty.</WhyHelpItem>
                              <WhyHelpItem>Sight helps people learn. Children can learn twice as much when they see clearly.</WhyHelpItem>
                         </ul>
                     </div>
                     <div className="mt-12 flex flex-col gap-y-4 lg:mt-0">
-                         <img src={surgeonPic.src} alt="Surgeons performing eye surgery" className="w-full h-auto rounded-lg" />
-                         <img src={surgeonPic2.src} alt="Surgeons performing eye surgery" className="w-full h-auto rounded-lg" />
+                         <Image src={surgeonPic} alt="Surgeons performing eye surgery" className="w-full h-auto rounded-lg" />
+                         <Image src={surgeonPic2} alt="Surgeons performing eye surgery" className="w-full h-auto rounded-lg" />
                     </div>
                 </div>
 
                 <div className="mt-16 sm:mt-24">
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-[#2c5b6b] tracking-tight">HOW WE HELP</h2>
-                    <p className="mt-4 max-w-3xl mx-auto text-center text-gray-700 sm:text-lg">Cure Blindness Project's approach to eye care is unique—it focuses on building local capacity, ensuring quality infrastructure and equipment are available, enabling quality patient care and aiding effective prevention. We provide training and equipment to healthcare professionals, who then go on to provide eye care services in their own communities. This action-based approach builds local leadership, empowers key actors, and develops sustainable practices from the ground up.</p>
+                    <p className="mt-4 max-w-3xl mx-auto text-center text-gray-700 sm:text-lg">Cure Blindness Project&apos;s approach to eye care is unique—it focuses on building local capacity, ensuring quality infrastructure and equipment are available, enabling quality patient care and aiding effective prevention. We provide training and equipment to healthcare professionals, who then go on to provide eye care services in their own communities. This action-based approach builds local leadership, empowers key actors, and develops sustainable practices from the ground up.</p>
                     <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
                         <HowWeHelpIcon icon={<Users size={48} />} title="Local Capacity" />
                         <HowWeHelpIcon icon={<Microscope size={48} />} title="Infrastructure & Equipment" />
@@ -160,14 +160,14 @@ const CureBlindnessPage = () => {
             <div className="container mx-auto px-4 sm:px-6">
                 <div className="max-w-4xl mx-auto">
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-[#2c5b6b] tracking-tight">WHERE WE STARTED</h2>
-                    <p className="mt-4 text-center text-gray-700 sm:text-lg">Founded in 1995 as the Himalayan Cataract Project, Cure Blindness Project is a global nonprofit organization driven to help people retain or regain their sight. We envision a world where no one is needlessly blind. To make that happen, we enable underserved communities to cure avoidable blindness by developing high-quality, cost-effective, sustainable eye care wherever they are. What began in the mountains of Nepal has grown today to millions of surgeries, screenings and treatments performed in over 30 countries-and we won't stop until everyone in the world with avoidable blindness can see.</p>
+                    <p className="mt-4 text-center text-gray-700 sm:text-lg">Founded in 1995 as the Himalayan Cataract Project, Cure Blindness Project is a global nonprofit organization driven to help people retain or regain their sight. We envision a world where no one is needlessly blind. To make that happen, we enable underserved communities to cure avoidable blindness by developing high-quality, cost-effective, sustainable eye care wherever they are. What began in the mountains of Nepal has grown today to millions of surgeries, screenings and treatments performed in over 30 countries-and we won&apos;t stop until everyone in the world with avoidable blindness can see.</p>
                 </div>
 
                 <div className="mt-16 sm:mt-20 lg:mt-24 p-8 sm:p-12 bg-gray-50 rounded-2xl shadow-inner border">
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-[#2c5b6b] tracking-tight">WHERE WE WORK</h2>
                     <p className="mt-4 max-w-3xl mx-auto text-center text-gray-700 sm:text-lg">Cure Blindness Project tackles avoidable blindness in over 30 countries in South Asia and sub-Saharan Africa with core country operations in Nepal, Bhutan, India, Ethiopia, and Ghana. Expansion initiatives are underway in countries including South Sudan, Tanzania, the Philippines, Eritrea, and Somaliland.</p>
                     <div className="mt-8">
-                         <img src={mapImage.src} alt="World map showing areas of operation for the Cure Blindness Project, highlighting regions in South Asia and sub-Saharan Africa." className="w-full h-auto" />
+                         <Image src={mapImage} alt="World map showing areas of operation for the Cure Blindness Project, highlighting regions in South Asia and sub-Saharan Africa." className="w-full h-auto" />
                     </div>
                 </div>
             </div>
