@@ -1,21 +1,25 @@
 // src/app/wishlist/page.tsx
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useWishlist } from '@/context/WishlistContext';
-import { Loader2, Heart, Trash2 } from 'lucide-react';
-import { MappedProduct } from '@/types/product';
+import React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useWishlist } from "@/context/WishlistContext";
+import { Loader2, Heart, Trash2 } from "lucide-react";
+import { MappedProduct } from "@/types/product";
 
 const WishlistPage = () => {
-  const { wishlist, removeFromWishlist, loading: wishlistLoading } = useWishlist();
+  const {
+    wishlist,
+    removeFromWishlist,
+    loading: wishlistLoading,
+  } = useWishlist();
 
   if (wishlistLoading) {
     return (
-        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-            <Loader2 className="h-12 w-12 animate-spin text-black" />
-        </div>
+      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-black" />
+      </div>
     );
   }
 
@@ -41,7 +45,7 @@ const WishlistPage = () => {
               Looks like you haven&apos;t added any items yet.
             </p>
             <Link
-              href="/pages/eyewear"
+              href="/pages/contact-lenses"
               className="px-6 py-2.5 bg-black text-white font-medium text-sm rounded-lg shadow-sm hover:bg-gray-800 transition-colors"
             >
               Discover Products
@@ -50,31 +54,38 @@ const WishlistPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
             {wishlist.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden group flex flex-col w-full text-left">
+              <div
+                key={product.id}
+                className="bg-white rounded-lg shadow-md overflow-hidden group flex flex-col w-full text-left"
+              >
                 <Link href={product.href} className="block">
                   <div className="aspect-square w-full h-[300px] bg-gray-100">
-                     <Image
-                        alt={product.imageAlt || product.name}
-                        src={product.imageSrc}
-                        width={300}
-                        height={300}
-                        className="w-full h-full object-contain object-center group-hover:opacity-80 transition-opacity"
-                     />
+                    <Image
+                      alt={product.imageAlt || product.name}
+                      src={product.imageSrc}
+                      width={300}
+                      height={300}
+                      className="w-full h-full object-contain object-center group-hover:opacity-80 transition-opacity"
+                    />
                   </div>
                 </Link>
                 <div className="p-4 flex flex-col flex-grow">
-                   <h3 className="text-sm font-medium text-gray-800 flex-grow">
-                     <Link href={product.href} className="hover:underline">{product.name}</Link>
-                   </h3>
-                   <p className="mt-1 text-base font-bold text-gray-900">{product.price}</p>
-                   <div className="mt-4 flex flex-col">
-                     <button
-                       onClick={() => removeFromWishlist(product.id)}
-                       className="w-full flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md hover:bg-red-100 transition-colors"
-                     >
-                       <Trash2 size={16} /> Remove
-                     </button>
-                   </div>
+                  <h3 className="text-sm font-medium text-gray-800 flex-grow">
+                    <Link href={product.href} className="hover:underline">
+                      {product.name}
+                    </Link>
+                  </h3>
+                  <p className="mt-1 text-base font-bold text-gray-900">
+                    {product.price}
+                  </p>
+                  <div className="mt-4 flex flex-col">
+                    <button
+                      onClick={() => removeFromWishlist(product.id)}
+                      className="w-full flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 size={16} /> Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
