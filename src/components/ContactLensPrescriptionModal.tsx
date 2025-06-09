@@ -631,8 +631,8 @@ const ContactLensPrescriptionModal: React.FC<
               </div>
             </div>
             <p className="text-center text-gray-600">
-              If you need help understanding your prescription, we've got you
-              covered.
+              If you need help understanding your prescription, we&apos;ve got
+              you covered.
             </p>
             <Link
               href="/how-to-read-prescriptions"
