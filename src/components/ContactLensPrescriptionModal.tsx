@@ -290,6 +290,7 @@ const ContactLensPrescriptionModal: React.FC<
     }
   }, [isOpen, session, currentStep]);
 
+  // This effect resets the modal to its initial state only when it is opened.
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(0);
@@ -297,15 +298,22 @@ const ContactLensPrescriptionModal: React.FC<
       setOsValues({});
       setSelectedExistingRxId("");
       setUploadedFile(null);
+      setWillProvideRxLater(false);
+      setError(null);
+      setIsSubmitting(false);
+      setIsSphSelectOpen(false);
+    }
+  }, [isOpen]);
+
+  // This effect sets the default label for a new prescription upload.
+  // It's separate to avoid resetting the entire form if the session reloads.
+  useEffect(() => {
+    if (isOpen) {
       setUploadLabel(
         session?.user?.name
           ? `${session.user.name} - Contact Lens Rx`
           : "Contact Lens Rx"
       );
-      setWillProvideRxLater(false);
-      setError(null);
-      setIsSubmitting(false);
-      setIsSphSelectOpen(false);
     }
   }, [isOpen, session]);
 
