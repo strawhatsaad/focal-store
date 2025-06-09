@@ -646,7 +646,7 @@ const Hero = ({ product }: any) => {
                   sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ShoppingCart className="w-5 w-5" />
+                    <ShoppingCart className="w-5 h-5" />
                   )}
                   {isContactLensProduct
                     ? "Enter Prescription & Add to Cart"

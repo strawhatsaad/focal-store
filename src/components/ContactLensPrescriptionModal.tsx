@@ -718,7 +718,7 @@ const ContactLensPrescriptionModal: React.FC<
                   id="prescriptionFileModal"
                   onChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
-                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 disabled:opacity-50"
+                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-black/70 disabled:opacity-50"
                   disabled={
                     isSubmitting || isLoadingExistingRx || willProvideRxLater
                   }
