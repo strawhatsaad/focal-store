@@ -30,11 +30,13 @@ export default async function Home() {
     imageAlt: node.featuredImage.altText,
   }));
 
+  const randomProducts = getRandomItems(products, 9);
+
   return (
     <main className="overflow-hidden">
       <Hero />
       <Headline />
-      <ContactLenses products={products} />
+      <ContactLenses products={randomProducts} />
       <CureBlindnessFeatures />
       <CureBlindnessDetails />
       <CureBlindnessVideo />
@@ -53,7 +55,7 @@ const productQuery = gql`
     collectionByHandle(handle: $handle) {
       title
       description
-      products(first: 12) {
+      products(first: 30) {
         edges {
           node {
             id
@@ -80,3 +82,10 @@ const productQuery = gql`
     }
   }
 `;
+
+function getRandomItems<T>(arr: T[], count: number): T[] {
+  return arr
+    .sort(() => 0.5 - Math.random())
+    .slice(0, count);
+}
+
