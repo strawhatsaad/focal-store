@@ -43,7 +43,7 @@ const blogData: BlogItem[] = [
   {
     image: blogImage6,
     title: "How We're Fixing The Blindness Problem",
-    href: "",
+    href: "/cure-blindness",
   },
   {
     image: blogImage7,
@@ -65,13 +65,10 @@ export const Blogs = () => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-7xl font-black tracking-tighter bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text">
               We know a thing or two about eyes
             </h2>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl font-medium">
-              Eye-opening reads you&apos;ll actually want to see.
-            </p>
           </div>
 
           {/* Responsive grid for blog items */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-5 md:gap-6 lg:gap-8 w-full mt-6 sm:mt-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-5 md:gap-6 lg:gap-8 w-full mt-6 sm:mt-6">
             {blogData.map(({ image, title, href }, index) => (
               <Link
                 key={index}

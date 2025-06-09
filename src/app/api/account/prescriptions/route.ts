@@ -1,4 +1,4 @@
-// File: src/app/api/account/prescriptions/route.ts
+// src/app/api/account/prescriptions/route.ts
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import {
@@ -9,11 +9,12 @@ import {
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
-import { google, drive_v3 } from 'googleapis'; // Import drive_v3 for types
+import { google, drive_v3 } from 'googleapis';
 import stream from 'stream';
 
 const PRESCRIPTION_METAFIELD_NAMESPACE = "focal_rx";
 const PRESCRIPTION_METAFIELD_KEY = "uploaded_prescriptions";
+const GDRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_PRESCRIPTIONS_FOLDER_ID;
 
 type PrescriptionCategory = 'ContactLenses' | 'Eyeglasses';
 
@@ -22,12 +23,12 @@ interface PrescriptionEntry {
     fileName: string;
     fileType: string;
     uploadedAt: string;
-    storageUrlOrId: string; // This will now store the Google Drive link or ID
+    storageUrlOrId: string;
     label?: string;
     fileSize?: number;
     shopifyFileId?: string | null;
     category?: PrescriptionCategory;
-    googleDriveFileId?: string | null; // To store GDrive file ID for potential deletion
+    googleDriveFileId?: string | null;
 }
 
 const parsePrescriptionsMetafield = (metafieldValue: string | null | undefined): PrescriptionEntry[] => {
@@ -41,14 +42,33 @@ const parsePrescriptionsMetafield = (metafieldValue: string | null | undefined):
     }
 };
 
-// Helper function to find or create a folder and return its ID
+/**
+ * Configures Google Auth, prioritizing credentials from a JSON environment variable,
+ * and falling back to a file path. This is ideal for deployments like Vercel.
+ */
+const getGoogleAuth = (scopes: string | string[]) => {
+    const credsJson = process.env.GOOGLE_SERVICE_ACCOUNT_CREDS_JSON;
+    const keyFilePath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+
+    if (credsJson) {
+        // Use JSON credentials directly from the environment variable
+        const credentials = JSON.parse(credsJson);
+        return new google.auth.GoogleAuth({ credentials, scopes });
+    } else if (keyFilePath) {
+        // Fallback to the key file path for local development
+        return new google.auth.GoogleAuth({ keyFile: keyFilePath, scopes });
+    } else {
+        // If neither is configured, throw an error
+        throw new Error(
+            "Google Service Account credentials not configured. Please set either GOOGLE_SERVICE_ACCOUNT_CREDS_JSON or GOOGLE_SERVICE_ACCOUNT_KEY_PATH."
+        );
+    }
+};
+
 async function getOrCreateCustomerFolder(drive: drive_v3.Drive, parentFolderId: string, customerFolderName: string): Promise<string> {
     try {
-        // Sanitize folder name to remove characters not allowed by Google Drive or that might break the query
         const sanitizedFolderName = customerFolderName.replace(/'/g, "\\'");
-
         const query = `mimeType='application/vnd.google-apps.folder' and name='${sanitizedFolderName}' and '${parentFolderId}' in parents and trashed=false`;
-        console.log(`[Google Drive] Searching for folder with query: ${query}`);
         const res = await drive.files.list({
             q: query,
             fields: 'files(id, name)',
@@ -56,12 +76,10 @@ async function getOrCreateCustomerFolder(drive: drive_v3.Drive, parentFolderId: 
         });
 
         if (res.data.files && res.data.files.length > 0) {
-            console.log(`[Google Drive] Found existing folder: ${customerFolderName}, ID: ${res.data.files[0].id}`);
             return res.data.files[0].id!;
         } else {
-            console.log(`[Google Drive] Creating folder: ${customerFolderName} in parent ID: ${parentFolderId}`);
             const fileMetadata = {
-                name: customerFolderName, // Use original name for creation
+                name: customerFolderName,
                 mimeType: 'application/vnd.google-apps.folder',
                 parents: [parentFolderId],
             };
@@ -72,7 +90,6 @@ async function getOrCreateCustomerFolder(drive: drive_v3.Drive, parentFolderId: 
             if (!folder.data.id) {
                 throw new Error("Failed to get ID for newly created Google Drive folder.");
             }
-            console.log(`[Google Drive] Created folder: ${customerFolderName}, ID: ${folder.data.id}`);
             return folder.data.id!;
         }
     } catch (error: any) {
@@ -81,34 +98,24 @@ async function getOrCreateCustomerFolder(drive: drive_v3.Drive, parentFolderId: 
     }
 }
 
-
 async function uploadToGoogleDrive(
     fileBuffer: ArrayBuffer,
     fileNameInDrive: string,
     mimeType: string,
-    customerName: string, // For folder name
-    customerEmail: string // For folder name
+    customerName: string,
+    customerEmail: string
 ): Promise<{ fileId: string; webViewLink: string }> {
     try {
-        const keyFilePath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
-        const mainPrescriptionsFolderId = process.env.GOOGLE_DRIVE_PRESCRIPTIONS_FOLDER_ID;
+        if (!GDRIVE_FOLDER_ID) throw new Error("Google Drive Main Prescriptions Folder ID not configured.");
 
-        if (!keyFilePath) throw new Error("Google Service Account Key Path not configured.");
-        if (!mainPrescriptionsFolderId) throw new Error("Google Drive Main Prescriptions Folder ID not configured.");
-
-        const auth = new google.auth.GoogleAuth({
-            keyFile: keyFilePath,
-            scopes: ['https://www.googleapis.com/auth/drive'],
-        });
-
+        const auth = getGoogleAuth(['https://www.googleapis.com/auth/drive']);
         const drive = google.drive({ version: 'v3', auth });
 
-        // Sanitize customer name and email for folder creation if they contain problematic characters
         const safeCustomerName = customerName.replace(/[^a-zA-Z0-9\s-_]/g, '_');
         const safeCustomerEmail = customerEmail.replace(/[^a-zA-Z0-9@._-]/g, '_');
         const customerFolderName = `${safeCustomerName} - ${safeCustomerEmail}`;
 
-        const customerSpecificFolderId = await getOrCreateCustomerFolder(drive, mainPrescriptionsFolderId, customerFolderName);
+        const customerSpecificFolderId = await getOrCreateCustomerFolder(drive, GDRIVE_FOLDER_ID, customerFolderName);
 
         const fileMetadata = {
             name: fileNameInDrive,
@@ -123,7 +130,6 @@ async function uploadToGoogleDrive(
             body: bufferStream,
         };
 
-        console.log(`[Google Drive] Attempting to upload: ${fileNameInDrive} to folder: ${customerFolderName} (ID: ${customerSpecificFolderId})`);
         const response = await drive.files.create({
             requestBody: fileMetadata,
             media: media,
@@ -145,12 +151,10 @@ async function uploadToGoogleDrive(
                 type: 'anyone',
             },
         });
-        console.log(`[Google Drive] File uploaded: ${fileNameInDrive}, ID: ${fileId}, Link: ${webViewLink}`);
 
         return { fileId, webViewLink: webViewLink || `https://drive.google.com/file/d/${fileId}/view?usp=sharing` };
 
     } catch (driveError: any) {
-        console.error('[Google Drive] Upload Error:', driveError.message, driveError.stack, driveError.errors);
         let detailedMessage = driveError.message;
         if (driveError.errors && Array.isArray(driveError.errors) && driveError.errors.length > 0) {
             detailedMessage += ` Details: ${driveError.errors.map((e: any) => e.message).join(', ')}`;
@@ -211,7 +215,7 @@ export async function POST(request: Request) {
         const customerEmail = session.user.email;
 
         const originalExtension = path.extname(file.name);
-        const safeOriginalFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_"); // Sanitize original filename for GDrive
+        const safeOriginalFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const uniqueFileNameForDrive = `${safeOriginalFileName}_${uuidv4()}${originalExtension}`;
 
         const fileBuffer = await file.arrayBuffer();
@@ -257,7 +261,6 @@ export async function POST(request: Request) {
         if (metafieldResponse.data?.metafieldsSet?.userErrors?.length > 0) {
             const userErrors = metafieldResponse.data.metafieldsSet.userErrors;
             const errorMessage = userErrors.map((e: any) => `Field: ${e.field.join('/')}, Message: ${e.message}`).join("; ");
-            console.error("[API POST Prescription] Error setting metafield:", errorMessage, userErrors);
             throw new Error(`Failed to save prescription metadata: ${errorMessage}`);
         }
 
@@ -272,7 +275,6 @@ export async function POST(request: Request) {
         }
 
     } catch (error: any) {
-        console.error("[API POST Prescription] Error uploading prescription (outer catch):", error.message, error.stack);
         return NextResponse.json({ message: error.message || "Failed to upload prescription." }, { status: 500 });
     }
 }
@@ -300,20 +302,15 @@ export async function DELETE(request: Request) {
 
         if (prescriptionToDelete.googleDriveFileId) {
             try {
-                console.log(`[API DELETE Prescription] Attempting to delete Google Drive file: ${prescriptionToDelete.googleDriveFileId}`);
-                const keyFilePath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
-                if (!keyFilePath) throw new Error("Google Service Account Key Path not configured for deletion.");
-
-                const auth = new google.auth.GoogleAuth({ keyFile: keyFilePath, scopes: ['https://www.googleapis.com/auth/drive.file'] }); // drive.file should be enough for delete
+                const auth = getGoogleAuth(['https://www.googleapis.com/auth/drive.file']);
                 const drive = google.drive({ version: 'v3', auth });
                 await drive.files.delete({ fileId: prescriptionToDelete.googleDriveFileId });
-                console.log(`[API DELETE Prescription] Google Drive file ${prescriptionToDelete.googleDriveFileId} deleted successfully.`);
             } catch (driveDeleteError: any) {
                 console.error(`[API DELETE Prescription] Error deleting Google Drive file ${prescriptionToDelete.googleDriveFileId}:`, driveDeleteError.message);
             }
         }
 
-        if (prescriptionToDelete.shopifyFileId) { // If you were also storing a Shopify file
+        if (prescriptionToDelete.shopifyFileId) { 
             try {
                 await deleteShopifyFile([prescriptionToDelete.shopifyFileId]);
             } catch (e) { console.error("Error deleting Shopify file:", e); }

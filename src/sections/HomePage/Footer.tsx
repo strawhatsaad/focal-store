@@ -103,9 +103,11 @@ export const Footer = () => {
               </h2>
             </div>
             <button className="hidden btn btn-text gap-1 p-0 md:flex items-center hover:font-bold hover:scale-105 transition-all duration-[350ms]">
-              <span className="font-semibold text-white text-sm sm:text-base">
-                Learn More
-              </span>
+              <Link href={"/cure-blindness"}>
+                <span className="font-semibold text-white text-sm sm:text-base">
+                  Learn More
+                </span>
+              </Link>
               <ArrowIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
             <div className="flex w-full justify-center lg:justify-start gap-3 sm:gap-4">
@@ -196,7 +198,7 @@ export const Footer = () => {
           </div>
         </div>
         <div className="text-center text-xs text-white/50 mt-10 sm:mt-12 md:mt-16">
-          © {new Date().getFullYear()} Focal Optical. All rights reserved.
+          © {new Date().getFullYear()} Wise Eyes LLC. All rights reserved.
         </div>
       </div>
     </footer>
