@@ -43,7 +43,6 @@ export const Header = () => {
     { title: "Eyewear", href: "/pages/eyewear" },
     { title: "Sunglasses", href: "/pages/sunglasses" },
     { title: "Eyehealth", href: "/pages/eyehealth" },
-    { title: "Learning Center", href: "/pages/learning-center" },
   ];
 
   return (

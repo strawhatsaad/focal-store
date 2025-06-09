@@ -31,12 +31,11 @@ export const Hero = () => {
             </h1>
             <div className="mt-4 lg:mt-6 flex flex-col gap-2">
               <p className="text-lg sm:text-xl md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-4 sm:mt-6">
-                Same price. Same brands. One Big Difference: We give sight to
+                Same price. Same brands. One Big Difference: You give sight to
                 someone who&apos;s lost it.
               </p>
               <p className="text-lg sm:text-xl md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-4 sm:mt-6">
-                Every time you buy contact lenses or glasses, you donate a
-                cataract lens to someone in need.
+                Every time you buy contact lenses or glasses, you can be providing a cataract lens to someone in need.
               </p>
             </div>
             <div className="flex flex-col items-center md:items-start gap-5 mt-6 sm:mt-8">

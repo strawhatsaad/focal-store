@@ -626,7 +626,7 @@ const Hero = ({ product }: any) => {
                   {donationSpecifics && (
                     <span className="mt-0.5">{donationSpecifics}</span>
                   )}
-                  you donate an additional cataract lens to someone in need! This is BEYOND the ordinary donation we make to the Cure Blindness Foundation for every purchase made.
+                  you donate an additional cataract lens to someone in need! This is in ADDITION to the ordinary donation we make to the Cure Blindness Foundation for every purchase made.
                 </p>
               </div>
 

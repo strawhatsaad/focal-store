@@ -11,60 +11,52 @@ import TestimonialsColumn from "@/components/TestimonialsColumn";
 
 export const testimonials = [
   {
-    text: "The anti-reflective lens from Focal is a game-changer — no more annoying glare during night drives or Zoom calls!",
+    text: "Ordering my contact lenses from Focal was incredibly easy — just a few clicks and they arrived within days!",
     imageSrc: avatar1.src,
     name: "Jamie Rivera",
-    username: "@jamietechguru00",
   },
   {
-    text: "I’ve dropped my glasses a dozen times and not a single scratch — Focal’s scratch-resistant lens really holds up! ",
+    text: "I’m impressed by the wide variety of contact lenses Focal offers. I finally found the perfect fit for my eyes.",
     imageSrc: avatar2.src,
     name: "Josh Smith",
-    username: "@jjsmith",
   },
   {
-    text: "Smudges used to drive me crazy, but Focal’s smudge-resistant lens stays crystal clear all day. Love it!",
+    text: "Focal made it possible for me to get high-quality lenses at a price I can actually afford. Total game-changer!",
     imageSrc: avatar3.src,
     name: "Morgan Lee",
-    username: "@morganleewhiz",
   },
   {
-    text: "My eyes feel so much less strained now. The blue-light lens from Focal is perfect for long hours in front of a screen.",
+    text: "Thanks to Focal’s clear and comfortable lenses, I can go about my day without even noticing I’m wearing them.",
     imageSrc: avatar4.src,
     name: "Casey Jordan",
-    username: "@caseyj",
   },
   {
-    text: "Focal’s photochromatic lens seamlessly adapts to light — it’s like having two pairs of glasses in one. Super convenient!",
+    text: "I love that Focal supports people with vision needs — their affordable lenses helped me see clearly without breaking the bank.",
     imageSrc: avatar5.src,
     name: "Taylor Kim",
-    username: "@taylorkimm",
   },
   {
-    text: "I was hesitant to try progressive lenses, but Focal nailed it. Sharp vision at every distance without the weird adjustment period.",
+    text: "As someone new to contacts, I appreciated how simple Focal’s process was. Their support even helped me choose the right type!",
     imageSrc: avatar6.src,
     name: "Riley Smith",
-    username: "@rileysmith1",
   },
   {
-    text: "These are hands-down the most stylish and functional sunglasses I’ve ever owned. Focal doesn’t miss!",
+    text: "Switching to Focal’s contact lenses was the best decision I made. No irritation, no dryness — just all-day comfort.",
     imageSrc: avatar7.src,
     name: "Jordan Patels",
-    username: "@jpatelsdesign",
   },
   {
-    text: "Focal’s attention to detail is unmatched. Every lens feels high-quality and purpose-built for modern life.",
+    text: "Focal’s lens subscription plan saves me time and money. I never have to worry about running out!",
     imageSrc: avatar8.src,
     name: "Sam Dawson",
-    username: "@dawsontechtips",
   },
   {
-    text: "I’ve tried other brands, but nothing compares to the clarity and comfort I get with Focal lenses. Totally worth it!",
+    text: "Vision is so important, and Focal makes it accessible. I can see better, work better, and feel better — all thanks to their lenses.",
     imageSrc: avatar9.src,
-    name: "Casey Harper",
-    username: "@casey09",
+    name: "Jim Harper",
   },
 ];
+
 
 const firstColumn = testimonials.slice(0, 3);
 const secondColumn = testimonials.slice(3, 6);
