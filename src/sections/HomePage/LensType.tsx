@@ -120,7 +120,7 @@ export const LensType = () => {
               >
                 <div className="absolute flex justify-center items-center md:bottom-6 lg:bottom-10 w-full">
                   <LinkButton
-                    title="Photochromatic Lens"
+                    title="Photochromic Lens"
                     sectionId="photochromatic-btn"
                     textStyles="md:text-xs lg:text-lg"
                     containerStyles="bg-white text-black px-4 py-2 lg:px-6 lg:py-2 rounded-full font-medium inline-flex align-items justify-center tracking-tight hover:font-bold hover:scale-110 transition-all duration-[350ms]"
