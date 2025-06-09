@@ -26,8 +26,8 @@ const TestimonialsColumn = (props: {
         {[...new Array(2)].fill(0).map((_, index) => (
           <React.Fragment key={index}>
             {props.testimonials.map(
-              ({ text, imageSrc, name, username }, index) => (
-                <div key={username} className="card">
+              ({ text, imageSrc, name }, index) => (
+                <div key={name} className="card">
                   <div>{text}</div>
                   <div className="flex items-center gap-2 mt-5">
                     <Image
@@ -41,7 +41,6 @@ const TestimonialsColumn = (props: {
                       <div className="font-medium tracking-tight leading-5">
                         {name}
                       </div>
-                      <div className="leading-5 tracking-tight">{username}</div>
                     </div>
                   </div>
                 </div>
