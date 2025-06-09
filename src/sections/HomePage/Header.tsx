@@ -48,12 +48,16 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-30 bg-white backdrop-blur-sm shadow-sm">
-      <div className="flex justify-center items-center py-1 bg-gray-100 text-black text-xs md:text-sm">
-        <p className="font-semibold tracking-normal cursor-default hidden md:block hover:scale-105 transition-all duration-350">
+      <div className="flex justify-center items-center py-2 bg-gray-100 text-black text-xs md:text-sm">
+        {/* <p className="font-semibold tracking-normal cursor-default hidden md:block hover:scale-105 transition-all duration-350">
           First Order? Save 20% + free shipping 🎉
         </p>
         <p className="font-semibold tracking-normal cursor-default md:hidden">
           Save 20% + Free Shipping!
+        </p> */}
+
+        <p className="font-semibold tracking-normal cursor-default md:block text-center m-2">
+          <Link href={"/cure-blindness"}><span className="underline underline-offset-2">Cure blindness</span></Link> by buying contacts and glasses ❤️🫶
         </p>
       </div>
 

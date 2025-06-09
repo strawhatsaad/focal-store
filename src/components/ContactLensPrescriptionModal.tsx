@@ -79,7 +79,7 @@ const generateSphOptionsSeparated = (
 
 const generateCylOptions = (): string[] => {
   const options: string[] = [];
-  for (let i = -0.75; i >= -2.25; i -= 0.5) {
+  for (let i = -0.75; i >= -2.75; i -= 0.5) {
     options.push(i.toFixed(2));
   }
   return options.sort((a, b) => parseFloat(a) - parseFloat(b));

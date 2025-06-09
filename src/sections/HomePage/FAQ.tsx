@@ -19,15 +19,6 @@ export const FAQ = () => {
               Have any questions or doubts about choosing the right pair of
               glasses or contact lenses? Search for an appropriate answer!
             </p>
-            <div className="flex justify-center md:justify-start mt-2 sm:mt-0">
-              <LinkButton
-                title="All FAQs"
-                sectionId="faq-btn"
-                // Responsive text and padding for the button
-                textStyles="text-sm sm:text-base md:text-sm lg:text-lg"
-                containerStyles="bg-black text-white px-5 py-2.5 sm:px-6 md:px-4 lg:px-8 rounded-lg font-medium inline-flex items-center justify-center tracking-tight hover:font-bold hover:scale-105 transition-all duration-300 w-auto"
-              />
-            </div>
           </div>
 
           {/* Right Column: FAQ Items */}
@@ -51,20 +42,19 @@ export const FAQ = () => {
               </p>
             </FAQItem>
 
-            <FAQItem
+            {/* <FAQItem
               title="Do you accept vision insurance?"
               openFlag={false}
               bgWhite={true}
             >
               <p className="text-gray-500 text-sm sm:text-base">
                 {" "}
-                {/* Responsive text */}
                 Yes, we do! We work with most major vision insurance providers
                 across the U.S. You can either use your benefits directly at
                 checkout (if eligible) or submit your receipt for reimbursement.
-                Either way, we’ve got your eyes (and your wallet) covered.
+                Either way, we&apos;ve got your eyes (and your wallet) covered.
               </p>
-            </FAQItem>
+            </FAQItem> */}
 
             <FAQItem
               title="Do I need a prescription to order contacts?"
@@ -96,20 +86,19 @@ export const FAQ = () => {
               </p>
             </FAQItem>
 
-            <FAQItem
+            {/* <FAQItem
               title="Do I earn loyalty points?"
               openFlag={false}
               bgWhite={true}
             >
               <p className="text-gray-500 text-sm sm:text-base">
                 {" "}
-                {/* Responsive text */}
                 Oh yes, and they add up fast! Every time you shop with us, you
                 rack up loyalty points—because rewarding you for looking good
                 just makes sense. The more you buy, the more perks you unlock.
                 Discounts, freebies, and more? Yes, please!
               </p>
-            </FAQItem>
+            </FAQItem> */}
           </div>
         </div>
       </div>

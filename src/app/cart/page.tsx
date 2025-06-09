@@ -30,13 +30,13 @@ const DONATION_PRODUCT_VARIANT_ID = "gid://shopify/ProductVariant/46334706581757
 function CartPageContent() {
   const {
     cart,
+    cartId,
     loading: cartContextLoading, 
     isInitializing,
     error: cartContextError,
     updateLineItem,
     removeLineItem,
     clearCartError,
-    clearCartAndCreateNew, 
     isFirstTimeCustomer,
   } = useCart();
   const { data: session, status: sessionStatus } = useSession();
@@ -102,7 +102,6 @@ function CartPageContent() {
   
   const uiCalculatedSubtotal = lineItemsWithDisplayPrice.reduce(
     (acc, item) => {
-        // Exclude donation product from subtotal calculation
         if (item.merchandise.id === DONATION_PRODUCT_VARIANT_ID) {
             return acc;
         }
@@ -178,12 +177,19 @@ function CartPageContent() {
         throw new Error(result.message || "Failed to create draft order.");
       }
 
-      if (result.invoiceUrl) {
+      if (result.invoiceUrl && result.draftOrderId) {
         setCheckoutMessage("Redirecting to Shopify checkout...");
-        await clearCartAndCreateNew(); 
+        
+        const pendingCheckoutData = {
+            draftOrderId: result.draftOrderId,
+            cartId: cartId 
+        };
+        
+        localStorage.setItem('pendingCheckout', JSON.stringify(pendingCheckoutData));
+        
         window.location.href = result.invoiceUrl; 
       } else {
-        throw new Error("Invoice URL not received from draft order creation.");
+        throw new Error("Invoice URL or Draft Order ID not received.");
       }
     } catch (err: any) {
       console.error("Error proceeding to draft order checkout:", err);
@@ -341,7 +347,7 @@ function CartPageContent() {
                               .map((attr) => {
                                 if (attr.key === "Donation Message") {
                                     return (
-                                        <p key={attr.key} className="text-xs text-gray-500 rounded-md mt-1 max-w-md">
+                                        <p key={attr.key} className="text-xs text-gray-500 max-w-md rounded-md mt-1">
                                             {attr.value}
                                         </p>
                                     )
@@ -448,7 +454,7 @@ function CartPageContent() {
                   {isProcessingCheckout || cartContextLoading || sessionStatus === "loading" ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
-                    <CreditCard className="w-5 w-5 mr-2" />
+                    <CreditCard className="w-5 h-5 mr-2" />
                   )}
                   Proceed to Secure Checkout
                 </button>
