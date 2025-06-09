@@ -7,7 +7,6 @@ import { Footer } from "@/sections/HomePage/Footer";
 import Providers from "./providers"; // For NextAuth SessionProvider
 import { CartProvider } from "@/context/CartContext"; // For Cart Context
 import { WishlistProvider } from "@/context/WishlistContext"; // Import WishlistProvider
-import Head from "next/head";
 
 // Configure DM Sans
 const dmSans = DM_Sans({
@@ -19,7 +18,33 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Focal Optical",
-  description: "Your one-stop shop for eyewear and contact lenses.",
+  description:
+    "Shop high-quality, affordable contact lenses while making a change for the world.",
+  openGraph: {
+    title: "Focal Optical",
+    description:
+      "Shop high-quality, affordable contact lenses while making a change for the world.",
+    url: "https://www.focaloptical.com",
+    siteName: "Focal Optical",
+    images: [
+      {
+        url: "https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png", // Absolute URL required
+        width: 1200,
+        height: 630,
+        alt: "Focal Optical Contact Lenses Preview",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Focal Optical",
+    description:
+      "Shop high-quality, affordable contact lenses while making a change for the world.",
+    images: [
+      "https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png",
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -29,33 +54,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Head>
-        <title>Focal Opticals</title>
-        <meta property="og:title" content="Focal Opticals" />
-        <meta
-          property="og:description"
-          content="Shop high-quality, affordable contact lenses while making a change for the world."
-        />
-        <meta
-          property="og:image"
-          content="https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png"
-        />
-        <meta property="og:url" content="https://yourdomain.com" />
-        <meta property="og:type" content="website" />
-
-        {/* Twitter Card (optional but recommended) */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Focal Opticals" />
-        <meta
-          name="twitter:description"
-          content="Shop high-quality, affordable contact lenses while making a change for the world."
-        />
-        <meta
-          name="twitter:image"
-          content="https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png"
-        />
-      </Head>
-
       <body className={`${dmSans.variable} font-sans antialiased`}>
         <Providers>
           <CartProvider>
