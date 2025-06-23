@@ -11,6 +11,7 @@ import { Hero } from "@/sections/HomePage/Hero";
 import { LensType } from "@/sections/HomePage/LensType";
 import { Testimonials } from "@/sections/HomePage/Testimonials";
 import { storeFront } from "../../utils";
+import Head from "next/head";
 
 export default async function Home() {
   const variables = {
@@ -84,8 +85,5 @@ const productQuery = gql`
 `;
 
 function getRandomItems<T>(arr: T[], count: number): T[] {
-  return arr
-    .sort(() => 0.5 - Math.random())
-    .slice(0, count);
+  return arr.sort(() => 0.5 - Math.random()).slice(0, count);
 }
-

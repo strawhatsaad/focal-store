@@ -18,7 +18,33 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Focal Optical",
-  description: "Your one-stop shop for eyewear and contact lenses.",
+  description:
+    "Shop high-quality, affordable contact lenses while making a change for the world.",
+  openGraph: {
+    title: "Focal Optical",
+    description:
+      "Shop high-quality, affordable contact lenses while making a change for the world.",
+    url: "https://www.focaloptical.com",
+    siteName: "Focal Optical",
+    images: [
+      {
+        url: "https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png", // Absolute URL required
+        width: 1200,
+        height: 630,
+        alt: "Focal Optical Contact Lenses Preview",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Focal Optical",
+    description:
+      "Shop high-quality, affordable contact lenses while making a change for the world.",
+    images: [
+      "https://www.focaloptical.com/_next/static/media/heroImage.6398e06a.png",
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -33,9 +59,7 @@ export default function RootLayout({
           <CartProvider>
             <WishlistProvider>
               <Header />
-              <main className="min-h-screen">
-                {children}
-              </main>
+              <main className="min-h-screen">{children}</main>
               <Footer />
             </WishlistProvider>
           </CartProvider>
