@@ -83,10 +83,10 @@ const QualityEyewearPage = () => {
                 What It Takes to Create Quality Eyewear
               </h1>
               <p className="mt-6 text-xl text-gray-200">
-                It’s more than just a frame and lenses. It’s a journey of
-                design, precision craftsmanship, and an unwavering commitment to
-                detail. Discover the art and science behind every pair of Focal
-                glasses.
+                It&apos;s more than just a frame and lenses. It&apos;s a journey
+                of design, precision craftsmanship, and an unwavering commitment
+                to detail. Discover the art and science behind every pair of
+                Focal glasses.
               </p>
             </div>
           </div>
@@ -175,8 +175,8 @@ const QualityEyewearPage = () => {
                 The Heart of Vision: Our Lenses
               </h2>
               <p className="mt-4 text-lg text-gray-600">
-                Crystal-clear vision is non-negotiable. That’s why we equip our
-                frames with lenses that are as advanced as they are precise.
+                Crystal-clear vision is non-negotiable. That&apos;s why we equip
+                our frames with lenses that are as advanced as they are precise.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">

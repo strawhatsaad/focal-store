@@ -25,15 +25,16 @@ const HowToMeasurePdPage = () => {
           <p>
             When it comes to ordering prescription glasses, one tiny but
             powerful number can make all the difference: your Pupillary Distance
-            (PD). It’s the distance between the centers of your pupils, measured
-            in millimeters, and it ensures that your lenses are positioned
-            correctly in front of your eyes. A properly measured PD leads to
-            sharper vision, less eye strain, and more comfortable glasses.
+            (PD). It&apos;s the distance between the centers of your pupils,
+            measured in millimeters, and it ensures that your lenses are
+            positioned correctly in front of your eyes. A properly measured PD
+            leads to sharper vision, less eye strain, and more comfortable
+            glasses.
           </p>
           <p>
-            If you don’t have your PD on hand, don’t worry — measuring it at
-            home is simple with a few basic tools. Here’s a step-by-step guide
-            to help you get it right.
+            If you don&apos;t have your PD on hand, don&apos;t worry — measuring
+            it at home is simple with a few basic tools. Here&apos;s a
+            step-by-step guide to help you get it right.
           </p>
 
           <div className="my-8 p-6 bg-gray-50 rounded-lg border">
@@ -84,8 +85,8 @@ const HowToMeasurePdPage = () => {
               <ol className="mt-4 space-y-3">
                 <li>
                   <strong>Get Your Ruler Ready:</strong> Use a ruler that
-                  measures in millimeters. If you're using a printed ruler, make
-                  sure it’s printed at 100% scale.
+                  measures in millimeters. If you&apos;re using a printed ruler,
+                  make sure it&apos;s printed at 100% scale.
                 </li>
                 <li>
                   <strong>Stand in Front of a Mirror:</strong> Position yourself
@@ -101,12 +102,12 @@ const HowToMeasurePdPage = () => {
                   <strong>Take the Measurement:</strong> Without moving the
                   ruler, close your left eye and open your right eye. Read the
                   number that lines up with the center of your right pupil.
-                  That’s your PD!
+                  That&apos;s your PD!
                 </li>
                 <li>
                   <strong>Double-Check:</strong> Repeat the process a few times
-                  to make sure you’re getting a consistent number. If you get
-                  slightly different results, take the average.
+                  to make sure you&apos;re getting a consistent number. If you
+                  get slightly different results, take the average.
                 </li>
               </ol>
             </div>
@@ -175,11 +176,11 @@ const HowToMeasurePdPage = () => {
           </ul>
           <p>
             (Keep in mind: these are averages — your unique PD might be
-            different, and that’s perfectly normal!)
+            different, and that&apos;s perfectly normal!)
           </p>
 
           <h3>Why Getting Your PD Right Matters</h3>
-          <p>A PD that’s off by even a few millimeters can cause:</p>
+          <p>A PD that&apos;s off by even a few millimeters can cause:</p>
           <ul>
             <li>Eye strain</li>
             <li>Blurry vision</li>

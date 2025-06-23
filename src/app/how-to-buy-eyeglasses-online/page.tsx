@@ -112,8 +112,8 @@ const HowToBuyEyeglassesPage = () => {
                 prescription. This is often the quickest method.
               </li>
               <li>
-                <strong>Add it Later:</strong> We'll save your order and you can
-                add your prescription details later from your account.
+                <strong>Add it Later:</strong> We&apos;ll save your order and
+                you can add your prescription details later from your account.
               </li>
             </ul>
           </StepCard>
@@ -125,7 +125,7 @@ const HowToBuyEyeglassesPage = () => {
           >
             <div className="p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
               <p className="text-sm font-semibold text-blue-800 mb-2">
-                Don't have your PD?
+                Don&apos;t have your PD?
               </p>
               <p className="text-xs text-blue-700 mb-3">
                 Pupillary Distance is crucial for centering your lenses

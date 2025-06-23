@@ -95,12 +95,12 @@ const HowToBuyContactsPage = () => {
                   <strong>Diameter (DIA):</strong> The width of the lens.
                 </li>
                 <li>
-                  <strong>Astigmatism?</strong> You'll also need Cylinder (CYL)
-                  and Axis values.
+                  <strong>Astigmatism?</strong> You&apos;ll also need Cylinder
+                  (CYL) and Axis values.
                 </li>
                 <li>
-                  <strong>Multifocal?</strong> You'll also need an ADD Power
-                  value.
+                  <strong>Multifocal?</strong> You&apos;ll also need an ADD
+                  Power value.
                 </li>
               </ul>
               <Link
@@ -124,11 +124,11 @@ const HowToBuyContactsPage = () => {
                 your order processed.
               </li>
               <li>
-                <strong>Use a saved prescription:</strong> If you've ordered
-                with us before, select a saved Rx from your account.
+                <strong>Use a saved prescription:</strong> If you&apos;ve
+                ordered with us before, select a saved Rx from your account.
               </li>
               <li>
-                <strong>Add it later:</strong> We'll remind you to add your
+                <strong>Add it later:</strong> We&apos;ll remind you to add your
                 prescription details before we can ship your order.
               </li>
             </ul>
@@ -141,7 +141,7 @@ const HowToBuyContactsPage = () => {
           >
             <div className="p-4 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
               <h4 className="font-semibold text-green-800">
-                You're Making a Difference!
+                You&apos;re Making a Difference!
               </h4>
               <p className="text-sm text-green-700 mt-1">
                 Remember, every purchase helps fund sight-restoring surgeries
