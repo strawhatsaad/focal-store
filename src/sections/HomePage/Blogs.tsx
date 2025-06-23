@@ -18,17 +18,17 @@ const blogData: BlogItem[] = [
   {
     image: blogImage1,
     title: "What it Takes to Create Quality Eyewear",
-    href: "",
+    href: "/what-it-takes-to-create-quality-eyewear",
   },
   {
     image: blogImage2,
     title: "How to Buy Contacts Online",
-    href: "",
+    href: "/how-to-buy-contacts-online",
   },
   {
     image: blogImage3,
     title: "How to Buy Glasses Online",
-    href: "",
+    href: "/how-to-buy-eyeglasses-online",
   },
   {
     image: blogImage4,
