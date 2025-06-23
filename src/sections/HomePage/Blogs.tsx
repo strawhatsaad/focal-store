@@ -33,7 +33,7 @@ const blogData: BlogItem[] = [
   {
     image: blogImage4,
     title: "How to Measure Your PD",
-    href: "",
+    href: "/how-to-measure-pd",
   },
   {
     image: blogImage5,
