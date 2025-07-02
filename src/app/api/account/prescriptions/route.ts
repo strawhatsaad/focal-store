@@ -130,10 +130,17 @@ export async function POST(request: Request) {
     );
 
     if (!uploadResponse.ok) {
-      const errorResult = await uploadResponse.json();
-      throw new Error(
-        errorResult.message || "Failed to upload file to Vercel Blob."
-      );
+      let errorMessage = "Failed to upload file to Vercel Blob.";
+      try {
+        // Try to parse the error response as JSON
+        const errorResult = await uploadResponse.json();
+        errorMessage = errorResult.message || errorMessage;
+      } catch (e) {
+        // If parsing fails, it's not JSON. Use the raw text.
+        const textError = await uploadResponse.text();
+        errorMessage = `Upload service returned a non-JSON error: ${textError}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const newBlob = await uploadResponse.json();
