@@ -194,9 +194,9 @@ const ReimbursementModal = ({
         </div>
         <div className="p-6 overflow-y-auto space-y-6">
           <p className="text-sm text-gray-600">
-            We're not in-network with {provider.name}, however, you can apply
-            for reimbursement on your prescription lenses and eye exam. Just
-            follow the steps below:
+            We&apos;re not in-network with {provider.name}, however, you can
+            apply for reimbursement on your prescription lenses and eye exam.
+            Just follow the steps below:
           </p>
           {steps.map((step, index) => (
             <div key={index} className="flex items-start gap-4">
@@ -429,16 +429,16 @@ const HowToUseInsurancePage = () => {
             How to Submit a Claim
           </h2>
           <p className="mt-4 text-lg text-gray-600">
-            Because we are an out-of-network provider, we can't bill your
+            Because we are an out-of-network provider, we can&apos;t bill your
             insurance company directly. But, getting reimbursed is simple!
           </p>
           <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-800">
-              What you'll need:
+              What you&apos;ll need:
             </h3>
             <ul className="mt-4 space-y-3 list-disc list-inside text-gray-700">
               <li>
-                An out-of-network claim form from your insurance provider's
+                An out-of-network claim form from your insurance provider&apos;s
                 website.
               </li>
               <li>An itemized receipt from your Focal order.</li>
@@ -452,9 +452,9 @@ const HowToUseInsurancePage = () => {
             >
               Order History
             </Link>{" "}
-            page. Then, simply fill out your provider's claim form and submit it
-            along with our receipt through your provider's portal, email, or
-            mail.
+            page. Then, simply fill out your provider&apos;s claim form and
+            submit it along with our receipt through your provider&apos;s
+            portal, email, or mail.
           </p>
         </div>
       </section>
@@ -519,9 +519,9 @@ const HowToUseInsurancePage = () => {
               <p className="text-gray-600">
                 In-network providers have a contract with your insurance
                 company, which means they can bill them directly. As an
-                out-of-network provider, we don’t have a direct contract. This
-                allows us to offer competitive pricing, and you can still get
-                reimbursed by submitting a claim yourself.
+                out-of-network provider, we don&apos;t have a direct contract.
+                This allows us to offer competitive pricing, and you can still
+                get reimbursed by submitting a claim yourself.
               </p>
             </FAQItem>
             <FAQItem
@@ -549,9 +549,9 @@ const HowToUseInsurancePage = () => {
             >
               <p className="text-gray-600">
                 The amount of reimbursement depends on your specific insurance
-                plan's out-of-network benefits. We recommend contacting your
-                insurance provider directly to find out the exact amount or
-                percentage you're eligible to receive back.
+                plan&apos;s out-of-network benefits. We recommend contacting
+                your insurance provider directly to find out the exact amount or
+                percentage you&apos;re eligible to receive back.
               </p>
             </FAQItem>
             <FAQItem
@@ -560,10 +560,10 @@ const HowToUseInsurancePage = () => {
               bgWhite={true}
             >
               <p className="text-gray-600">
-                Our list includes the most common providers, but it's not
+                Our list includes the most common providers, but it&apos;s not
                 exhaustive. Most vision plans offer out-of-network benefits, so
-                it's very likely we're still covered. The best way to be sure is
-                to call your insurance provider and ask about your
+                it&apos;s very likely we&apos;re still covered. The best way to
+                be sure is to call your insurance provider and ask about your
                 out-of-network coverage for contact lenses or prescription
                 eyewear.
               </p>
@@ -575,15 +575,15 @@ const HowToUseInsurancePage = () => {
             >
               <p className="text-gray-600">
                 If your insurance provider requires additional information that
-                isn't on your itemized receipt, please{" "}
+                isn&apos;t on your itemized receipt, please{" "}
                 <Link
                   href="/contact-us"
                   className="text-black font-medium underline hover:text-gray-700"
                 >
                   contact our support team
                 </Link>
-                . We're happy to provide any necessary details to help you with
-                your reimbursement.
+                . We&apos;re happy to provide any necessary details to help you
+                with your reimbursement.
               </p>
             </FAQItem>
           </div>
