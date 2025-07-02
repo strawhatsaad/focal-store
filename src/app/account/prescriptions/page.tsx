@@ -15,6 +15,7 @@ import {
   Trash2,
   ExternalLink,
 } from "lucide-react";
+import { del } from "@vercel/blob";
 
 type PrescriptionCategory = "ContactLenses" | "Eyeglasses";
 
@@ -116,25 +117,50 @@ const ManagePrescriptionsPage = () => {
     setError(null);
     setSuccessMessage(null);
 
-    const formData = new FormData();
-    formData.append("prescriptionFile", selectedFile);
-    formData.append(
-      "label",
-      fileLabel || selectedFile.name.replace(/\.[^/.]+$/, "")
-    );
-    formData.append("category", selectedCategory);
-
     try {
-      const response = await fetch("/api/account/prescriptions", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to upload prescription.");
+      // Step 1: Upload the file to Vercel Blob via our new API route
+      const uploadResponse = await fetch(
+        `/api/upload?filename=${selectedFile.name}`,
+        {
+          method: "POST",
+          body: selectedFile,
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorResult = await uploadResponse.json();
+        throw new Error(errorResult.message || "File upload failed.");
       }
+
+      const blob = await uploadResponse.json();
+
+      // Step 2: Send the blob URL and metadata to the prescriptions API
+      const metadataResponse = await fetch("/api/account/prescriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blobUrl: blob.url,
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+          label: fileLabel || selectedFile.name.replace(/\.[^/.]+$/, ""),
+          category: selectedCategory,
+        }),
+      });
+
+      if (!metadataResponse.ok) {
+        const errorResult = await metadataResponse.json();
+        // If metadata fails, try to delete the orphaned blob
+        await del(blob.url);
+        throw new Error(
+          errorResult.message || "Failed to save prescription metadata."
+        );
+      }
+
       setSuccessMessage("Prescription uploaded successfully!");
-      fetchPrescriptions();
+      fetchPrescriptions(); // Refresh the list
+
+      // Reset form
       setSelectedFile(null);
       setFileLabel(session?.user?.name || "");
       setSelectedCategory("Eyeglasses");
@@ -405,7 +431,7 @@ const ManagePrescriptionsPage = () => {
                               )} MB`
                             : ""}
                         </p>
-                        {/* Display the GDrive link if it's a URL */}
+                        {/* Display the Vercel Blob link */}
                         {viewUrl ? (
                           <a
                             href={viewUrl}
@@ -421,8 +447,7 @@ const ManagePrescriptionsPage = () => {
                             className="text-xs text-gray-400 truncate max-w-xs sm:max-w-sm md:max-w-md"
                             title={rx.storageUrlOrId}
                           >
-                            Ref: {rx.storageUrlOrId}{" "}
-                            {/* Might be a GID if older or GDrive link failed */}
+                            Ref: {rx.storageUrlOrId}
                           </p>
                         )}
                       </div>

@@ -92,58 +92,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("prescriptionFile") as File | null;
-    const userLabel = formData.get("label") as string | null;
-    const category = formData.get("category") as
-      | PrescriptionCategory
-      | undefined;
+    // This route now expects a JSON body with the blob URL from the client
+    const { blobUrl, fileName, fileType, fileSize, label, category } =
+      await request.json();
 
-    if (!category) {
+    if (!blobUrl || !fileName || !fileType || !fileSize || !category) {
       return NextResponse.json(
-        { message: "Prescription category is required." },
-        { status: 400 }
-      );
-    }
-    if (!file) {
-      return NextResponse.json(
-        { message: "No prescription file provided." },
-        { status: 400 }
-      );
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      return NextResponse.json(
-        { message: "File size exceeds 20MB limit." },
+        { message: "Missing required prescription data in request." },
         { status: 400 }
       );
     }
 
     const ownerShopifyId = session.user.shopifyCustomerId;
-
-    // Use the new /api/upload route to upload to Vercel Blob
-    const uploadResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/upload?filename=${file.name}`,
-      {
-        method: "POST",
-        body: file,
-      }
-    );
-
-    if (!uploadResponse.ok) {
-      let errorMessage = "Failed to upload file to Vercel Blob.";
-      try {
-        // Try to parse the error response as JSON
-        const errorResult = await uploadResponse.json();
-        errorMessage = errorResult.message || errorMessage;
-      } catch (e) {
-        // If parsing fails, it's not JSON. Use the raw text.
-        const textError = await uploadResponse.text();
-        errorMessage = `Upload service returned a non-JSON error: ${textError}`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const newBlob = await uploadResponse.json();
 
     let existingPrescriptions: PrescriptionEntry[] = [];
     const existingMetafieldResponse = await getShopifyCustomerMetafield(
@@ -159,12 +119,12 @@ export async function POST(request: Request) {
 
     const newPrescription: PrescriptionEntry = {
       id: uuidv4(),
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
+      fileName: fileName,
+      fileType: fileType,
+      fileSize: fileSize,
       uploadedAt: new Date().toISOString(),
-      storageUrlOrId: newBlob.url, // Store the Vercel Blob URL
-      label: userLabel || file.name.replace(/\.[^/.]+$/, ""),
+      storageUrlOrId: blobUrl, // Use the URL from Vercel Blob
+      label: label || fileName.replace(/\.[^/.]+$/, ""),
       category: category,
     };
 
@@ -183,7 +143,7 @@ export async function POST(request: Request) {
 
     if (metafieldResponse.data?.metafieldsSet?.userErrors?.length > 0) {
       // If saving metafield fails, try to delete the uploaded blob to avoid orphaned files
-      await del(newBlob.url);
+      await del(blobUrl);
       const userErrors = metafieldResponse.data.metafieldsSet.userErrors;
       const errorMessage = userErrors
         .map((e: any) => `Field: ${e.field.join("/")}, Message: ${e.message}`)
@@ -199,7 +159,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("[API POST Prescriptions] Error:", error.message);
     return NextResponse.json(
-      { message: error.message || "Failed to upload prescription." },
+      { message: error.message || "Failed to save prescription metadata." },
       { status: 500 }
     );
   }
