@@ -3,18 +3,23 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'cdn.shopify.com',
-        port: '',
-        pathname: '/**', // Allow any path under this hostname
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+        port: "",
+        pathname: "/**", // Allow any path under this hostname
       },
       {
-        protocol: 'https',
-        hostname: 'placehold.co', // If you still use placeholder images
-        port: '',
-        pathname: '/**',
-      }
-      // You can add more patterns here for other image sources if needed
+        protocol: "https",
+        hostname: "placehold.co", // If you still use placeholder images
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   webpack(config) {
@@ -40,10 +45,10 @@ const nextConfig = {
     );
 
     // Modify the file loader rule to ignore *.svg, since we have it handled now.
-    if (fileLoaderRule) { // Add a check to ensure fileLoaderRule is found
-        fileLoaderRule.exclude = /\.svg$/i;
+    if (fileLoaderRule) {
+      // Add a check to ensure fileLoaderRule is found
+      fileLoaderRule.exclude = /\.svg$/i;
     }
-
 
     return config;
   },
