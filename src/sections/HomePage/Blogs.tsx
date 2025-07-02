@@ -48,7 +48,7 @@ const blogData: BlogItem[] = [
   {
     image: blogImage7,
     title: "How to use vision insurance",
-    href: "",
+    href: "/how-to-use-vision-insurance",
   },
 ];
 
