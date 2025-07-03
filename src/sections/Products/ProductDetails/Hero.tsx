@@ -19,28 +19,46 @@ import {
   AlertTriangle,
   HeartIcon as DonationIcon,
 } from "lucide-react";
+import { del } from "@vercel/blob";
 
 // Helper function to render discounted price
-const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string, isFirstTimeCustomer: boolean | undefined }) => {
-  const priceNum = parseFloat(originalPrice.replace('$', ''));
-  
+const PriceDisplay = ({
+  originalPrice,
+  isFirstTimeCustomer,
+}: {
+  originalPrice: string;
+  isFirstTimeCustomer: boolean | undefined;
+}) => {
+  const priceNum = parseFloat(originalPrice.replace("$", ""));
+
   if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
-    return <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">{originalPrice}</p>;
+    return (
+      <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">
+        {originalPrice}
+      </p>
+    );
   }
 
   if (isFirstTimeCustomer) {
-    const discountedPrice = priceNum * 0.80;
+    const discountedPrice = priceNum * 0.8;
     return (
       <div className="mt-1 flex items-baseline gap-2">
-        <p className="text-lg sm:text-2xl font-extrabold text-black">${discountedPrice.toFixed(2)}</p>
-        <p className="text-sm sm:text-lg font-semibold text-red-600 line-through">${priceNum.toFixed(2)}</p>
+        <p className="text-lg sm:text-2xl font-extrabold text-black">
+          ${discountedPrice.toFixed(2)}
+        </p>
+        <p className="text-sm sm:text-lg font-semibold text-red-600 line-through">
+          ${priceNum.toFixed(2)}
+        </p>
       </div>
     );
   }
 
-  return <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">${priceNum.toFixed(2)}</p>;
+  return (
+    <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-black">
+      {priceNum.toFixed(2)}
+    </p>
+  );
 };
-
 
 const Hero = ({ product }: any) => {
   const { data: session, status: sessionStatus } = useSession();
@@ -191,7 +209,7 @@ const Hero = ({ product }: any) => {
     setIsEyeglassesLensModalOpen(false);
     setIsEyeglassesRxModalOpen(true);
   };
-  
+
   const handleClPrescriptionComplete = async (
     prescriptionData: ContactLensPrescriptionData
   ) => {
@@ -200,118 +218,150 @@ const Hero = ({ product }: any) => {
     setActionSuccess(false);
     setActionError(null);
 
-    let finalPrescriptionReference =
-      prescriptionData.prescriptionReferenceValue;
+    let finalPrescriptionReference = "";
 
     if (
       prescriptionData.prescriptionReferenceType === "new" &&
       prescriptionData.uploadedFile
     ) {
-      const formData = new FormData();
-      formData.append("prescriptionFile", prescriptionData.uploadedFile);
-      formData.append("label", prescriptionData.prescriptionReferenceValue);
-      formData.append("category", "ContactLenses");
-
       try {
-        const uploadRes = await fetch("/api/account/prescriptions", {
-          method: "POST",
-          body: formData,
-        });
-        const uploadResult = await uploadRes.json();
-        if (!uploadRes.ok)
-          throw new Error(
-            uploadResult.message ||
-              "Failed to upload new prescription from modal."
-          );
-        finalPrescriptionReference =
-          uploadResult.prescription?.storageUrlOrId ||
-          `Uploaded: ${
-            uploadResult.prescription?.fileName ||
-            prescriptionData.uploadedFile.name
-          }`;
+        const uploadResponse = await fetch(
+          `/api/upload?filename=${prescriptionData.uploadedFile.name}`,
+          {
+            method: "POST",
+            body: prescriptionData.uploadedFile,
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const errorResult = await uploadResponse.json();
+          throw new Error(errorResult.message || "File upload failed.");
+        }
+        const blob = await uploadResponse.json();
+        finalPrescriptionReference = blob.url;
       } catch (e: any) {
         setActionError(`Prescription Upload Error: ${e.message}`);
         setIsProcessingPageAction(false);
         return;
       }
-    } else if (prescriptionData.prescriptionReferenceType === "existing") {
+    } else {
       finalPrescriptionReference = prescriptionData.prescriptionReferenceValue;
-    } else if (prescriptionData.prescriptionReferenceType === "later") {
-      finalPrescriptionReference = "Will Provide Later";
     }
 
-    const lineItemsToAdd: {variantId: string, quantity: number, attributes: any[]}[] = [];
+    const lineItemsToAdd: {
+      variantId: string;
+      quantity: number;
+      attributes: any[];
+    }[] = [];
     const baseAttributes = [
-        { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
-        { key: "Prescription Ref", value: finalPrescriptionReference },
-        { key: "FocalProductType", value: "ContactLenses" },
+      { key: "Product", value: `${product.name} - ${selectedVariant.name}` },
+      { key: "Prescription Ref", value: finalPrescriptionReference },
+      { key: "FocalProductType", value: "ContactLenses" },
     ];
 
     // Right eye
     if (rightEyeEnabled && rightEyeQty > 0) {
-        const rightEyeAttributes = [
-            ...baseAttributes,
-            { key: "Eye", value: "Right (OD)" },
-            { key: "SPH", value: prescriptionData.odValues.sph || "N/A" },
-            { key: "BC", value: prescriptionData.odValues.bc || "N/A" },
-            { key: "DIA", value: prescriptionData.odValues.dia || "N/A" },
-        ];
-        if (prescriptionData.odValues.cyl && prescriptionData.odValues.cyl !== "0.00") {
-            rightEyeAttributes.push({ key: "CYL", value: prescriptionData.odValues.cyl });
-            if (prescriptionData.odValues.axis) {
-            rightEyeAttributes.push({ key: "Axis", value: prescriptionData.odValues.axis });
-            }
+      const rightEyeAttributes = [
+        ...baseAttributes,
+        { key: "Eye", value: "Right (OD)" },
+        { key: "SPH", value: prescriptionData.odValues.sph || "N/A" },
+        { key: "BC", value: prescriptionData.odValues.bc || "N/A" },
+        { key: "DIA", value: prescriptionData.odValues.dia || "N/A" },
+      ];
+      if (
+        prescriptionData.odValues.cyl &&
+        prescriptionData.odValues.cyl !== "0.00"
+      ) {
+        rightEyeAttributes.push({
+          key: "CYL",
+          value: prescriptionData.odValues.cyl,
+        });
+        if (prescriptionData.odValues.axis) {
+          rightEyeAttributes.push({
+            key: "Axis",
+            value: prescriptionData.odValues.axis,
+          });
         }
-        if (prescriptionData.odValues.add) {
-            rightEyeAttributes.push({ key: "ADD", value: prescriptionData.odValues.add });
-        }
-        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: rightEyeQty, attributes: rightEyeAttributes });
+      }
+      if (prescriptionData.odValues.add) {
+        rightEyeAttributes.push({
+          key: "ADD",
+          value: prescriptionData.odValues.add,
+        });
+      }
+      lineItemsToAdd.push({
+        variantId: selectedVariant.id,
+        quantity: rightEyeQty,
+        attributes: rightEyeAttributes,
+      });
     }
 
     // Left eye
     if (leftEyeEnabled && leftEyeQty > 0) {
-        const leftEyeAttributes = [
-            ...baseAttributes,
-            { key: "Eye", value: "Left (OS)" },
-            { key: "SPH", value: prescriptionData.osValues.sph || "N/A" },
-            { key: "BC", value: prescriptionData.osValues.bc || "N/A" },
-            { key: "DIA", value: prescriptionData.osValues.dia || "N/A" },
-        ];
-        if (prescriptionData.osValues.cyl && prescriptionData.osValues.cyl !== "0.00") {
-            leftEyeAttributes.push({ key: "CYL", value: prescriptionData.osValues.cyl });
-            if (prescriptionData.osValues.axis) {
-            leftEyeAttributes.push({ key: "Axis", value: prescriptionData.osValues.axis });
-            }
+      const leftEyeAttributes = [
+        ...baseAttributes,
+        { key: "Eye", value: "Left (OS)" },
+        { key: "SPH", value: prescriptionData.osValues.sph || "N/A" },
+        { key: "BC", value: prescriptionData.osValues.bc || "N/A" },
+        { key: "DIA", value: prescriptionData.osValues.dia || "N/A" },
+      ];
+      if (
+        prescriptionData.osValues.cyl &&
+        prescriptionData.osValues.cyl !== "0.00"
+      ) {
+        leftEyeAttributes.push({
+          key: "CYL",
+          value: prescriptionData.osValues.cyl,
+        });
+        if (prescriptionData.osValues.axis) {
+          leftEyeAttributes.push({
+            key: "Axis",
+            value: prescriptionData.osValues.axis,
+          });
         }
-        if (prescriptionData.osValues.add) {
-            leftEyeAttributes.push({ key: "ADD", value: prescriptionData.osValues.add });
-        }
-        lineItemsToAdd.push({ variantId: selectedVariant.id, quantity: leftEyeQty, attributes: leftEyeAttributes });
+      }
+      if (prescriptionData.osValues.add) {
+        leftEyeAttributes.push({
+          key: "ADD",
+          value: prescriptionData.osValues.add,
+        });
+      }
+      lineItemsToAdd.push({
+        variantId: selectedVariant.id,
+        quantity: leftEyeQty,
+        attributes: leftEyeAttributes,
+      });
     }
-    
+
     if (lineItemsToAdd.length === 0) {
-        setActionError("No quantity selected for either eye.");
-        setIsProcessingPageAction(false);
-        return;
+      setActionError("No quantity selected for either eye.");
+      setIsProcessingPageAction(false);
+      return;
     }
 
     try {
-        let allItemsAddedSuccessfully = true;
-        for (const item of lineItemsToAdd) {
-            const success = await addLineItem(item.variantId, item.quantity, item.attributes);
-            if (!success) {
-                allItemsAddedSuccessfully = false;
-                break; 
-            }
+      let allItemsAddedSuccessfully = true;
+      for (const item of lineItemsToAdd) {
+        const success = await addLineItem(
+          item.variantId,
+          item.quantity,
+          item.attributes
+        );
+        if (!success) {
+          allItemsAddedSuccessfully = false;
+          break;
         }
-        
-        if (allItemsAddedSuccessfully) {
-            setActionSuccess(true);
-            router.push("/cart");
-        } else {
-            setActionError(cartContextError || "Failed to add one or more items to the cart.");
-            setTimeout(() => setActionError(null), 5000);
-        }
+      }
+
+      if (allItemsAddedSuccessfully) {
+        setActionSuccess(true);
+        router.push("/cart");
+      } else {
+        setActionError(
+          cartContextError || "Failed to add one or more items to the cart."
+        );
+        setTimeout(() => setActionError(null), 5000);
+      }
     } catch (e: any) {
       setActionError(
         e.message || "An error occurred while adding items to cart."
@@ -321,7 +371,6 @@ const Hero = ({ product }: any) => {
       setIsProcessingPageAction(false);
     }
   };
-
 
   const handleThumbnailClick = (src: string) => {
     setSelectedImage(src);
@@ -376,11 +425,9 @@ const Hero = ({ product }: any) => {
 
   let donationSpecifics = "";
   if (isContactLensProduct) {
-    donationSpecifics =
-      "When you buy four boxes of contact lenses, ";
+    donationSpecifics = "When you buy four boxes of contact lenses, ";
   } else if (isEyewearProduct) {
-    donationSpecifics =
-      "When you buy a pair of eyeglasses, ";
+    donationSpecifics = "When you buy a pair of eyeglasses, ";
   }
 
   return (
@@ -469,17 +516,16 @@ const Hero = ({ product }: any) => {
           </div>
 
           <div className="relative">
-            <div
-              className={twMerge(
-                "lg:sticky lg:top-24",
-              )}
-            >
+            <div className={twMerge("lg:sticky lg:top-24")}>
               <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 mt-4 sm:mt-6 lg:mt-0">
                 {product?.name}
               </h1>
-              
-              <PriceDisplay originalPrice={displayedPrice} isFirstTimeCustomer={isFirstTimeCustomer} />
-              
+
+              <PriceDisplay
+                originalPrice={displayedPrice}
+                isFirstTimeCustomer={isFirstTimeCustomer}
+              />
+
               {showFrameVariants && product?.variants && (
                 <div className="mt-3 mb-3">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -626,7 +672,9 @@ const Hero = ({ product }: any) => {
                   {donationSpecifics && (
                     <span className="mt-0.5">{donationSpecifics}</span>
                   )}
-                  you donate an additional cataract lens to someone in need! This is in ADDITION to the ordinary donation we make to the Cure Blindness Foundation for every purchase made.
+                  you donate an additional cataract lens to someone in need!
+                  This is in ADDITION to the ordinary donation we make to the
+                  Cure Blindness Foundation for every purchase made.
                 </p>
               </div>
 
@@ -660,7 +708,6 @@ const Hero = ({ product }: any) => {
                   <AlertTriangle size={16} className="mr-1" /> {actionError}
                 </p>
               )}
-              
             </div>
           </div>
         </div>
