@@ -35,21 +35,22 @@ export const Hero = () => {
                 someone who&apos;s lost it.
               </p>
               <p className="text-lg sm:text-xl md:text-xl lg:text-[22px] text-black font-medium tracking-tight md:tracking-tighter mt-4 sm:mt-6">
-                Every time you buy contact lenses or glasses, you can be providing a cataract lens to someone in need.
+                Every time you buy contact lenses or glasses, you can be
+                providing a cataract lens to someone in need.
               </p>
             </div>
             <div className="flex flex-col items-center md:items-start gap-5 mt-6 sm:mt-8">
               <div className="flex flex-col sm:flex-row gap-3 items-center md:-mx-2">
                 {/* LinkButton now handles its own Link component */}
                 <LinkButton
-                  href="/pages/contact-lenses" // Pass the full href
+                  href="/contact-lenses" // Pass the full href
                   title="Contact Lenses"
                   containerStyles="btn btn-primary bg-black text-white rounded-full py-2.5 px-5 sm:py-2 sm:px-4 text-sm sm:text-base hover:font-bold hover:scale-105 transition-all duration-[350ms]"
                   textStyles="text-white font-medium"
                   // sectionId prop is no longer needed here if href is provided
                 />
                 <LinkButton
-                  href="/pages/eyewear" // Pass the full href
+                  href="/eyewear" // Pass the full href
                   title="Eyewear"
                   containerStyles="btn btn-primary bg-black text-white rounded-full py-2.5 px-6 sm:py-2 sm:px-7 text-sm sm:text-base hover:font-bold hover:scale-105 transition-all duration-[350ms]"
                   textStyles="text-white font-medium"

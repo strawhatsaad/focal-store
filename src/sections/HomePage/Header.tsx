@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { X, Menu } from "lucide-react";
-import { useSession, signIn } from "next-auth/react"; 
-import { useCart } from "@/context/CartContext"; 
+import { useSession, signIn } from "next-auth/react";
+import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 export const Header = () => {
@@ -34,15 +34,15 @@ export const Header = () => {
   };
 
   const handleMobileSignInClick = () => {
-    setMobileMenuOpen(false); 
-    handleSignIn(); 
+    setMobileMenuOpen(false);
+    handleSignIn();
   };
 
   const navLinks = [
-    { title: "Contact Lenses", href: "/pages/contact-lenses" },
-    { title: "Eyewear", href: "/pages/eyewear" },
-    { title: "Sunglasses", href: "/pages/sunglasses" },
-    { title: "Eye Health", href: "/pages/eyehealth" },
+    { title: "Contact Lenses", href: "/contact-lenses" },
+    { title: "Eyewear", href: "/eyewear" },
+    { title: "Sunglasses", href: "/sunglasses" },
+    { title: "Eye Health", href: "/eyehealth" },
   ];
 
   return (
@@ -56,7 +56,10 @@ export const Header = () => {
         </p> */}
 
         <p className="font-semibold tracking-normal cursor-default md:block text-center m-2">
-          <Link href={"/cure-blindness"}><span className="underline underline-offset-2">Cure blindness</span></Link> by buying contacts and glasses ❤️🫶
+          <Link href={"/cure-blindness"}>
+            <span className="underline underline-offset-2">Cure blindness</span>
+          </Link>{" "}
+          by buying contacts and glasses ❤️🫶
         </p>
       </div>
 
@@ -98,9 +101,7 @@ export const Header = () => {
             <nav className="hidden md:flex md:gap-3 lg:gap-5 text-black/70 items-center">
               {navLinks.map((link) => (
                 <Link href={link.href} key={link.title} className="group">
-                  <span 
-                    className="inline-block md:text-xs lg:text-sm font-medium group-hover:text-black group-hover:font-semibold transition-all duration-300 ease-in-out cursor-pointer py-2 group-hover:scale-110"
-                  >
+                  <span className="inline-block md:text-xs lg:text-sm font-medium group-hover:text-black group-hover:font-semibold transition-all duration-300 ease-in-out cursor-pointer py-2 group-hover:scale-110">
                     {link.title}
                   </span>
                 </Link>
@@ -112,12 +113,12 @@ export const Header = () => {
                 <Link href="/account" className="group">
                   <span className="flex items-center gap-1 md:text-xs lg:text-sm font-medium group-hover:text-black group-hover:font-semibold transition-all duration-300 ease-in-out cursor-pointer p-2 rounded-md group-hover:bg-gray-100 group-hover:scale-105">
                     <UserCircle size={18} />
-                    {session.user.name?.split(' ')[0] || session.user.email} 
+                    {session.user.name?.split(" ")[0] || session.user.email}
                   </span>
                 </Link>
               ) : (
                 <button
-                  onClick={handleSignIn} 
+                  onClick={handleSignIn}
                   className="bg-black text-white px-4 py-1.5 lg:px-6 lg:py-2 rounded-full font-medium inline-flex items-center justify-center tracking-tight hover:bg-gray-800 hover:scale-105 transition-all duration-300 md:text-xs lg:text-sm"
                 >
                   Sign in
@@ -126,21 +127,25 @@ export const Header = () => {
 
               <div className="flex items-center md:gap-2 lg:gap-3">
                 <Link href="/search" aria-label="Search">
-                    <SearchIcon
+                  <SearchIcon
                     strokeWidth={2.5}
                     color="#374151"
                     size={24}
                     className="hover:scale-110 transition-transform duration-200 cursor-pointer md:size-5 lg:size-6"
-                    />
+                  />
                 </Link>
-                <Link href="/wishlist" className="relative" aria-label="Wishlist">
+                <Link
+                  href="/wishlist"
+                  className="relative"
+                  aria-label="Wishlist"
+                >
                   <HeartIcon
                     strokeWidth={2.5}
                     color="#374151"
                     size={24}
                     className="hover:scale-110 transition-transform duration-200 cursor-pointer md:size-5 lg:size-6"
                   />
-                   {wishlistItemCount > 0 && (
+                  {wishlistItemCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                       {wishlistItemCount}
                     </span>
@@ -150,7 +155,7 @@ export const Header = () => {
                   href="/cart"
                   className="relative"
                   aria-label="Shopping Cart"
-                > 
+                >
                   <ShoppingCartIcon
                     strokeWidth={2.5}
                     color="#374151"
@@ -196,11 +201,12 @@ export const Header = () => {
               onClick={() => setMobileMenuOpen(false)}
               className="block text-lg font-semibold text-gray-800 hover:text-black transition-all duration-300 ease-in-out py-2 hover:bg-gray-50 rounded-md px-2 hover:scale-105 transform"
             >
-              My Account ({session.user.name?.split(' ')[0] || session.user.email})
+              My Account (
+              {session.user.name?.split(" ")[0] || session.user.email})
             </Link>
           ) : (
             <button
-              onClick={handleMobileSignInClick} 
+              onClick={handleMobileSignInClick}
               className="w-full text-left text-lg font-semibold text-black hover:bg-gray-100 transition-all duration-300 ease-in-out py-3 px-2 rounded-md flex items-center gap-2 hover:scale-105 transform"
             >
               <LogIn size={20} /> Sign In / Create Account
@@ -209,19 +215,23 @@ export const Header = () => {
           <hr className="my-4" />
           <div className="flex justify-center space-x-6 pt-4">
             <Link href="/search" onClick={() => setMobileMenuOpen(false)}>
-                <SearchIcon
+              <SearchIcon
                 strokeWidth={2.5}
                 size={26}
                 className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
-                />
+              />
             </Link>
-            <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="relative">
+            <Link
+              href="/wishlist"
+              onClick={() => setMobileMenuOpen(false)}
+              className="relative"
+            >
               <HeartIcon
                 strokeWidth={2.5}
                 size={26}
                 className="cursor-pointer hover:opacity-75 transition-all duration-200 ease-in-out hover:scale-110 transform"
               />
-               {wishlistItemCount > 0 && (
+              {wishlistItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                   {wishlistItemCount}
                 </span>
@@ -231,7 +241,7 @@ export const Header = () => {
               href="/cart"
               className="relative"
               onClick={() => setMobileMenuOpen(false)}
-            > 
+            >
               <ShoppingCartIcon
                 strokeWidth={2.5}
                 size={26}
