@@ -42,7 +42,7 @@ export const Header = () => {
     { title: "Contact Lenses", href: "/contact-lenses" },
     { title: "Eyewear", href: "/eyewear" },
     { title: "Sunglasses", href: "/sunglasses" },
-    { title: "Eye Health", href: "/eyehealth" },
+    { title: "Eye Health", href: "/eye-health" },
   ];
 
   return (
