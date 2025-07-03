@@ -68,6 +68,7 @@ export const Footer = () => {
         { name: "Eyewear", href: "/eyewear" },
         { name: "Sunglasses", href: "/sunglasses" },
         { name: "Contact Lenses", href: "/contact-lenses" },
+        { name: "Eye Health", href: "/eye-health" },
       ],
     },
   ];

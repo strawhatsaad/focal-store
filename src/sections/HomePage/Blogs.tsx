@@ -97,7 +97,7 @@ export const Blogs = () => {
           {/* View All Blogs Link */}
           <div className="mt-8">
             <Link
-              href="/blogs"
+              href="/eye-health"
               className="inline-flex items-center gap-2 text-base font-semibold text-black hover:underline"
             >
               View all Blogs
