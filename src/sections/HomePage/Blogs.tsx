@@ -7,6 +7,7 @@ import blogImage6 from "@/assets/How We're Fixing The Blindness Problem.png";
 import blogImage7 from "@/assets/How to use vision insurance.png";
 import Image, { StaticImageData } from "next/image"; // Ensure StaticImageData is imported if you use it for type
 import Link from "next/link";
+import { ArrowRight } from "lucide-react"; // Import icon
 
 interface BlogItem {
   image: StaticImageData; // Or string if you pass URLs
@@ -72,7 +73,7 @@ export const Blogs = () => {
             {blogData.map(({ image, title, href }, index) => (
               <Link
                 key={index}
-                href={href} // Update with actual blog link if available
+                href={href}
                 className="group flex flex-col items-center text-center"
               >
                 <div className="w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-square lg:aspect-[3/4] overflow-hidden rounded-lg mb-2 sm:mb-3 group-hover:-translate-y-1 transition-transform duration-300">
@@ -91,6 +92,17 @@ export const Blogs = () => {
                 </p>
               </Link>
             ))}
+          </div>
+
+          {/* View All Blogs Link */}
+          <div className="mt-8">
+            <Link
+              href="/blogs"
+              className="inline-flex items-center gap-2 text-base font-semibold text-black hover:underline"
+            >
+              View all Blogs
+              <ArrowRight size={20} />
+            </Link>
           </div>
         </div>
       </div>
