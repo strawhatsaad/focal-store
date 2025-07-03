@@ -63,7 +63,7 @@ const HowToBuyEyeglassesPage = () => {
           >
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/pages/eyewear"
+                href="/eyewear"
                 className="w-full sm:w-auto flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 transition-colors"
               >
                 <Glasses className="mr-2 h-4 w-4" /> Browse Eyeglasses
