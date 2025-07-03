@@ -5,8 +5,16 @@ import Hero from "@/sections/Products/Hero";
 import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
-import { storeFront } from "../../../../utils";
-import { Loader2, Filter, Search, X as XIcon, Glasses, ArrowRight, Sparkles } from "lucide-react";
+import { storeFront } from "../../../utils";
+import {
+  Loader2,
+  Filter,
+  Search,
+  X as XIcon,
+  Glasses,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext"; // Import useCart
 import Link from "next/link";
 
@@ -414,7 +422,7 @@ const EyewearPage = () => {
             <ArrowRight size={20} className="ml-2" />
           </Link>
           <Link
-            href="/pages/contact-lenses" // Link to your contact lenses collection
+            href="/contact-lenses" // Link to your contact lenses collection
             className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150 ease-in-out shadow-md"
           >
             Shop Contact Lenses

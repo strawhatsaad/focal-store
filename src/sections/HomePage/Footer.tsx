@@ -25,54 +25,49 @@ export const Footer = () => {
     {
       title: "About us",
       links: [
-        { name: "Our Story", href: "/about/story" },
-        { name: "Community", href: "/about/community" },
-        { name: "Careers", href: "/about/careers" },
+        { name: "Our Story", href: "/" },
+        { name: "Community", href: "/" },
+        { name: "Careers", href: "/" },
       ],
     },
     {
       title: "Help",
       links: [
-        { name: "How to order", href: "/help/how-to-order" },
+        { name: "How to order", href: "how-to-buy-contacts-online" },
         {
           name: "How to read your prescription",
           href: "/how-to-read-prescriptions",
         },
-        { name: "Privacy Policy", href: "/pages/privacy-policy" },
-        { name: "Terms of Use", href: "/pages/terms-of-use" },
+        { name: "Privacy Policy", href: "/privacy-policy" },
+        { name: "Terms of Use", href: "/terms-of-use" },
         {
           name: "Notice of Privacy Practices",
-          href: "/pages/notice-of-privacy-practices",
+          href: "/notice-of-privacy-practices",
         },
         {
           name: "California Transparency Act",
-          href: "/pages/california-transparency-act",
+          href: "/california-transparency-act",
         },
         {
           name: "Washington Consumer Health Data Privacy Policy",
-          href: "/pages/washington-health-privacy",
+          href: "/washington-health-privacy",
         },
-        { name: "Accessibility Statement", href: "/pages/accessibility" }, // Added new link
-        { name: "Contact us", href: "/contact-us" },
+        { name: "Accessibility Statement", href: "/accessibility" }, // Added new link
       ],
     },
     {
       title: "My Account",
       links: [
-        { name: "Order Status", href: "/account/orders" },
-        { name: "Reorder", href: "/account/reorder" },
         { name: "Upload Prescription", href: "/account/prescriptions" },
         { name: "My prescription", href: "/account/prescriptions" },
-        { name: "My subscriptions", href: "/account/subscriptions" },
       ],
     },
     {
       title: "Resources",
       links: [
-        { name: "Eyewear", href: "/pages/eyewear" },
-        { name: "Sunglasses", href: "/pages/sunglasses" },
-        { name: "Contact Lenses", href: "/pages/contact-lenses" },
-        { name: "Offers & coupons", href: "/offers" },
+        { name: "Eyewear", href: "/eyewear" },
+        { name: "Sunglasses", href: "/sunglasses" },
+        { name: "Contact Lenses", href: "/contact-lenses" },
       ],
     },
   ];

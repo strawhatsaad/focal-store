@@ -5,7 +5,7 @@ import Hero from "@/sections/Products/Hero";
 import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
 import React, { useState, useEffect, useMemo } from "react";
-import { storeFront } from "../../../../utils/index";
+import { storeFront } from "../../../utils/index";
 import { Loader2, Filter, Search, X as XIcon } from "lucide-react";
 import { useCart } from "@/context/CartContext"; // Import useCart
 
