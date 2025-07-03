@@ -221,7 +221,7 @@ const StaticFeaturedSection = () => (
         </div>
         <div className="p-8 md:p-12">
           <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500">
-            We've Got You Covered
+            We&apos;ve Got You Covered
           </h2>
           <h3 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">
             Look No Further
