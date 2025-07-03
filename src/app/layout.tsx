@@ -7,6 +7,7 @@ import { Footer } from "@/sections/HomePage/Footer";
 import Providers from "./providers"; // For NextAuth SessionProvider
 import { CartProvider } from "@/context/CartContext"; // For Cart Context
 import { WishlistProvider } from "@/context/WishlistContext"; // Import WishlistProvider
+import BottomPromoBar from "@/components/BottomPromoBar"; // Import the new component
 
 // Configure DM Sans
 const dmSans = DM_Sans({
@@ -59,8 +60,10 @@ export default function RootLayout({
           <CartProvider>
             <WishlistProvider>
               <Header />
-              <main className="min-h-screen">{children}</main>
+              <main className="min-h-screen pb-16">{children}</main>{" "}
+              {/* Add padding-bottom to avoid overlap */}
               <Footer />
+              <BottomPromoBar /> {/* Add the new component here */}
             </WishlistProvider>
           </CartProvider>
         </Providers>
