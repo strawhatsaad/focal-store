@@ -1,10 +1,11 @@
 // src/app/blogs/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Image, { StaticImageData } from "next/image";
 import { Search, ArrowRight } from "lucide-react";
+import Fuse from "fuse.js";
 
 // Import blog images
 import blogImage1 from "@/assets/What it Takes to Create Quailty Eywear.png";
@@ -211,8 +212,8 @@ const StaticFeaturedSection = () => (
       <div className="bg-white rounded-lg shadow-lg overflow-hidden md:grid md:grid-cols-2 md:items-center">
         <div className="relative w-full aspect-[4/3] md:aspect-auto md:h-full">
           <Image
-            src={blogImage5}
-            alt="Reading a prescription"
+            src={blogImage1}
+            alt="Crafting quality eyewear"
             fill
             style={{ objectFit: "contain" }}
             placeholder="blur"
@@ -304,15 +305,27 @@ const CategorySection = ({
 const BlogArchivePage = () => {
   const [query, setQuery] = useState("");
 
-  const filteredBlogs = allBlogs.filter((blog) => {
-    const lowerCaseQuery = query.toLowerCase();
-    return (
-      blog.title.toLowerCase().includes(lowerCaseQuery) ||
-      blog.description.toLowerCase().includes(lowerCaseQuery) ||
-      blog.category.toLowerCase().includes(lowerCaseQuery) ||
-      blog.keywords.some((k) => k.toLowerCase().includes(lowerCaseQuery))
-    );
-  });
+  const fuse = useMemo(
+    () =>
+      new Fuse(allBlogs, {
+        keys: [
+          { name: "title", weight: 0.6 },
+          { name: "description", weight: 0.2 },
+          { name: "keywords", weight: 0.2 },
+        ],
+        includeScore: true,
+        threshold: 0.4,
+        minMatchCharLength: 2,
+      }),
+    []
+  );
+
+  const filteredBlogs = useMemo(() => {
+    if (query.trim() === "") {
+      return allBlogs;
+    }
+    return fuse.search(query).map((result) => result.item);
+  }, [query, fuse]);
 
   const buyingGuides = filteredBlogs.filter(
     (b) => b.category === "Buying Guides"
