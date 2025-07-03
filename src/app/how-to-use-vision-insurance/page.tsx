@@ -333,7 +333,13 @@ const HowToUseInsurancePage = () => {
             </p>
             <div className="mt-4 flex flex-wrap justify-center items-center gap-x-6 sm:gap-x-8 gap-y-2 text-gray-500 font-semibold">
               {insuranceProviders.slice(0, 5).map((name) => (
-                <span key={name}>{name}</span>
+                <button
+                  key={name}
+                  onClick={() => handleProviderClick(name)}
+                  className="hover:text-black transition-colors duration-300"
+                >
+                  {name}
+                </button>
               ))}
             </div>
           </div>
