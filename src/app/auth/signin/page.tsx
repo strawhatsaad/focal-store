@@ -7,15 +7,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Logo from "@/assets/navBarLogo.png";
-import { Eye, EyeOff, AlertTriangle, Loader2 } from "lucide-react";
-import AuthButtons from "@/components/AuthButtons"; // Import the AuthButtons component
+import { Eye, EyeOff, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
+import AuthButtons from "@/components/AuthButtons";
 
 function SignInFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const errorParam = searchParams.get("error");
-  const reasonParam = searchParams.get("reason"); // Check for our custom reason
+  const reasonParam = searchParams.get("reason");
+  const verifiedParam = searchParams.get("verified");
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,17 +31,17 @@ function SignInFormContent() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [orderRedirectMessage, setOrderRedirectMessage] = useState<
-    string | null
-  >(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (reasonParam === "orderAttempt") {
-      setOrderRedirectMessage(
-        "You need to be logged in to order Contacts and Glasses."
-      );
+      setInfoMessage("You need to be logged in to order Contacts and Glasses.");
     } else {
-      setOrderRedirectMessage(null);
+      setInfoMessage(null);
+    }
+
+    if (verifiedParam === "true") {
+      setSuccessMessage("Your email has been verified! You can now sign in.");
     }
 
     if (errorParam) {
@@ -58,13 +59,13 @@ function SignInFormContent() {
     } else {
       setFormError(null);
     }
-  }, [errorParam, reasonParam]);
+  }, [errorParam, reasonParam, verifiedParam]);
 
   const handleCredentialsSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setFormError(null);
-    setOrderRedirectMessage(null); // Clear order message on new attempt
+    setInfoMessage(null);
     setSuccessMessage(null);
 
     const result = await signIn("credentials", {
@@ -100,7 +101,7 @@ function SignInFormContent() {
     }
     setLoading(true);
     setFormError(null);
-    setOrderRedirectMessage(null); // Clear order message
+    setInfoMessage(null);
     setSuccessMessage(null);
 
     try {
@@ -116,14 +117,9 @@ function SignInFormContent() {
         );
       }
       setSuccessMessage(
-        "Account created successfully! Please sign in with your new credentials."
+        "Success! A verification link has been sent to your email address. Please check your inbox to complete your registration."
       );
-      setIsSignUp(false);
-      setEmail(email);
-      setPassword("");
-      setConfirmPassword("");
-      setFirstName("");
-      setLastName("");
+      // Don't switch form, keep showing the success message
     } catch (err: any) {
       setFormError(
         err.message || "An unexpected error occurred during sign up."
@@ -142,8 +138,7 @@ function SignInFormContent() {
               htmlFor="firstName"
               className="block text-sm font-medium text-gray-700"
             >
-              {" "}
-              First Name{" "}
+              First Name
             </label>
             <input
               id="firstName"
@@ -160,8 +155,7 @@ function SignInFormContent() {
               htmlFor="lastName"
               className="block text-sm font-medium text-gray-700"
             >
-              {" "}
-              Last Name{" "}
+              Last Name
             </label>
             <input
               id="lastName"
@@ -178,8 +172,7 @@ function SignInFormContent() {
               htmlFor="email-signup"
               className="block text-sm font-medium text-gray-700"
             >
-              {" "}
-              Email address{" "}
+              Email address
             </label>
             <input
               id="email-signup"
@@ -197,8 +190,7 @@ function SignInFormContent() {
               htmlFor="password-signup"
               className="block text-sm font-medium text-gray-700"
             >
-              {" "}
-              Password{" "}
+              Password
             </label>
             <input
               id="password-signup"
@@ -224,8 +216,7 @@ function SignInFormContent() {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-gray-700"
             >
-              {" "}
-              Confirm Password{" "}
+              Confirm Password
             </label>
             <input
               id="confirmPassword"
@@ -273,8 +264,7 @@ function SignInFormContent() {
             htmlFor="email-signin"
             className="block text-sm font-medium text-gray-700"
           >
-            {" "}
-            Email address{" "}
+            Email address
           </label>
           <input
             id="email-signin"
@@ -292,8 +282,7 @@ function SignInFormContent() {
             htmlFor="password-signin"
             className="block text-sm font-medium text-gray-700"
           >
-            {" "}
-            Password{" "}
+            Password
           </label>
           <input
             id="password-signin"
@@ -317,8 +306,7 @@ function SignInFormContent() {
         <div className="flex items-center justify-between">
           <div className="text-sm">
             <a href="#" className="font-medium text-black hover:text-gray-700">
-              {" "}
-              Forgot your password?{" "}
+              Forgot your password?
             </a>
           </div>
         </div>
@@ -358,7 +346,7 @@ function SignInFormContent() {
               setIsSignUp(!isSignUp);
               setFormError(null);
               setSuccessMessage(null);
-              setOrderRedirectMessage(null);
+              setInfoMessage(null);
             }}
             className="font-medium text-black hover:text-gray-700"
           >
@@ -367,16 +355,16 @@ function SignInFormContent() {
               : "create a new account"}
           </button>
         </p>
-        {orderRedirectMessage && !formError && !successMessage && (
-          <div className="mt-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-600 flex items-center rounded-md">
-            <AlertTriangle size={20} className="mr-2 flex-shrink-0" />
-            <p className="text-sm">{orderRedirectMessage}</p>
-          </div>
-        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10">
+          {infoMessage && (
+            <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-600 flex items-center rounded-md">
+              <AlertTriangle size={20} className="mr-2 flex-shrink-0" />
+              <p className="text-sm">{infoMessage}</p>
+            </div>
+          )}
           {formError && (
             <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-400 text-red-700 flex items-center rounded-md">
               <AlertTriangle size={20} className="mr-2 flex-shrink-0" />
@@ -384,26 +372,32 @@ function SignInFormContent() {
             </div>
           )}
           {successMessage && (
-            <div className="mb-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-md">
+            <div className="mb-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-md flex items-center">
+              <CheckCircle size={20} className="mr-2 flex-shrink-0" />
               <p className="text-sm">{successMessage}</p>
             </div>
           )}
-          {renderForm()}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+
+          {successMessage && isSignUp ? null : (
+            <>
+              {renderForm()}
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <AuthButtons />
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-            <div className="mt-6">
-              <AuthButtons />
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

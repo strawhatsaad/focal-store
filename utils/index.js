@@ -221,7 +221,7 @@ export const CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION = `
 `;
 export const GET_CUSTOMER_INFO_QUERY = `
   query getCustomerInfo($customerAccessToken: String!) {
-    customer(customerAccessToken: $customerAccessToken) { id email firstName lastName }
+    customer(customerAccessToken: $customerAccessToken) { id email firstName lastName tags }
   }
 `;
 
@@ -232,6 +232,7 @@ export const GET_CUSTOMER_BY_EMAIL_QUERY = `
       edges {
         node {
           id
+          tags
         }
       }
     }
@@ -252,11 +253,11 @@ export const CREATE_CUSTOMER_ADMIN_MUTATION = `
   }
 `;
 
-// --- Customer Update (Admin API - for password) ---
+// --- Customer Update (Admin API - for password and tags) ---
 export const CUSTOMER_UPDATE_MUTATION = `
 mutation customerUpdate($input: CustomerInput!) {
   customerUpdate(input: $input) {
-    customer { id email }
+    customer { id tags }
     userErrors { field message }
   }
 }

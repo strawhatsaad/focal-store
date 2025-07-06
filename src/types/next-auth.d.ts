@@ -18,6 +18,7 @@ declare module "next-auth/jwt" {
     shopifyAccessTokenExpiresAt?: string;
     error?: string; // To pass errors from authorize/signIn to session
     isNewUser?: boolean; // Flag for new OAuth users
+    emailVerified?: boolean; // Added for email verification status
   }
 }
 
@@ -33,6 +34,7 @@ declare module "next-auth" {
     shopifyAccessToken?: string; // Shopify Storefront API customer access token
     shopifyAccessTokenExpiresAt?: string;
     isNewUser?: boolean; // Flag for new OAuth users
+    emailVerified?: boolean; // Added for email verification status
   }
 
   /**

@@ -11,6 +11,7 @@ import {
   GET_CUSTOMER_INFO_QUERY,
   GET_CUSTOMER_BY_EMAIL_QUERY,
   CREATE_CUSTOMER_ADMIN_MUTATION,
+  CUSTOMER_UPDATE_MUTATION, // Import the update mutation
 } from "../../utils"; // Ensure this path is correct
 
 // Type definitions are augmented globally via src/types/next-auth.d.ts
@@ -55,18 +56,26 @@ export const authOptions: NextAuthOptions = {
 
             if (customerInfoResponse.data?.customer) {
               const shopifyCustomer = customerInfoResponse.data.customer;
+
+              // **Verification Check**
+              if (!shopifyCustomer.tags.includes("verified")) {
+                throw new Error(
+                  "Account not verified. Please check your email for a verification link."
+                );
+              }
+
               return {
-                // This is the User object NextAuth expects
-                id: shopifyCustomer.id, // Use Shopify customer GID as NextAuth user id
+                id: shopifyCustomer.id,
                 email: shopifyCustomer.email,
                 name:
                   `${shopifyCustomer.firstName || ""} ${
                     shopifyCustomer.lastName || ""
                   }`.trim() || shopifyCustomer.email,
-                image: null, // You can add a default image or fetch from profile if available
+                image: null,
                 shopifyCustomerId: shopifyCustomer.id,
-                shopifyAccessToken: shopifyToken.accessToken, // Storefront access token
+                shopifyAccessToken: shopifyToken.accessToken,
                 shopifyAccessTokenExpiresAt: shopifyToken.expiresAt,
+                emailVerified: true,
               };
             }
             throw new Error(
@@ -83,7 +92,7 @@ export const authOptions: NextAuthOptions = {
             }
             throw new Error(message);
           }
-          throw new Error("Invalid email or password."); // Generic fallback
+          throw new Error("Invalid email or password.");
         } catch (error: any) {
           console.error(
             "[NextAuth Credentials] Error in authorize:",
@@ -98,6 +107,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
     error: "/auth/signin",
+    // A page to show after email verification
+    verifyRequest: "/auth/verify-request",
   },
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -107,7 +118,6 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // 1. Check if customer exists in Shopify
           const customerResponse = await shopifyAdminRequest(
             GET_CUSTOMER_BY_EMAIL_QUERY,
             { email: `email:${profile.email}` }
@@ -117,7 +127,6 @@ export const authOptions: NextAuthOptions = {
 
           let isNewUser = false;
 
-          // 2. If customer does not exist, create one
           if (!shopifyCustomer) {
             const nameParts = profile.name?.split(" ") || [];
             const firstName = nameParts[0] || "";
@@ -130,6 +139,8 @@ export const authOptions: NextAuthOptions = {
                   email: profile.email,
                   firstName,
                   lastName,
+                  // **Automatically verify Google sign-ups**
+                  tags: ["verified"],
                 },
               }
             );
@@ -145,17 +156,26 @@ export const authOptions: NextAuthOptions = {
                   .join(", ") || "Failed to create Shopify customer.";
               throw new Error(errorMessages);
             }
+          } else {
+            // If user exists, ensure they are marked as verified
+            if (!shopifyCustomer.tags.includes("verified")) {
+              await shopifyAdminRequest(CUSTOMER_UPDATE_MUTATION, {
+                input: {
+                  id: shopifyCustomer.id,
+                  tags: [...shopifyCustomer.tags, "verified"],
+                },
+              });
+            }
           }
 
-          // 3. Attach Shopify customer ID to the NextAuth user object
           user.shopifyCustomerId = shopifyCustomer.id;
           user.isNewUser = isNewUser;
           user.name = profile.name;
           user.email = profile.email;
           user.image = profile.image;
+          user.emailVerified = true;
         } catch (error: any) {
           console.error("Error during Google sign-in:", error);
-          // Redirect to sign-in page with an error message
           throw new Error(`An error occurred during sign-in: ${error.message}`);
         }
       }
@@ -171,6 +191,7 @@ export const authOptions: NextAuthOptions = {
         token.picture = internalUser.image;
         token.shopifyCustomerId = internalUser.shopifyCustomerId;
         token.isNewUser = internalUser.isNewUser;
+        token.emailVerified = internalUser.emailVerified;
       }
 
       if (
@@ -202,6 +223,7 @@ export const authOptions: NextAuthOptions = {
       session.user.shopifyCustomerId = token.shopifyCustomerId as
         | string
         | undefined;
+      session.user.emailVerified = token.emailVerified as boolean | undefined;
       session.shopifyAccessToken = token.shopifyAccessToken as
         | string
         | undefined;
