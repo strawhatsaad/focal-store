@@ -225,8 +225,11 @@ const Hero = ({ product }: any) => {
       prescriptionData.uploadedFile
     ) {
       try {
+        // Step 1: Upload the file to Vercel Blob
         const uploadResponse = await fetch(
-          `/api/upload?filename=${prescriptionData.uploadedFile.name}`,
+          `/api/upload?filename=${encodeURIComponent(
+            prescriptionData.uploadedFile.name
+          )}`,
           {
             method: "POST",
             body: prescriptionData.uploadedFile,
@@ -239,6 +242,28 @@ const Hero = ({ product }: any) => {
         }
         const blob = await uploadResponse.json();
         finalPrescriptionReference = blob.url;
+
+        // Step 2: Save the prescription metadata to the user's account
+        const metadataResponse = await fetch("/api/account/prescriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blobUrl: blob.url,
+            fileName: prescriptionData.uploadedFile.name,
+            fileType: prescriptionData.uploadedFile.type,
+            fileSize: prescriptionData.uploadedFile.size,
+            label: prescriptionData.prescriptionReferenceValue, // The label from the modal
+            category: "ContactLenses",
+          }),
+        });
+
+        if (!metadataResponse.ok) {
+          // If metadata fails, the API route will attempt to delete the orphaned blob
+          const errorResult = await metadataResponse.json();
+          throw new Error(
+            errorResult.message || "Failed to save prescription metadata."
+          );
+        }
       } catch (e: any) {
         setActionError(`Prescription Upload Error: ${e.message}`);
         setIsProcessingPageAction(false);

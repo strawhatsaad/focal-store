@@ -22,7 +22,9 @@
     "react": "^18",
     "react-dom": "^18",
     "swiper": "^11.2.6",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "jose": "^4.15.5",
+    "nodemailer": "^6.9.14"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
@@ -31,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/nodemailer": "^6.4.15",
     "@types/uuid": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.4",
