@@ -8,6 +8,7 @@ import Providers from "./providers"; // For NextAuth SessionProvider
 import { CartProvider } from "@/context/CartContext"; // For Cart Context
 import { WishlistProvider } from "@/context/WishlistContext"; // Import WishlistProvider
 import BottomPromoBar from "@/components/BottomPromoBar"; // Import the new component
+import ScrollToTop from "@/components/ScrollToTop"; // Import the new ScrollToTop component
 
 // Configure DM Sans
 const dmSans = DM_Sans({
@@ -59,6 +60,7 @@ export default function RootLayout({
         <Providers>
           <CartProvider>
             <WishlistProvider>
+              <ScrollToTop /> {/* Add the ScrollToTop component here */}
               <Header />
               <main className="min-h-screen pb-16">{children}</main>{" "}
               {/* Add padding-bottom to avoid overlap */}
