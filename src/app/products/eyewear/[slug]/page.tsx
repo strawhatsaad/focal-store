@@ -1,4 +1,4 @@
-import Hero from "@/sections/Products/ProductDetails/Hero";
+import EyewearHero from "@/sections/Products/ProductDetails/EyewearHero";
 import React from "react";
 import RelatedProducts from "@/sections/Products/ProductDetails/RelatedProducts";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
@@ -97,6 +97,13 @@ const ProductDetails = async ({ params }: PageProps) => {
     product_type: data.productType || "Eyewear",
     frame_width: getMetafieldValue("frame_width1"),
     frame_size: getMetafieldValue("frame_size"),
+    colorSwatches: getMetafieldValue("color_swatches")
+      ? JSON.parse(getMetafieldValue("color_swatches"))
+      : [],
+    frameWidths: getMetafieldValue("frame_widths")
+      ? JSON.parse(getMetafieldValue("frame_widths"))
+      : [],
+    frameMeasurements: getMetafieldValue("frame_measurements") || "",
   };
 
   let relatedProductsResult;
@@ -121,7 +128,7 @@ const ProductDetails = async ({ params }: PageProps) => {
       name: node.title,
       href: `/products/eyewear/${node.handle}`,
       price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(
-        2
+        2,
       )}`,
       imageSrc:
         node.featuredImage?.url ||
@@ -135,7 +142,7 @@ const ProductDetails = async ({ params }: PageProps) => {
 
   return (
     <main>
-      <Hero product={product} />
+      <EyewearHero product={product} />
       <div className="lg:hidden container">
         <ProductFeatures
           product={product}
@@ -214,6 +221,9 @@ const singleProductQuery = gql`
           { namespace: "custom", key: "manufacturer" }
           { namespace: "custom", key: "frame_width1" }
           { namespace: "custom", key: "frame_size" }
+          { namespace: "custom", key: "color_swatches" }
+          { namespace: "custom", key: "frame_widths" }
+          { namespace: "custom", key: "frame_measurements" }
         ]
       ) {
         namespace

@@ -59,7 +59,7 @@ const ManageAddressesPage = () => {
   const router = useRouter();
 
   const [defaultAddress, setDefaultAddress] = useState<ShopifyAddress | null>(
-    null
+    null,
   );
   const [otherAddresses, setOtherAddresses] = useState<ShopifyAddress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +68,7 @@ const ManageAddressesPage = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<ShopifyAddress | null>(
-    null
+    null,
   );
   const [formData, setFormData] = useState<MailingAddressInput>({
     firstName: "",
@@ -97,7 +97,7 @@ const ManageAddressesPage = () => {
         const response = await storeFront(
           GET_CUSTOMER_ADDRESSES_QUERY,
           variables,
-          token
+          token,
         );
 
         if (response.data?.customer) {
@@ -107,21 +107,21 @@ const ManageAddressesPage = () => {
               .map((edge: any) => edge.node)
               .filter(
                 (addr: ShopifyAddress) =>
-                  addr.id !== response.data.customer.defaultAddress?.id
-              )
+                  addr.id !== response.data.customer.defaultAddress?.id,
+              ),
           );
         } else if (response.errors) {
           console.error("Shopify API errors:", response.errors);
           setError(
             `Could not fetch addresses. ${response.errors
               .map((e: any) => e.message)
-              .join("; ")}`
+              .join("; ")}`,
           );
         }
       } catch (err: any) {
         console.error("Failed to fetch addresses:", err);
         setError(
-          err.message || "An error occurred while fetching your addresses."
+          err.message || "An error occurred while fetching your addresses.",
         );
       } finally {
         setIsLoading(false);
@@ -131,7 +131,7 @@ const ManageAddressesPage = () => {
       !session?.shopifyAccessToken
     ) {
       setError(
-        "Could not authenticate with Shopify to fetch addresses. Access token is missing."
+        "Could not authenticate with Shopify to fetch addresses. Access token is missing.",
       );
       setIsLoading(false);
     }
@@ -144,10 +144,11 @@ const ManageAddressesPage = () => {
       return;
     }
     fetchAddresses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, sessionStatus, router]);
 
   const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -175,14 +176,14 @@ const ManageAddressesPage = () => {
             id: editingAddress.id,
             address: formData,
           },
-          token
+          token,
         );
         if (response.data?.customerAddressUpdate?.customerAddress) {
           setSuccessMessage("Address updated successfully!");
         } else {
           throw new Error(
             response.data?.customerAddressUpdate?.customerUserErrors?.[0]
-              ?.message || "Failed to update address."
+              ?.message || "Failed to update address.",
           );
         }
       } else {
@@ -190,14 +191,14 @@ const ManageAddressesPage = () => {
         response = await storeFront(
           CUSTOMER_ADDRESS_CREATE_MUTATION,
           { customerAccessToken: token, address: formData },
-          token
+          token,
         );
         if (response.data?.customerAddressCreate?.customerAddress) {
           setSuccessMessage("Address added successfully!");
         } else {
           throw new Error(
             response.data?.customerAddressCreate?.customerUserErrors?.[0]
-              ?.message || "Failed to add address."
+              ?.message || "Failed to add address.",
           );
         }
       }
@@ -252,7 +253,7 @@ const ManageAddressesPage = () => {
       const response = await storeFront(
         CUSTOMER_ADDRESS_DELETE_MUTATION,
         { customerAccessToken: token, id: addressId },
-        token
+        token,
       );
       if (response.data?.customerAddressDelete?.deletedCustomerAddressId) {
         setSuccessMessage("Address deleted successfully!");
@@ -260,7 +261,7 @@ const ManageAddressesPage = () => {
       } else {
         throw new Error(
           response.data?.customerAddressDelete?.customerUserErrors?.[0]
-            ?.message || "Failed to delete address."
+            ?.message || "Failed to delete address.",
         );
       }
     } catch (err: any) {
@@ -280,7 +281,7 @@ const ManageAddressesPage = () => {
       const response = await storeFront(
         CUSTOMER_DEFAULT_ADDRESS_UPDATE_MUTATION,
         { customerAccessToken: token, addressId: addressId },
-        token
+        token,
       );
       if (response.data?.customerDefaultAddressUpdate?.customer) {
         setSuccessMessage("Default address updated successfully!");
@@ -288,12 +289,12 @@ const ManageAddressesPage = () => {
       } else {
         throw new Error(
           response.data?.customerDefaultAddressUpdate?.customerUserErrors?.[0]
-            ?.message || "Failed to set default address."
+            ?.message || "Failed to set default address.",
         );
       }
     } catch (err: any) {
       setError(
-        err.message || "An error occurred while setting the default address."
+        err.message || "An error occurred while setting the default address.",
       );
     } finally {
       setIsLoading(false);

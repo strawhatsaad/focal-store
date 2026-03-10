@@ -390,8 +390,8 @@ const EyewearPage = () => {
                     No frames found
                   </h3>
                   <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                    We couldn't find any frames matching your current filters.
-                    Try adjusting your selections.
+                    We couldn&apos;t find any frames matching your current
+                    filters. Try adjusting your selections.
                   </p>
                   <button
                     onClick={clearAllFilters}

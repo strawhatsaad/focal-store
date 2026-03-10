@@ -1,4 +1,5 @@
 // src/components/EyeglassesPrescriptionModal.tsx
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -45,11 +46,56 @@ interface EyeglassesPrescriptionModalProps {
 }
 
 const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
 ];
 
 const generateRangeOptions = (
@@ -57,7 +103,7 @@ const generateRangeOptions = (
   end: number,
   step: number,
   includePositiveSign = false,
-  suffix = ""
+  suffix = "",
 ): string[] => {
   const options: string[] = [];
   if (start === 0 && end === 0 && step === 0 && suffix === "°") {
@@ -93,7 +139,7 @@ const generateRangeOptions = (
   } else {
     uniqueOptions.sort(
       (a, b) =>
-        parseInt(a.replace(suffix, "")) - parseInt(b.replace(suffix, ""))
+        parseInt(a.replace(suffix, "")) - parseInt(b.replace(suffix, "")),
     );
   }
   return uniqueOptions;
@@ -144,7 +190,7 @@ const EyeglassesPrescriptionModal: React.FC<
       setUploadedRxLabel(
         session?.user?.name
           ? `${session.user.name} - Eyeglass Rx`
-          : "Eyeglass Rx"
+          : "Eyeglass Rx",
       );
       setError(null);
       setSuccessMessage(null);
@@ -228,7 +274,7 @@ const EyeglassesPrescriptionModal: React.FC<
     if (rxDetails.hasDualPd) {
       if (!rxDetails.pdOd?.trim() || !rxDetails.pdOs?.trim()) {
         setError(
-          "If using dual PD, both Right Eye and Left Eye PD values are required."
+          "If using dual PD, both Right Eye and Left Eye PD values are required.",
         );
         return false;
       }
@@ -277,7 +323,7 @@ const EyeglassesPrescriptionModal: React.FC<
   };
 
   const handleFinalAddToCart = async (
-    prescriptionMethod: "manual" | "upload" | "later"
+    prescriptionMethod: "manual" | "upload" | "later",
   ) => {
     setIsProcessingPageAction(true);
     setError(null);
@@ -289,7 +335,7 @@ const EyeglassesPrescriptionModal: React.FC<
     if (prescriptionMethod === "manual") {
       if (!rxDetails.prescriptionConfirmed) {
         setError(
-          "Please confirm the prescription information is correct before adding to cart."
+          "Please confirm the prescription information is correct before adding to cart.",
         );
         setIsProcessingPageAction(false);
         return;
@@ -340,7 +386,7 @@ const EyeglassesPrescriptionModal: React.FC<
       formData.append("prescriptionFile", uploadedRxFile);
       formData.append(
         "label",
-        uploadedRxLabel || uploadedRxFile.name.replace(/\.[^/.]+$/, "")
+        uploadedRxLabel || uploadedRxFile.name.replace(/\.[^/.]+$/, ""),
       );
       formData.append("category", "Eyeglasses");
 
@@ -352,7 +398,7 @@ const EyeglassesPrescriptionModal: React.FC<
         const uploadResult = await uploadRes.json();
         if (!uploadRes.ok)
           throw new Error(
-            uploadResult.message || "Failed to upload prescription."
+            uploadResult.message || "Failed to upload prescription.",
           );
         prescriptionAttributes.push({
           key: "Rx Method",
@@ -416,7 +462,8 @@ const EyeglassesPrescriptionModal: React.FC<
         router.push("/cart");
       } else {
         setError(
-          cartErrorHook || "Failed to add eyeglasses to cart. Please try again."
+          cartErrorHook ||
+            "Failed to add eyeglasses to cart. Please try again.",
         );
       }
     } catch (e: any) {
@@ -432,35 +479,35 @@ const EyeglassesPrescriptionModal: React.FC<
   const addOptions = generateRangeOptions(0.25, 7, 0.25, false);
 
   const renderInitialChoice = () => (
-    <div className="text-center space-y-4 py-4">
-      <h3 className="text-xl font-semibold text-gray-800">
+    <div className="text-center space-y-5 py-4">
+      <h3 className="text-[26px] font-medium text-gray-900 tracking-tight">
         Provide Your Eyeglass Prescription
       </h3>
-      <p className="text-sm text-gray-600">
+      <p className="text-[15px] text-gray-600 leading-relaxed max-w-sm mx-auto">
         Choose how you&apos;d like to submit your prescription details.
       </p>
-      <div className="pt-2 space-y-3">
+      <div className="pt-6 space-y-3">
         <button
           onClick={() => setCurrentStep("manualInput_patientInfo")}
-          className="w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+          className="w-full bg-white text-gray-900 border border-gray-300 py-[18px] px-6 rounded-2xl hover:border-gray-900 transition-colors text-[17px] font-medium shadow-sm"
         >
           Enter Prescription Manually
         </button>
         <button
           onClick={() => setCurrentStep("uploadRx")}
-          className="w-full bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+          className="w-full bg-white text-gray-900 border border-gray-300 py-[18px] px-6 rounded-2xl hover:border-gray-900 transition-colors text-[17px] font-medium shadow-sm"
         >
           Upload a Photo of Your Prescription
         </button>
         <button
           onClick={() => handleFinalAddToCart("later")}
           disabled={isProcessingPageAction || cartLoading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+          className="w-full bg-black text-white py-[18px] px-6 rounded-full hover:bg-gray-800 transition-colors text-[17px] font-medium flex items-center justify-center gap-2 disabled:opacity-70 mt-4 shadow-sm"
         >
           {isProcessingPageAction || cartLoading ? (
-            <Loader2 className="animate-spin h-4 w-4" />
+            <Loader2 className="animate-spin h-5 w-5" />
           ) : (
-            <ClockFading size={16} />
+            <ClockFading size={18} />
           )}
           Add Prescription Later & Add to Cart
         </button>
@@ -805,104 +852,171 @@ const EyeglassesPrescriptionModal: React.FC<
 
   if (!isOpen) return null;
 
+  const frameDisplayName =
+    selectedVariant?.name ||
+    selectedVariant?.title ||
+    product?.name ||
+    "Selected Frame";
+  const totalCalculatedPrice = lensCustomizations?.price || 0;
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-75 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Eyeglass Prescription
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto flex-grow">
-          {error && (
-            <div className="mb-4 p-3 text-sm bg-red-100 text-red-700 rounded-md flex items-center">
-              <AlertTriangle size={16} className="mr-2" />
-              {error}
-            </div>
-          )}
-          {successMessage && (
-            <div className="mb-4 p-3 text-sm bg-green-100 text-green-700 rounded-md flex items-center">
-              <CheckCircle size={16} className="mr-2" />
-              {successMessage}
-            </div>
-          )}
-
-          {currentStep === "initialChoice" && renderInitialChoice()}
-          {currentStep === "manualInput_patientInfo" &&
-            renderManualInputPatientInfo()}
-          {currentStep === "manualInput_eyeRx" && renderManualInputEyeRx()}
-          {currentStep === "manualInput_pd" && renderManualInputPd()}
-          {currentStep === "uploadRx" && renderUploadRx()}
-        </div>
-
-        <div className="p-5 border-t flex justify-between items-center bg-gray-50 rounded-b-lg sticky bottom-0 z-10">
+    <div
+      className={`fixed inset-0 z-[100] flex bg-[#f7f6f2] transition-all duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+    >
+      {/* Top Navigation / Close (Fixed across the whole modal) */}
+      <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center bg-transparent z-50 pointer-events-none">
+        <div className="pointer-events-auto">{/* Logo */}</div>
+        <div className="flex bg-white/60 backdrop-blur-md rounded-full p-1 shadow-sm pointer-events-auto border border-gray-200">
           {currentStep !== "initialChoice" && (
             <button
               onClick={handlePrevious}
               disabled={isProcessingPageAction}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 flex items-center"
+              className="p-2.5 text-gray-500 hover:text-gray-900 rounded-full hover:bg-white transition-all disabled:opacity-50"
+              title="Go Back"
             >
-              <ArrowLeft size={16} className="mr-1.5" /> Previous
+              <ArrowLeft size={20} />
             </button>
           )}
-          <div className="flex-grow"></div>
-
-          {currentStep === "manualInput_patientInfo" && (
-            <button
-              onClick={handleNext}
-              disabled={isProcessingPageAction}
-              className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 flex items-center"
-            >
-              Next <ArrowRight size={16} className="ml-1.5" />
-            </button>
-          )}
-          {currentStep === "manualInput_eyeRx" && (
-            <button
-              onClick={handleNext}
-              disabled={isProcessingPageAction}
-              className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 flex items-center"
-            >
-              Next <ArrowRight size={16} className="ml-1.5" />
-            </button>
-          )}
-          {currentStep === "manualInput_pd" && (
-            <button
-              onClick={handleNext}
-              disabled={
-                isProcessingPageAction || !rxDetails.prescriptionConfirmed || cartLoading
-              }
-              className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
-            >
-              {isProcessingPageAction || cartLoading ? (
-                <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
-              ) : (
-                <CheckCircle size={16} className="mr-1.5" />
-              )}
-              Add to Cart
-            </button>
-          )}
-          {currentStep === "uploadRx" && (
-            <button
-              onClick={() => handleFinalAddToCart("upload")}
-              disabled={isProcessingPageAction || !uploadedRxFile || cartLoading}
-              className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
-            >
-              {isProcessingPageAction || cartLoading ? (
-                <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
-              ) : (
-                <UploadCloud size={16} className="mr-1.5" />
-              )}
-              Upload & Add to Cart
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="p-2.5 text-gray-500 hover:text-gray-900 rounded-full hover:bg-white transition-all"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
         </div>
+      </div>
+
+      {/* Left Side: Dynamic Image */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative p-12 bg-[#f4f5f5]">
+        <div className="relative w-full max-w-2xl aspect-[16/9] flex items-center justify-center">
+          <img
+            src={
+              selectedVariant?.image?.src ||
+              selectedVariant?.imageSrc ||
+              product?.images?.[0]?.src ||
+              "https://placehold.co/800x600/E2E8F0/4A5568?text=Eyeglasses"
+            }
+            alt={frameDisplayName}
+            className="max-w-full max-h-full object-contain scale-125 saturate-[1.05]"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                "https://placehold.co/800x600/E2E8F0/4A5568?text=Image+Error";
+            }}
+          />
+        </div>
+        <div className="absolute bottom-12 left-12">
+          <h2 className="text-[34px] font-medium text-gray-900 tracking-tight leading-none mb-2">
+            {product?.name || "Frame"}
+          </h2>
+          <p className="text-[20px] italic font-serif text-gray-700">
+            {frameDisplayName}
+          </p>
+        </div>
+        <div className="absolute bottom-12 right-12 text-right">
+          <p className="text-sm text-gray-500 uppercase tracking-widest font-semibold mb-1">
+            Total
+          </p>
+          <p className="text-[26px] font-medium text-gray-900 leading-none">
+            ${totalCalculatedPrice.toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side: Options Panel */}
+      <div
+        className={`bg-white w-full lg:w-[480px] xl:w-[540px] h-full shadow-2xl flex flex-col transform transition-transform duration-500 ease-out border-l border-gray-200 relative ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex lg:hidden items-center justify-between p-6 border-b border-gray-100 bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            {currentStep !== "initialChoice" && (
+              <button
+                onClick={handlePrevious}
+                aria-label="Go back"
+                className="text-gray-500 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                disabled={isProcessingPageAction}
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <h2 className="text-xl font-medium text-gray-900 tracking-tight">
+              Prescription
+            </h2>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-medium text-gray-900">
+              ${totalCalculatedPrice.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 lg:px-12 lg:pt-32 overflow-y-auto flex-grow hide-scrollbar pb-32">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+              <AlertTriangle
+                size={20}
+                className="text-red-500 shrink-0 mt-0.5"
+              />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl flex items-start gap-3">
+              <CheckCircle
+                size={20}
+                className="text-green-600 shrink-0 mt-0.5"
+              />
+              <p className="text-sm text-green-700">{successMessage}</p>
+            </div>
+          )}
+
+          <div className="transition-opacity duration-300">
+            {currentStep === "initialChoice" && renderInitialChoice()}
+            {currentStep === "manualInput_patientInfo" &&
+              renderManualInputPatientInfo()}
+            {currentStep === "manualInput_eyeRx" && renderManualInputEyeRx()}
+            {currentStep === "manualInput_pd" && renderManualInputPd()}
+            {currentStep === "uploadRx" && renderUploadRx()}
+          </div>
+        </div>
+
+        {currentStep !== "initialChoice" && (
+          <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
+            {currentStep === "manualInput_pd" || currentStep === "uploadRx" ? (
+              <button
+                onClick={() =>
+                  handleFinalAddToCart(
+                    currentStep === "uploadRx" ? "upload" : "manual",
+                  )
+                }
+                disabled={
+                  isProcessingPageAction ||
+                  cartLoading ||
+                  (currentStep === "manualInput_pd" &&
+                    !rxDetails.prescriptionConfirmed) ||
+                  (currentStep === "uploadRx" && !uploadedRxFile)
+                }
+                className="w-full flex items-center justify-center bg-black text-white py-4 px-6 rounded-full text-[17px] font-medium hover:bg-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                {isProcessingPageAction || cartLoading ? (
+                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                ) : null}
+                {currentStep === "uploadRx"
+                  ? "Upload & Add to Cart"
+                  : "Add to Cart"}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={isProcessingPageAction}
+                className="w-full flex items-center justify-center bg-black text-white py-4 px-6 rounded-full text-[17px] font-medium hover:bg-gray-800 disabled:opacity-50 transition-all shadow-sm"
+              >
+                Continue <ArrowRight size={18} className="ml-2" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

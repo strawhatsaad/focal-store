@@ -1,4 +1,5 @@
 // File: src/sections/Products/EyeglassesModal.tsx
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react"; // Added useMemo
@@ -55,7 +56,7 @@ export default function EyeglassesModal({
   const getOptionNode = useCallback(
     (
       path: string[],
-      currentTree: Record<string, OptionNode>
+      currentTree: Record<string, OptionNode>,
     ): OptionNode | undefined => {
       if (!path || path.length === 0) return undefined;
       let node: OptionNode | undefined = currentTree[path[0]];
@@ -65,7 +66,7 @@ export default function EyeglassesModal({
       }
       return node;
     },
-    []
+    [],
   );
 
   const baseFramePrice = useMemo(() => {
@@ -91,7 +92,7 @@ export default function EyeglassesModal({
 
   const resetCustomizations = useCallback(() => {
     setSteps(
-      Object.keys(optionsTree).length > 0 ? [Object.keys(optionsTree)] : []
+      Object.keys(optionsTree).length > 0 ? [Object.keys(optionsTree)] : [],
     );
     setSelections([]);
     setCurrentStepIndex(0);
@@ -116,7 +117,7 @@ export default function EyeglassesModal({
         const selectionKey = currentSelections[i];
         if (!currentPathNodeTree || !currentPathNodeTree[selectionKey]) {
           console.warn(
-            `[EyeglassesModal] Option key "${selectionKey}" not found at step ${i} in optionsTree.`
+            `[EyeglassesModal] Option key "${selectionKey}" not found at step ${i} in optionsTree.`,
           );
           break;
         }
@@ -136,7 +137,7 @@ export default function EyeglassesModal({
       setTotalPrice(newNumericPrice);
       setFinalSelectionsSummary(summary);
     },
-    [baseFramePrice]
+    [baseFramePrice],
   );
 
   const handleOptionSelect = (optionKey: string, stepIdx: number) => {
@@ -193,129 +194,218 @@ export default function EyeglassesModal({
     "Selected Frame";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 transition-opacity duration-300 ease-in-out">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-100">
-        <div className="flex items-center justify-between p-4 md:p-5 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800">
-            Customize Lenses for {product?.name || "Eyeglasses"}
+    <div
+      className={`fixed inset-0 z-[100] flex bg-[#f7f6f2] transition-all duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+    >
+      {/* Left Side: Dynamic Image */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative p-12 bg-[#f4f5f5]">
+        <div className="relative w-full max-w-2xl aspect-[16/9] flex items-center justify-center">
+          <img
+            src={
+              selectedVariant?.image?.src ||
+              selectedVariant?.imageSrc ||
+              product?.images?.[0]?.src ||
+              "https://placehold.co/800x600/E2E8F0/4A5568?text=Eyeglasses"
+            }
+            alt={frameDisplayName}
+            className="max-w-full max-h-full object-contain scale-125 saturate-[1.05]"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                "https://placehold.co/800x600/E2E8F0/4A5568?text=Image+Error";
+            }}
+          />
+        </div>
+        <div className="absolute bottom-12 left-12">
+          <h2 className="text-[34px] font-medium text-gray-900 tracking-tight leading-none mb-2">
+            {product?.name || "Frame"}
           </h2>
-          <div className="flex items-center space-x-2">
+          <p className="text-[20px] italic font-serif text-gray-700">
+            {frameDisplayName}
+          </p>
+        </div>
+        <div className="absolute bottom-12 right-12 text-right">
+          <p className="text-sm text-gray-500 uppercase tracking-widest font-semibold mb-1">
+            Total
+          </p>
+          <p className="text-[26px] font-medium text-gray-900 leading-none">
+            ${totalPrice.toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side: Options Panel */}
+      <div
+        className={`bg-white w-full lg:w-[480px] xl:w-[540px] h-full shadow-2xl flex flex-col transform transition-transform duration-500 ease-out border-l border-gray-200 relative ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 bg-white sticky top-0 z-30">
+          <div className="flex-1">
+            {currentStepIndex > 0 ? (
+              <button
+                onClick={() => setCurrentStepIndex(currentStepIndex - 1)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full text-gray-900 font-medium hover:bg-gray-100 transition-all border border-gray-200"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5"></path>
+                  <path d="M12 19l-7-7 7-7"></path>
+                </svg>
+                Back
+              </button>
+            ) : (
+              <h2 className="lg:hidden text-xl font-medium text-gray-900 tracking-tight">
+                Customize lenses
+              </h2>
+            )}
+          </div>
+
+          <div className="flex bg-gray-50 rounded-full p-1 border border-gray-200">
             <button
               onClick={resetCustomizations}
-              aria-label="Reset customizations"
-              className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-              title="Reset Selections"
+              className="p-2 text-gray-500 hover:text-gray-900 rounded-full hover:bg-white transition-all"
+              title="Reset"
             >
-              <RefreshCcw className="w-5 h-5" />
+              <RefreshCcw size={16} />
             </button>
             <button
               onClick={onClose}
-              aria-label="Close customization modal"
-              className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+              className="p-2 text-gray-500 hover:text-gray-900 rounded-full hover:bg-white transition-all"
+              title="Close"
             >
-              <X className="w-5 h-5" />
+              <X size={18} />
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
-          <div className="w-full md:w-1/2 p-4 md:p-6 border-b md:border-b-0 md:border-r flex items-center justify-center bg-gray-50">
-            <img
-              src={
-                selectedVariant?.image?.src ||
-                selectedVariant?.imageSrc ||
-                product?.images?.[0]?.src ||
-                "https://placehold.co/300x200/E2E8F0/4A5568?text=Eyeglasses"
-              }
-              alt={frameDisplayName}
-              // Using inline style for object-fit as next/image is not used here
-              style={{
-                maxWidth: "100%",
-                maxHeight: "300px",
-                objectFit: "contain",
-              }}
-              className="rounded" // Removed fixed width/height, rely on parent and max-height
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "https://placehold.co/300x200/E2E8F0/4A5568?text=Image+Error";
-              }}
-            />
+        <div className="flex-grow overflow-y-auto bg-white hide-scrollbar pb-32 pt-8 lg:pt-12 px-6 lg:px-12">
+          {/* Mobile Product Summary */}
+          <div className="lg:hidden flex items-center gap-4 mb-8 pb-8 border-b border-gray-100">
+            <div className="w-24 h-24 bg-[#F7F6F2] rounded-lg flex items-center justify-center p-2 shrink-0">
+              <img
+                src={
+                  selectedVariant?.image?.src ||
+                  selectedVariant?.imageSrc ||
+                  product?.images?.[0]?.src ||
+                  "https://placehold.co/300x200/E2E8F0/4A5568?text=Eyeglasses"
+                }
+                alt={frameDisplayName}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div className="flex-grow">
+              <h3 className="text-base font-semibold text-gray-900">
+                {product?.name || "Frame"}
+              </h3>
+              <p className="text-sm text-gray-500">{frameDisplayName}</p>
+            </div>
           </div>
 
-          <div className="w-full md:w-1/2 p-4 md:p-6 overflow-y-auto space-y-4 md:space-y-5">
-            <div className="text-right mb-3">
-              <p className="text-xs text-gray-500">
-                Frame: {frameDisplayName} (${baseFramePrice.toFixed(2)})
-              </p>
-              <p className="text-lg font-bold text-gray-800">
-                Total Price: ${totalPrice.toFixed(2)}
-              </p>
-            </div>
-
+          <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
             {steps.map((stepOptions, stepIdx) => {
-              if (stepIdx > currentStepIndex && selections.length <= stepIdx)
-                return null; // Corrected condition
+              if (stepIdx !== currentStepIndex) return null;
 
               let titleForThisStep = "Select Option";
+              let subtitle = "";
               if (stepIdx === 0 && Object.keys(optionsTree).length > 0) {
                 const firstKey = Object.keys(optionsTree)[0];
                 titleForThisStep =
-                  optionsTree[firstKey]?.label || "Prescription Type";
+                  optionsTree[firstKey]?.label || "Select a prescription type";
               } else if (stepIdx > 0) {
                 const parentNodeOfCurrentOptions = getOptionNode(
                   selections.slice(0, stepIdx),
-                  optionsTree
+                  optionsTree,
                 );
                 titleForThisStep =
                   parentNodeOfCurrentOptions?.label || `Step ${stepIdx + 1}`;
+                subtitle = parentNodeOfCurrentOptions?.description || "";
               }
 
+              const isCurrentActiveStep = stepIdx === currentStepIndex;
+
               return (
-                <div key={`step-group-${stepIdx}`} className="mb-3">
-                  <h3 className="text-sm font-medium text-gray-600 mb-1.5">
-                    {titleForThisStep}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
+                <div
+                  key={`step-group-${stepIdx}`}
+                  className={`transition-all duration-500 ${!isCurrentActiveStep && stepIdx < currentStepIndex ? "opacity-40 hover:opacity-100" : "opacity-100"}`}
+                >
+                  <div className="mb-6">
+                    <h3 className="text-[26px] font-medium text-gray-900 tracking-tight">
+                      {titleForThisStep}
+                    </h3>
+                    {subtitle && (
+                      <p className="text-[15px] text-gray-600 mt-2 leading-relaxed">
+                        {subtitle}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
                     {stepOptions.map((optionKey) => {
                       const isSelected = selections[stepIdx] === optionKey;
                       const currentOptionParentPath = selections.slice(
                         0,
-                        stepIdx
+                        stepIdx,
                       );
                       const parentNodeForThisOption = getOptionNode(
                         currentOptionParentPath,
-                        optionsTree
+                        optionsTree,
                       );
                       const optionNodeDetails =
                         stepIdx === 0
                           ? optionsTree[optionKey]
                           : parentNodeForThisOption?.children?.[optionKey];
 
-                      if (!optionNodeDetails) {
-                        // Defensive check
-                        // console.warn(`Option details not found for key: ${optionKey} at step ${stepIdx}`);
-                        return null;
-                      }
+                      if (!optionNodeDetails) return null;
 
                       const buttonText =
                         optionNodeDetails.optionDisplayName || optionKey;
+                      const description = optionNodeDetails.description;
                       const price = optionNodeDetails.basePrice ?? 0;
 
                       return (
-                        <button
+                        <div
                           key={optionKey}
-                          className={`px-3 py-1.5 text-xs rounded border transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1
+                          onClick={() => handleOptionSelect(optionKey, stepIdx)}
+                          className={`w-full p-5 rounded-2xl border transition-all cursor-pointer flex flex-col text-left group
                             ${
                               isSelected
-                                ? "bg-black text-white border-black ring-black"
-                                : "border-gray-300 text-gray-700 hover:border-gray-600 hover:bg-gray-50 ring-gray-300"
+                                ? "border-black shadow-sm ring-1 ring-black"
+                                : "border-gray-200 bg-white hover:border-black"
                             }
                           `}
-                          onClick={() => handleOptionSelect(optionKey, stepIdx)}
                         >
-                          {buttonText}
-                          {price > 0 ? ` (+$${price.toFixed(2)})` : ""}
-                        </button>
+                          <div className="flex justify-between items-start mb-1">
+                            <span
+                              className={`text-[17px] font-medium leading-tight text-gray-900`}
+                            >
+                              {buttonText}
+                            </span>
+                            {price > 0 ||
+                            buttonText.toLowerCase().includes("included") ? (
+                              <span
+                                className={`text-[15px] font-medium whitespace-nowrap ml-4 text-gray-900`}
+                              >
+                                {price > 0
+                                  ? `+$${price.toFixed(2)}`
+                                  : "Included"}
+                              </span>
+                            ) : null}
+                          </div>
+                          {description && (
+                            <p
+                              className={`text-[14px] mt-2 leading-relaxed text-gray-500`}
+                            >
+                              {description}
+                            </p>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -324,23 +414,24 @@ export default function EyeglassesModal({
             })}
 
             {processingError && (
-              <p className="text-xs text-red-500 mt-2">{processingError}</p>
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                <AlertTriangle
+                  size={20}
+                  className="text-red-500 shrink-0 mt-0.5"
+                />
+                <p className="text-sm text-red-700">{processingError}</p>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="p-4 md:p-5 border-t flex flex-col items-end sticky bottom-0 bg-white z-10">
-          <p className="text-xs text-gray-500 mb-2 w-full text-center md:text-right">
-            Price includes frame & selected lens options.
-          </p>
+        <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
           <button
             onClick={handleProceedToPrescription}
             disabled={!isFinalStepCompleted()}
-            className="w-full md:w-auto flex items-center justify-center bg-black text-white py-2.5 px-5 rounded-md text-sm font-semibold
-                       hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black
-                       disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-150"
+            className="w-full flex items-center justify-center bg-black text-white py-4 px-6 rounded-full text-[17px] font-medium hover:bg-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
           >
-            Next: Enter Prescription <ArrowRight size={16} className="ml-2" />
+            Review & Continue
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 // File: src/sections/Products/ProductDetails/Hero.tsx
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
@@ -115,7 +116,7 @@ const Hero = ({ product }: any) => {
         initialVariant?.image?.src ||
           initialVariant?.imageSrc ||
           product.images?.[0]?.src ||
-          ""
+          "",
       );
     } else {
       setSelectedVariant(null);
@@ -153,8 +154,8 @@ const Hero = ({ product }: any) => {
       const currentPath = window.location.pathname + window.location.search;
       router.push(
         `/auth/signin?callbackUrl=${encodeURIComponent(
-          currentPath
-        )}&reason=orderAttempt`
+          currentPath,
+        )}&reason=orderAttempt`,
       );
       return;
     }
@@ -171,14 +172,14 @@ const Hero = ({ product }: any) => {
         (!leftEyeEnabled || leftEyeQty <= 0)
       ) {
         setActionError(
-          "Please select a quantity greater than 0 for at least one eye."
+          "Please select a quantity greater than 0 for at least one eye.",
         );
         setTimeout(() => setActionError(null), 3000);
         return;
       }
       if (!rightEyeEnabled && !leftEyeEnabled) {
         setActionError(
-          "Please enable at least one eye for prescription entry."
+          "Please enable at least one eye for prescription entry.",
         );
         setTimeout(() => setActionError(null), 3000);
         return;
@@ -203,7 +204,7 @@ const Hero = ({ product }: any) => {
   };
 
   const handleLensCustomizationComplete = (
-    customizations: LensCustomizationData
+    customizations: LensCustomizationData,
   ) => {
     setCurrentLensCustomizations(customizations);
     setIsEyeglassesLensModalOpen(false);
@@ -211,7 +212,7 @@ const Hero = ({ product }: any) => {
   };
 
   const handleClPrescriptionComplete = async (
-    prescriptionData: ContactLensPrescriptionData
+    prescriptionData: ContactLensPrescriptionData,
   ) => {
     setIsClModalOpen(false);
     setIsProcessingPageAction(true);
@@ -228,12 +229,12 @@ const Hero = ({ product }: any) => {
         // Step 1: Upload the file to Vercel Blob
         const uploadResponse = await fetch(
           `/api/upload?filename=${encodeURIComponent(
-            prescriptionData.uploadedFile.name
+            prescriptionData.uploadedFile.name,
           )}`,
           {
             method: "POST",
             body: prescriptionData.uploadedFile,
-          }
+          },
         );
 
         if (!uploadResponse.ok) {
@@ -261,7 +262,7 @@ const Hero = ({ product }: any) => {
           // If metadata fails, the API route will attempt to delete the orphaned blob
           const errorResult = await metadataResponse.json();
           throw new Error(
-            errorResult.message || "Failed to save prescription metadata."
+            errorResult.message || "Failed to save prescription metadata.",
           );
         }
       } catch (e: any) {
@@ -370,7 +371,7 @@ const Hero = ({ product }: any) => {
         const success = await addLineItem(
           item.variantId,
           item.quantity,
-          item.attributes
+          item.attributes,
         );
         if (!success) {
           allItemsAddedSuccessfully = false;
@@ -383,13 +384,13 @@ const Hero = ({ product }: any) => {
         router.push("/cart");
       } else {
         setActionError(
-          cartContextError || "Failed to add one or more items to the cart."
+          cartContextError || "Failed to add one or more items to the cart.",
         );
         setTimeout(() => setActionError(null), 5000);
       }
     } catch (e: any) {
       setActionError(
-        e.message || "An error occurred while adding items to cart."
+        e.message || "An error occurred while adding items to cart.",
       );
       setTimeout(() => setActionError(null), 4000);
     } finally {
@@ -570,7 +571,7 @@ const Hero = ({ product }: any) => {
                           "w-full py-2 px-3 text-xs sm:text-sm font-medium border rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-center truncate",
                           selectedVariant?.id === variant.id
                             ? "bg-black text-white border-black ring-black"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent",
                         )}
                       >
                         {" "}
@@ -605,7 +606,7 @@ const Hero = ({ product }: any) => {
                             "py-2 px-5 text-sm font-medium border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1",
                             selectedVariant?.id === variant.id
                               ? "bg-black text-white border-black ring-black"
-                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 ring-transparent",
                           )}
                         >
                           {" "}
@@ -668,10 +669,10 @@ const Hero = ({ product }: any) => {
                           onClick={() =>
                             idx === 0
                               ? setRightEyeQty((prev) =>
-                                  Math.min(maxQty, prev + 1)
+                                  Math.min(maxQty, prev + 1),
                                 )
                               : setLeftEyeQty((prev) =>
-                                  Math.min(maxQty, prev + 1)
+                                  Math.min(maxQty, prev + 1),
                                 )
                           }
                           disabled={
@@ -724,8 +725,8 @@ const Hero = ({ product }: any) => {
                   {isContactLensProduct
                     ? "Enter Prescription & Add to Cart"
                     : isEyewearProduct
-                    ? "Customize Lenses & Enter Rx"
-                    : "Add to Cart"}
+                      ? "Customize Lenses & Enter Rx"
+                      : "Add to Cart"}
                 </button>
               </div>
               {actionError && (
