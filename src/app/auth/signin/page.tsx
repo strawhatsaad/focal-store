@@ -113,16 +113,16 @@ function SignInFormContent() {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(
-          data.message || "Sign up failed due to an unknown error."
+          data.message || "Sign up failed due to an unknown error.",
         );
       }
       setSuccessMessage(
-        "Success! A verification link has been sent to your email address. Please check your inbox to complete your registration."
+        "Success! A verification link has been sent to your email address. Please check your inbox to complete your registration.",
       );
       // Don't switch form, keep showing the success message
     } catch (err: any) {
       setFormError(
-        err.message || "An unexpected error occurred during sign up."
+        err.message || "An unexpected error occurred during sign up.",
       );
     } finally {
       setLoading(false);
@@ -393,7 +393,7 @@ function SignInFormContent() {
                   </div>
                 </div>
                 <div className="mt-6">
-                  <AuthButtons />
+                  <AuthButtons callbackUrl={callbackUrl} />
                 </div>
               </div>
             </>
