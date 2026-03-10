@@ -1,22 +1,13 @@
-// src/app/pages/eyewear/page.tsx
 "use client";
 
 import Hero from "@/sections/Products/Hero";
-import ProductsSection from "@/sections/Products/Products";
 import FilterSidebar from "@/components/Filters/FilterSidebar";
+import EyewearProductCard, {
+  EyewearProductProps,
+} from "@/components/EyewearProductCard";
 import React, { useState, useEffect, useMemo } from "react";
 import { storeFront } from "../../../utils";
-import {
-  Loader2,
-  Filter,
-  Search,
-  X as XIcon,
-  Glasses,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
-import { useCart } from "@/context/CartContext"; // Import useCart
-import Link from "next/link";
+import { Loader2, Filter, Search, X as XIcon } from "lucide-react";
 
 interface ProductImage {
   url: string;
@@ -35,31 +26,31 @@ interface MetafieldNode {
   type?: string;
 }
 
+interface VariantNode {
+  id: string;
+  title: string;
+  priceV2: Price;
+  image: ProductImage | null;
+}
+
 interface ProductNode {
   id: string;
   title: string;
   handle: string;
-  tags: string[]; // Added tags
+  tags: string[];
   featuredImage: ProductImage;
   priceRange: {
     minVariantPrice: Price;
   };
-  searchFiltersMetafield: MetafieldNode | null; // Using consistent key for search filters
+  searchFiltersMetafield: MetafieldNode | null;
+  colorSwatchesMetafield: MetafieldNode | null;
+  variants: {
+    edges: { node: VariantNode }[];
+  };
 }
 
 interface ProductEdge {
   node: ProductNode;
-}
-
-interface MappedProduct {
-  id: string;
-  name: string;
-  href: string;
-  price: string;
-  imageSrc: string;
-  imageAlt: string | null;
-  eyewearFilters?: string[];
-  tags?: string[]; // Added tags
 }
 
 const SHAPE_OPTIONS = [
@@ -94,9 +85,10 @@ const FEATURES_OPTIONS = [
 const NOSE_BRIDGE_OPTIONS = ["Standard bridge", "Low Bridge Fit"].sort();
 
 const EyewearPage = () => {
-  const { isFirstTimeCustomer } = useCart(); // Get status from cart context
-  const [allProducts, setAllProducts] = useState<MappedProduct[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<MappedProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<EyewearProductProps[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<
+    EyewearProductProps[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,14 +111,16 @@ const EyewearPage = () => {
             result.data.collectionByHandle.products.edges.map(
               ({ node }: ProductEdge) => {
                 const searchFiltersValue = node.searchFiltersMetafield?.value;
+                const colorSwatchesValue = node.colorSwatchesMetafield?.value;
                 let parsedEyewearFilters: string[] = [];
+                let parsedColorSwatches: any[] = [];
 
                 if (searchFiltersValue) {
                   try {
                     const jsonArray = JSON.parse(searchFiltersValue);
                     if (Array.isArray(jsonArray)) {
                       parsedEyewearFilters = jsonArray.map((s) =>
-                        String(s).trim()
+                        String(s).trim(),
                       );
                     } else {
                       parsedEyewearFilters = searchFiltersValue
@@ -140,36 +134,52 @@ const EyewearPage = () => {
                   }
                 }
 
+                if (colorSwatchesValue) {
+                  try {
+                    parsedColorSwatches = JSON.parse(colorSwatchesValue);
+                  } catch (e) {
+                    console.error(
+                      "Failed to parse color swatches for",
+                      node.title,
+                    );
+                  }
+                }
+
+                const variants = node.variants.edges.map((vNode) => ({
+                  id: vNode.node.id,
+                  title: vNode.node.title,
+                  price: parseFloat(vNode.node.priceV2.amount).toFixed(2),
+                  imageSrc:
+                    vNode.node.image?.url ||
+                    node.featuredImage?.url ||
+                    "https://placehold.co/300x300?text=No+Image",
+                }));
+
                 return {
                   id: node.id,
                   name: node.title,
-                  href: `/products/eyewear/${node.handle}`,
-                  price: `$${parseFloat(
-                    node.priceRange.minVariantPrice.amount
-                  ).toFixed(2)}`,
-                  imageSrc:
-                    node.featuredImage?.url ||
-                    "https://placehold.co/300x300?text=No+Image",
-                  imageAlt: node.featuredImage?.altText || node.title,
-                  eyewearFilters: parsedEyewearFilters.filter(
-                    (sf) => sf.length > 0
-                  ),
+                  handle: node.handle,
                   tags: node.tags || [],
+                  variants,
+                  colorSwatches: parsedColorSwatches,
+                  eyewearFilters: parsedEyewearFilters.filter(
+                    (sf) => sf.length > 0,
+                  ),
                 };
-              }
+              },
             );
           setAllProducts(fetchedProducts);
           setFilteredProducts(fetchedProducts);
         } else {
           setError(
-            "Could not fetch eyewear products or no products in collection."
+            "Could not fetch eyewear products or no products in collection.",
           );
           setAllProducts([]);
           setFilteredProducts([]);
         }
       } catch (err: any) {
         setError(
-          err.message || "An error occurred while fetching eyewear products."
+          err.message || "An error occurred while fetching eyewear products.",
         );
         setAllProducts([]);
         setFilteredProducts([]);
@@ -186,16 +196,17 @@ const EyewearPage = () => {
     let tempProducts = [...allProducts];
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
     const hasActiveSidebarFilters = Object.values(activeFilters).some(
-      (value) => value !== null
+      (value) => value !== null,
     );
 
     if (hasActiveSidebarFilters) {
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) {
-          tempProducts = tempProducts.filter((product) =>
+          tempProducts = tempProducts.filter((product: any) =>
             product.eyewearFilters?.some(
-              (filterVal) => filterVal.toLowerCase() === value.toLowerCase()
-            )
+              (filterVal: string) =>
+                filterVal.toLowerCase() === value.toLowerCase(),
+            ),
           );
         }
       });
@@ -206,8 +217,8 @@ const EyewearPage = () => {
         (product) =>
           product.name.toLowerCase().includes(lowerSearchTerm) ||
           product.tags?.some((tag) =>
-            tag.toLowerCase().includes(lowerSearchTerm)
-          )
+            tag.toLowerCase().includes(lowerSearchTerm),
+          ),
       );
     }
 
@@ -250,7 +261,7 @@ const EyewearPage = () => {
 
   if (isLoading && allProducts.length === 0) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-slate-50">
         <Loader2 className="h-12 w-12 animate-spin text-black" />
       </div>
     );
@@ -258,194 +269,140 @@ const EyewearPage = () => {
 
   if (error) {
     return (
-      <div className="w-full px-6 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36 py-8 text-center text-red-600">
+      <div className="w-full px-6 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36 py-8 text-center text-red-600 bg-slate-50 min-h-screen">
         Error fetching products: {error}
       </div>
     );
   }
 
   return (
-    // <main>
-    //   <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-20 xl:px-28 2xl:px-36">
-    //     <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-10">
-    //       <div className="hidden lg:block lg:col-span-3 xl:col-span-2 sticky top-16 self-start pr-4 md:pr-6">
-    //         <FilterSidebar
-    //           filterSections={filterSections}
-    //           activeFilters={activeFilters}
-    //           onFilterChange={handleFilterChange}
-    //           onClearAllFilters={clearAllFilters}
-    //           productCount={filteredProducts.length}
-    //         />
-    //       </div>
-
-    //       <div className="lg:col-span-9 xl:col-span-10">
-    //         <Hero
-    //           title="Eyewear"
-    //           headline="Discover our premium Eyewear Collection—a curated selection of stylish, comfortable, and vision-enhancing glasses designed to suit every face and lifestyle."
-    //         />
-
-    //         <div className="my-6 lg:my-8 relative">
-    //           <input
-    //             type="text"
-    //             value={searchTerm}
-    //             onChange={(e) => setSearchTerm(e.target.value)}
-    //             placeholder="Search by name or tag (e.g., 'Square', 'Metal', 'Lightweight')..."
-    //             className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-black focus:border-black"
-    //           />
-    //           <Search
-    //             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-    //             size={18}
-    //           />
-    //           {searchTerm && (
-    //             <button
-    //               onClick={() => setSearchTerm("")}
-    //               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-    //             >
-    //               <XIcon size={18} />
-    //             </button>
-    //           )}
-    //         </div>
-
-    //         <div className="lg:hidden my-6">
-    //           <button
-    //             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-    //             className="w-full flex items-center justify-between text-left p-3 bg-gray-100 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-200 shadow-sm"
-    //           >
-    //             <span>
-    //               Show Filters (
-    //               {Object.values(activeFilters).filter((v) => v).length}{" "}
-    //               applied)
-    //             </span>
-    //             <Filter size={20} />
-    //           </button>
-    //         </div>
-
-    //         {isMobileFilterOpen && (
-    //           <div
-    //             className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
-    //             onClick={() => setIsMobileFilterOpen(false)}
-    //           >
-    //             <div
-    //               className="fixed top-0 left-0 h-full w-4/5 max-w-xs sm:max-w-sm bg-white shadow-xl p-6 overflow-y-auto z-50 transform transition-transform ease-in-out duration-300"
-    //               style={{
-    //                 transform: isMobileFilterOpen
-    //                   ? "translateX(0)"
-    //                   : "translateX(-100%)",
-    //               }}
-    //               onClick={(e) => e.stopPropagation()}
-    //             >
-    //               <div className="flex justify-between items-center mb-6">
-    //                 <h2 className="text-xl font-semibold text-gray-900">
-    //                   Filters
-    //                 </h2>
-    //                 <button
-    //                   onClick={() => setIsMobileFilterOpen(false)}
-    //                   className="p-1 text-gray-500 hover:text-gray-700"
-    //                 >
-    //                   <XIcon size={22} />
-    //                 </button>
-    //               </div>
-    //               <FilterSidebar
-    //                 filterSections={filterSections}
-    //                 activeFilters={activeFilters}
-    //                 onFilterChange={(key, value) => {
-    //                   handleFilterChange(key, value);
-    //                 }}
-    //                 onClearAllFilters={() => {
-    //                   clearAllFilters();
-    //                 }}
-    //                 productCount={filteredProducts.length}
-    //               />
-    //             </div>
-    //           </div>
-    //         )}
-
-    //         <div className="mt-8">
-    //           {isLoading &&
-    //           filteredProducts.length === 0 &&
-    //           allProducts.length > 0 ? (
-    //             <div className="flex justify-center items-center min-h-[300px]">
-    //               <Loader2 className="h-10 w-10 animate-spin text-black" />
-    //             </div>
-    //           ) : filteredProducts.length > 0 ? (
-    //             <ProductsSection
-    //               products={filteredProducts}
-    //               heading="All Eyewear"
-    //               isFirstTimeCustomer={isFirstTimeCustomer}
-    //             />
-    //           ) : (
-    //             <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-    //               <p className="text-gray-600 text-xl mb-4">
-    //                 No products match your current filters.
-    //               </p>
-    //               <p className="text-gray-500 text-sm mb-6">
-    //                 Try adjusting your selection or clear all filters.
-    //               </p>
-    //               <button
-    //                 onClick={clearAllFilters}
-    //                 className="mt-4 px-6 py-2.5 bg-black text-white text-sm rounded-lg shadow-md hover:bg-gray-800 transition-colors"
-    //               >
-    //                 Clear All Filters
-    //               </button>
-    //             </div>
-    //           )}
-    //         </div>
-    //       </div>
-    //     </div>
-    //   </div>
-    // </main>
-
-    // The existing eyewear page content is commented out and replaced with the following:
-
-    <main className="min-h-[calc(100vh-150px)] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 text-center p-6 sm:p-8">
-      <div className="max-w-md">
-        <div className="mb-8 flex justify-center">
-          <div className="p-4 bg-orange-400 rounded-full shadow-lg animate-pulse">
-            <Glasses size={48} className="text-white" />
+    <main className="bg-slate-50 min-h-screen pb-20">
+      <div className="w-full px-6 py-8 sm:px-10 md:px-12 lg:px-16 xl:px-20 max-w-[1600px] mx-auto">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-x-8 xl:gap-x-12">
+          {/* Sidebar */}
+          <div className="hidden lg:block lg:col-span-3 xl:col-span-3 sticky top-24 self-start pr-2">
+            <FilterSidebar
+              filterSections={filterSections}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+              onClearAllFilters={clearAllFilters}
+              productCount={filteredProducts.length}
+            />
           </div>
-        </div>
 
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
-          Eyeglasses Are on Their Way!
-        </h1>
-        <p className="mt-4 text-lg sm:text-xl text-gray-600">
-          Our new Eyeglasses Collection is launching soon. Get ready to find
-          your perfect pair!
-        </p>
+          <div className="lg:col-span-9 xl:col-span-9">
+            <Hero
+              title="Eyeglasses"
+              headline="Starting at $145, including prescription lenses. Try on 5 pairs for free at home."
+            />
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/"
-            className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-black hover:bg-gray-800 transition-colors duration-150 ease-in-out shadow-md"
-          >
-            Go Back to Homepage
-            <ArrowRight size={20} className="ml-2" />
-          </Link>
-          <Link
-            href="/contact-lenses" // Link to your contact lenses collection
-            className="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150 ease-in-out shadow-md"
-          >
-            Shop Contact Lenses
-          </Link>
-        </div>
+            {/* Mobile/Tablet Search and Filter Buttons */}
+            <div className="my-6 lg:my-8 relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, shape, or material..."
+                className="w-full pl-11 pr-10 py-3.5 text-base border border-gray-300 rounded-xl shadow-sm focus:ring-1 focus:ring-black focus:border-black transition-shadow"
+              />
+              <Search
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <XIcon size={18} />
+                </button>
+              )}
+            </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500">
-            Want to be the first to know?
-            {/* You can add a newsletter sign-up link or component here later */}
-            <Link
-              href="/"
-              className="font-medium text-black hover:underline ml-1"
-            >
-              Follow us for updates!
-            </Link>
-          </p>
-        </div>
+            <div className="lg:hidden my-6">
+              <button
+                onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+                className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl text-base font-medium text-gray-800 hover:bg-gray-50 shadow-sm transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Filter size={18} className="text-gray-500" />
+                  <span>
+                    Filters
+                    {Object.values(activeFilters).filter((v) => v).length > 0 &&
+                      ` (${Object.values(activeFilters).filter((v) => v).length})`}
+                  </span>
+                </div>
+              </button>
+            </div>
 
-        <div className="mt-10 flex justify-center items-center space-x-2 text-gray-400">
-          <Sparkles size={16} />
-          <span className="text-xs">Exciting styles arriving soon</span>
-          <Sparkles size={16} />
+            {/* Mobile Filter Drawer */}
+            {isMobileFilterOpen && (
+              <div
+                className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+                onClick={() => setIsMobileFilterOpen(false)}
+              >
+                <div
+                  className="fixed top-0 left-0 h-full w-[85%] max-w-[360px] bg-white shadow-2xl p-6 overflow-y-auto transform transition-transform ease-out duration-300"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Filters
+                    </h2>
+                    <button
+                      onClick={() => setIsMobileFilterOpen(false)}
+                      className="p-2 -mr-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <XIcon size={20} />
+                    </button>
+                  </div>
+                  <FilterSidebar
+                    filterSections={filterSections}
+                    activeFilters={activeFilters}
+                    onFilterChange={handleFilterChange}
+                    onClearAllFilters={clearAllFilters}
+                    productCount={filteredProducts.length}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Product Grid */}
+            <div className="mt-8">
+              {isLoading &&
+              filteredProducts.length === 0 &&
+              allProducts.length > 0 ? (
+                <div className="flex justify-center items-center min-h-[400px]">
+                  <Loader2 className="h-10 w-10 animate-spin text-black" />
+                </div>
+              ) : filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredProducts.map((product) => (
+                    <EyewearProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
+                  <div className="bg-gray-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="text-gray-400 h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    No frames found
+                  </h3>
+                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                    We couldn't find any frames matching your current filters.
+                    Try adjusting your selections.
+                  </p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="px-6 py-3 bg-black text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-800 transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -482,6 +439,28 @@ const productQueryForEyewear = gql`
               key: "search_filters"
             ) {
               value
+            }
+            colorSwatchesMetafield: metafield(
+              namespace: "custom"
+              key: "color_swatches"
+            ) {
+              value
+            }
+            variants(first: 50) {
+              edges {
+                node {
+                  id
+                  title
+                  priceV2 {
+                    amount
+                    currencyCode
+                  }
+                  image {
+                    url
+                    altText
+                  }
+                }
+              }
             }
           }
         }

@@ -40,38 +40,59 @@ const FilterAccordionItem: React.FC<{
   };
 
   return (
-    <div className="border-b border-gray-200 py-3 sm:py-4">
+    <div className="border-b border-gray-200 py-4 sm:py-5">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex justify-between items-center w-full text-left"
+        className="flex justify-between items-center w-full text-left group"
       >
-        <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+        <h3 className="text-base font-medium text-gray-900 group-hover:text-gray-600 transition-colors">
+          {title}
+        </h3>
         {isOpen ? (
-          <ChevronUp size={20} className="text-gray-500" />
+          <ChevronUp
+            size={20}
+            className="text-gray-400 group-hover:text-gray-600 transition-colors"
+          />
         ) : (
-          <ChevronDown size={20} className="text-gray-500" />
+          <ChevronDown
+            size={20}
+            className="text-gray-400 group-hover:text-gray-600 transition-colors"
+          />
         )}
       </button>
       {isOpen && (
-        <div className="mt-3 space-y-1.5 sm:space-y-2">
+        <div className="mt-4 space-y-3">
           {options.map((option) => (
-            <button
+            <label
               key={option}
-              onClick={() => handleOptionClick(option)}
-              className={`w-full text-left text-sm px-3 py-2 rounded-md transition-colors duration-150 ease-in-out
-                ${
-                  activeFilter === option
-                    ? "bg-black text-white font-medium shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                }`}
+              className="flex items-center space-x-3 cursor-pointer group"
             >
-              {option}
-            </button>
+              <div
+                className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                  activeFilter === option
+                    ? "border-black"
+                    : "border-gray-300 group-hover:border-gray-500"
+                }`}
+                onClick={() => handleOptionClick(option)}
+              >
+                {activeFilter === option && (
+                  <div className="w-2.5 h-2.5 bg-black rounded-full" />
+                )}
+              </div>
+              <span
+                className={`text-sm transition-colors ${
+                  activeFilter === option
+                    ? "text-black font-medium"
+                    : "text-gray-600 group-hover:text-gray-900"
+                }`}
+                onClick={() => handleOptionClick(option)}
+              >
+                {option}
+              </span>
+            </label>
           ))}
           {options.length === 0 && (
-            <p className="text-xs text-gray-400 px-3 py-1">
-              No options available.
-            </p>
+            <p className="text-xs text-gray-400">No options available.</p>
           )}
         </div>
       )}
