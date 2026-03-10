@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -8,24 +9,42 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
 // Helper component to display price with optional discount
-const PriceDisplay = ({ originalPrice, isFirstTimeCustomer }: { originalPrice: string; isFirstTimeCustomer: boolean | undefined }) => {
-    const priceNum = parseFloat(originalPrice.replace('$', ''));
+const PriceDisplay = ({
+  originalPrice,
+  isFirstTimeCustomer,
+}: {
+  originalPrice: string;
+  isFirstTimeCustomer: boolean | undefined;
+}) => {
+  const priceNum = parseFloat(originalPrice.replace("$", ""));
 
-    if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
-        return <p className="text-xs sm:text-sm font-bold text-gray-900">{originalPrice}</p>;
-    }
-  
-    if (isFirstTimeCustomer) {
-      const discountedPrice = priceNum * 0.80;
-      return (
-        <div className="flex items-center justify-center gap-1.5">
-          <p className="text-xs sm:text-sm font-bold text-black">${discountedPrice.toFixed(2)}</p>
-          <p className="text-[10px] sm:text-xs font-medium text-red-600 line-through">${priceNum.toFixed(2)}</p>
-        </div>
-      );
-    }
-  
-    return <p className="text-xs sm:text-sm font-bold text-gray-900">${priceNum.toFixed(2)}</p>;
+  if (isNaN(priceNum) || isFirstTimeCustomer === undefined) {
+    return (
+      <p className="text-xs sm:text-sm font-bold text-gray-900">
+        {originalPrice}
+      </p>
+    );
+  }
+
+  if (isFirstTimeCustomer) {
+    const discountedPrice = priceNum * 0.8;
+    return (
+      <div className="flex items-center justify-center gap-1.5">
+        <p className="text-xs sm:text-sm font-bold text-black">
+          ${discountedPrice.toFixed(2)}
+        </p>
+        <p className="text-[10px] sm:text-xs font-medium text-red-600 line-through">
+          ${priceNum.toFixed(2)}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-xs sm:text-sm font-bold text-gray-900">
+      ${priceNum.toFixed(2)}
+    </p>
+  );
 };
 
 export const ContactLenses = ({ products }: any) => {
@@ -76,7 +95,8 @@ export const ContactLenses = ({ products }: any) => {
 
   const handleDragEnd = (event: any, info: any) => {
     if (totalChunks <= 1) return;
-    const dragThreshold = (containerRef.current?.offsetWidth || 300) / (chunkSize * 2.5);
+    const dragThreshold =
+      (containerRef.current?.offsetWidth || 300) / (chunkSize * 2.5);
     if (info.offset.x < -dragThreshold) {
       setSelectedCardIndex((prev) => (prev >= totalChunks - 1 ? 0 : prev + 1));
     } else if (info.offset.x > dragThreshold) {
@@ -125,7 +145,10 @@ export const ContactLenses = ({ products }: any) => {
               drag="x"
               dragControls={controls}
               dragConstraints={{
-                left: -((totalChunks - 1) * (containerRef.current?.offsetWidth || 0)),
+                left: -(
+                  (totalChunks - 1) *
+                  (containerRef.current?.offsetWidth || 0)
+                ),
                 right: 0,
               }}
               onDragEnd={handleDragEnd}
@@ -177,7 +200,10 @@ export const ContactLenses = ({ products }: any) => {
                               </a>
                             </h3>
                           </div>
-                          <PriceDisplay originalPrice={product.price} isFirstTimeCustomer={isFirstTimeCustomer} />
+                          <PriceDisplay
+                            originalPrice={product.price}
+                            isFirstTimeCustomer={isFirstTimeCustomer}
+                          />
                         </div>
                       </div>
                     </div>
@@ -192,19 +218,17 @@ export const ContactLenses = ({ products }: any) => {
           {totalChunks > 1 && (
             <div className="flex justify-center">
               <div className="bg-black/10 inline-flex gap-1.5 sm:gap-2 md:gap-3 lg:gap-2 py-1.5 px-3 sm:py-2 sm:px-4 md:py-3 md:px-5 lg:py-3 lg:px-5 rounded-full hover:scale-110 transition-all duration-[350ms]">
-                {Array.from({ length: totalChunks }).map(
-                  (_, cardIndex) => (
-                    <div
-                      key={`dot-${cardIndex}`}
-                      className={twMerge(
-                        "h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:size-2.5 bg-zinc-400 rounded-full cursor-pointer hover:scale-125 transition-all duration-300",
-                        cardIndex === selectedCardIndex &&
-                          "bg-black scale-110 sm:scale-125"
-                      )}
-                      onClick={() => setSelectedCardIndex(cardIndex)}
-                    ></div>
-                  )
-                )}
+                {Array.from({ length: totalChunks }).map((_, cardIndex) => (
+                  <div
+                    key={`dot-${cardIndex}`}
+                    className={twMerge(
+                      "h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:size-2.5 bg-zinc-400 rounded-full cursor-pointer hover:scale-125 transition-all duration-300",
+                      cardIndex === selectedCardIndex &&
+                        "bg-black scale-110 sm:scale-125",
+                    )}
+                    onClick={() => setSelectedCardIndex(cardIndex)}
+                  ></div>
+                ))}
               </div>
             </div>
           )}

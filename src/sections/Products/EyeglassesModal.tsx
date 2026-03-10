@@ -1,4 +1,5 @@
 // File: src/sections/Products/EyeglassesModal.tsx
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react"; // Added useMemo

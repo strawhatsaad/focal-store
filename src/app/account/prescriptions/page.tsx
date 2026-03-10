@@ -76,6 +76,7 @@ const ManagePrescriptionsPage = () => {
       setFileLabel(session.user.name);
     }
     fetchPrescriptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, sessionStatus, router]);
 
   useEffect(() => {
@@ -90,7 +91,7 @@ const ManagePrescriptionsPage = () => {
       setSelectedFile(currentFile);
       const currentFileNameWithoutExtension = currentFile.name.replace(
         /\.[^/.]+$/,
-        ""
+        "",
       );
       if (!fileLabel || fileLabel === session?.user?.name) {
         setFileLabel(currentFileNameWithoutExtension);
@@ -124,7 +125,7 @@ const ManagePrescriptionsPage = () => {
         {
           method: "POST",
           body: selectedFile,
-        }
+        },
       );
 
       if (!uploadResponse.ok) {
@@ -153,7 +154,7 @@ const ManagePrescriptionsPage = () => {
         // If metadata fails, try to delete the orphaned blob
         await del(blob.url);
         throw new Error(
-          errorResult.message || "Failed to save prescription metadata."
+          errorResult.message || "Failed to save prescription metadata.",
         );
       }
 
@@ -165,7 +166,7 @@ const ManagePrescriptionsPage = () => {
       setFileLabel(session?.user?.name || "");
       setSelectedCategory("Eyeglasses");
       const fileInput = document.getElementById(
-        "prescriptionFile"
+        "prescriptionFile",
       ) as HTMLInputElement | null;
       if (fileInput) fileInput.value = "";
     } catch (err: any) {
@@ -182,7 +183,7 @@ const ManagePrescriptionsPage = () => {
     }
     if (
       !window.confirm(
-        "Are you sure you want to delete this prescription? This action cannot be undone."
+        "Are you sure you want to delete this prescription? This action cannot be undone.",
       )
     ) {
       return;
@@ -324,8 +325,8 @@ const ManagePrescriptionsPage = () => {
                 selectedFile
                   ? selectedFile.name.replace(/\.[^/.]+$/, "")
                   : session?.user?.name
-                  ? `${session.user.name} - Rx`
-                  : "e.g., Dr. Smith - Jan 2024"
+                    ? `${session.user.name} - Rx`
+                    : "e.g., Dr. Smith - Jan 2024"
               }
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm"
             />
@@ -427,7 +428,7 @@ const ManagePrescriptionsPage = () => {
                           )}
                           {rx.fileSize
                             ? ` | Size: ${(rx.fileSize / 1024 / 1024).toFixed(
-                                2
+                                2,
                               )} MB`
                             : ""}
                         </p>
