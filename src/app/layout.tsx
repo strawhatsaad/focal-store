@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google"; // Import DM_Sans
+import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/sections/HomePage/Header";
 import { Footer } from "@/sections/HomePage/Footer";
@@ -56,6 +57,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Google tag (gtag.js) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-Z0EVMH0LJB"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-Z0EVMH0LJB');
+          `}
+        </Script>
+      </head>
       <body className={`${dmSans.variable} font-sans antialiased`}>
         <Providers>
           <CartProvider>
