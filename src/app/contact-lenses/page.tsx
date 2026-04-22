@@ -26,6 +26,13 @@ interface MetafieldNode {
   type?: string;
 }
 
+interface VariantNode {
+  id: string;
+  title: string;
+  priceV2: Price;
+  image: ProductImage | null;
+}
+
 interface ProductNode {
   id: string;
   title: string;
@@ -36,11 +43,14 @@ interface ProductNode {
     minVariantPrice: Price;
   };
   searchFiltersMetafield: MetafieldNode | null;
+  variants?: { edges: { node: VariantNode }[] };
 }
 
 interface ProductEdge {
   node: ProductNode;
 }
+
+type PackSize = "30 Pack" | "90 Pack";
 
 interface MappedProduct {
   id: string;
@@ -51,6 +61,16 @@ interface MappedProduct {
   imageAlt: string | null;
   searchFilters?: string[];
   tags?: string[];
+  variantId?: string;
+  packSize?: PackSize;
+}
+
+// Matches variant titles like "30 Pack", "30-Day Pack", "30ct", "30 count", "90-pack", etc.
+function detectPackSize(variantTitle: string): PackSize | null {
+  const normalized = variantTitle.toLowerCase();
+  if (/\b30\b[\s-]*(pack|ct|count|day)/.test(normalized)) return "30 Pack";
+  if (/\b90\b[\s-]*(pack|ct|count|day)/.test(normalized)) return "90 Pack";
+  return null;
 }
 
 const ALL_BRANDS_OPTIONS = [
@@ -119,8 +139,8 @@ const ContactLensesPage = () => {
         const result = await storeFront(productQueryWithMetafields, variables);
 
         if (result.data?.collectionByHandle?.products?.edges) {
-          const fetchedProducts =
-            result.data.collectionByHandle.products.edges.map(
+          const fetchedProducts: MappedProduct[] =
+            result.data.collectionByHandle.products.edges.flatMap(
               ({ node }: ProductEdge) => {
                 const searchFiltersValue = node.searchFiltersMetafield?.value;
                 let parsedSearchFilters: string[] = [];
@@ -144,22 +164,54 @@ const ContactLensesPage = () => {
                   }
                 }
 
-                return {
-                  id: node.id,
-                  name: node.title,
-                  href: `/products/${node.handle}`,
-                  price: `$${parseFloat(
-                    node.priceRange.minVariantPrice.amount
-                  ).toFixed(2)}`,
-                  imageSrc:
-                    node.featuredImage?.url ||
-                    "https://placehold.co/300x300?text=No+Image",
-                  imageAlt: node.featuredImage?.altText || node.title,
+                const baseCard = {
                   searchFilters: parsedSearchFilters.filter(
                     (sf) => sf.length > 0
                   ),
                   tags: node.tags || [],
                 };
+
+                const fallbackImage =
+                  node.featuredImage?.url ||
+                  "https://placehold.co/300x300?text=No+Image";
+                const fallbackAlt = node.featuredImage?.altText || node.title;
+
+                const packVariants =
+                  node.variants?.edges
+                    .map((e) => ({ ...e.node, pack: detectPackSize(e.node.title) }))
+                    .filter((v): v is VariantNode & { pack: PackSize } => v.pack !== null) ?? [];
+
+                if (packVariants.length === 0) {
+                  // No pack-size variants: one product-level card (will be hidden
+                  // when a Pack Size filter is active, per design).
+                  return [
+                    {
+                      ...baseCard,
+                      id: node.id,
+                      name: node.title,
+                      href: `/products/${node.handle}`,
+                      price: `$${parseFloat(
+                        node.priceRange.minVariantPrice.amount
+                      ).toFixed(2)}`,
+                      imageSrc: fallbackImage,
+                      imageAlt: fallbackAlt,
+                    },
+                  ];
+                }
+
+                return packVariants.map((v) => ({
+                  ...baseCard,
+                  id: v.id,
+                  variantId: v.id,
+                  packSize: v.pack,
+                  name: `${node.title} — ${v.pack}`,
+                  href: `/products/${node.handle}?variant=${encodeURIComponent(
+                    v.id
+                  )}`,
+                  price: `$${parseFloat(v.priceV2.amount).toFixed(2)}`,
+                  imageSrc: v.image?.url || fallbackImage,
+                  imageAlt: v.image?.altText || fallbackAlt,
+                }));
               }
             );
           setAllProducts(fetchedProducts);
@@ -193,13 +245,19 @@ const ContactLensesPage = () => {
     );
     if (hasActiveSidebarFilters) {
       Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) {
-          tempProducts = tempProducts.filter((product) =>
-            product.searchFilters?.some(
-              (filterVal) => filterVal.toLowerCase() === value.toLowerCase()
-            )
-          );
+        if (!value) return;
+        if (key === "packSize") {
+          // Cards without a packSize (products whose variants don't match
+          // either 30/90 pattern) are intentionally hidden when this filter
+          // is active.
+          tempProducts = tempProducts.filter((c) => c.packSize === value);
+          return;
         }
+        tempProducts = tempProducts.filter((product) =>
+          product.searchFilters?.some(
+            (filterVal) => filterVal.toLowerCase() === value.toLowerCase()
+          )
+        );
       });
     }
 
@@ -238,6 +296,11 @@ const ContactLensesPage = () => {
   };
 
   const filterSections = [
+    {
+      title: "Pack size",
+      options: ["30 Pack", "90 Pack"],
+      filterKey: "packSize",
+    },
     { title: "All brands", options: ALL_BRANDS_OPTIONS, filterKey: "brand" },
     { title: "Lens types", options: LENS_TYPES_OPTIONS, filterKey: "lensType" },
     {
@@ -448,6 +511,22 @@ const productQueryWithMetafields = gql`
               key: "search_filters"
             ) {
               value
+            }
+            variants(first: 10) {
+              edges {
+                node {
+                  id
+                  title
+                  priceV2 {
+                    amount
+                    currencyCode
+                  }
+                  image {
+                    url
+                    altText
+                  }
+                }
+              }
             }
           }
         }
