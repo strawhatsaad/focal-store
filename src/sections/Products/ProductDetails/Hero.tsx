@@ -120,7 +120,18 @@ const Hero = ({ product }: any) => {
 
   useEffect(() => {
     if (product?.variants?.length > 0) {
-      const initialVariant = product.variants[0];
+      let initialVariant = product.variants[0];
+      if (typeof window !== "undefined") {
+        const variantParam = new URLSearchParams(window.location.search).get(
+          "variant",
+        );
+        if (variantParam) {
+          const found = product.variants.find(
+            (v: any) => v.id === variantParam,
+          );
+          if (found) initialVariant = found;
+        }
+      }
       setSelectedVariant(initialVariant);
       setSelectedImage(
         initialVariant?.image?.src ||
