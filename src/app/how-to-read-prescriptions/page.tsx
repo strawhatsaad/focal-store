@@ -351,10 +351,8 @@ const HowToReadPrescriptionsPage = () => {
               } prescription ${
                 specialLensType !== "none" ? `for ${specialLensType}` : ""
               }`}
-              width={currentImage.width}
-              height={currentImage.height}
-              layout="responsive"
-              className="rounded-lg shadow-lg bg-white"
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="rounded-lg shadow-lg bg-white h-auto w-full"
               priority
             />
             <ImageHighlight

@@ -1,9 +1,11 @@
 import EyewearHero from "@/sections/Products/ProductDetails/EyewearHero";
-import React from "react";
+import React, { Suspense } from "react";
 import RelatedProducts from "@/sections/Products/ProductDetails/RelatedProducts";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
 import FAQSection from "@/sections/Products/ProductDetails/FAQ";
 import { storeFront } from "../../../../../utils";
+
+export const revalidate = 3600;
 
 interface PageProps {
   params: {
@@ -14,18 +16,18 @@ interface PageProps {
 const ProductDetails = async ({ params }: PageProps) => {
   const { slug } = params;
 
-  console.log("Fetching product with slug:", slug);
-
   const variables = {
     handle: slug,
   };
 
   let result;
   try {
-    result = await storeFront(singleProductQuery, variables);
+    result = await storeFront(singleProductQuery, variables, null, {
+      revalidate: 3600,
+      tags: [`product:${slug}`],
+    });
   } catch (error) {
     console.error("Error fetching single product:", error);
-    // Handle error appropriately, maybe return a not found page or error component
     return (
       <main>
         <div>Product not found or error fetching data.</div>
@@ -43,7 +45,6 @@ const ProductDetails = async ({ params }: PageProps) => {
   }
 
   const data = result.data.productByHandle;
-  console.log("Product data received:", data);
 
   // Safe access to metafields
   const getMetafieldValue = (key: string) => {
@@ -106,40 +107,6 @@ const ProductDetails = async ({ params }: PageProps) => {
     frameMeasurements: getMetafieldValue("frame_measurements") || "",
   };
 
-  let relatedProductsResult;
-  try {
-    relatedProductsResult = await storeFront(allProductsQuery, {
-      handle: "Eyewear",
-    });
-  } catch (error) {
-    console.error("Error fetching related products:", error);
-    relatedProductsResult = {
-      data: { collectionByHandle: { products: { edges: [] } } },
-    }; // Default to empty
-  }
-
-  const relatedProductsData =
-    relatedProductsResult.data?.collectionByHandle?.products.edges || [];
-  const relatedProducts = relatedProductsData
-    .filter(({ node }: any) => node && node.handle !== slug)
-    .slice(0, 4)
-    .map(({ node }: any) => ({
-      id: node.handle,
-      name: node.title,
-      href: `/products/eyewear/${node.handle}`,
-      price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(
-        2,
-      )}`,
-      imageSrc:
-        node.featuredImage?.url ||
-        node.images?.edges?.[0]?.node.transformedSrc ||
-        "",
-      imageAlt:
-        node.featuredImage?.altText ||
-        node.images?.edges?.[0]?.node.altText ||
-        "",
-    }));
-
   return (
     <main>
       <EyewearHero product={product} />
@@ -151,12 +118,59 @@ const ProductDetails = async ({ params }: PageProps) => {
       </div>
       <hr className="my-12 md:mb-8 md:mt-0 border-gray-800 container" />
       <FAQSection product={product} />
-      <div>
-        <RelatedProducts products={relatedProducts} headingText={true} />
-      </div>
+      <Suspense fallback={<RelatedProductsSkeleton />}>
+        <RelatedProductsSection excludeSlug={slug} />
+      </Suspense>
     </main>
   );
 };
+
+async function RelatedProductsSection({ excludeSlug }: { excludeSlug: string }) {
+  let relatedProductsResult;
+  try {
+    relatedProductsResult = await storeFront(
+      allProductsQuery,
+      { handle: "Eyewear" },
+      null,
+      { revalidate: 3600, tags: ["collection:Eyewear"] }
+    );
+  } catch (error) {
+    console.error("Error fetching related products:", error);
+    return null;
+  }
+
+  const relatedProductsData =
+    relatedProductsResult.data?.collectionByHandle?.products.edges || [];
+  const relatedProducts = relatedProductsData
+    .filter(({ node }: any) => node && node.handle !== excludeSlug)
+    .slice(0, 4)
+    .map(({ node }: any) => ({
+      id: node.handle,
+      name: node.title,
+      href: `/products/eyewear/${node.handle}`,
+      price: `$${parseFloat(node.priceRange.minVariantPrice.amount).toFixed(2)}`,
+      imageSrc: node.featuredImage?.url || "",
+      imageAlt: node.featuredImage?.altText || "",
+    }));
+
+  return <RelatedProducts products={relatedProducts} headingText={true} />;
+}
+
+function RelatedProductsSkeleton() {
+  return (
+    <div className="container py-8">
+      <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="aspect-square bg-gray-200 rounded animate-pulse"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default ProductDetails;
 
@@ -238,33 +252,18 @@ const singleProductQuery = gql`
 const allProductsQuery = gql`
   query GetCollectionProducts($handle: String!) {
     collectionByHandle(handle: $handle) {
-      title
-      description
       products(first: 10) {
         edges {
           node {
             id
             title
             handle
-            description
             featuredImage {
               url
               altText
             }
-            images(first: 1) {
-              edges {
-                node {
-                  transformedSrc
-                  altText
-                }
-              }
-            }
             priceRange {
               minVariantPrice {
-                amount
-                currencyCode
-              }
-              maxVariantPrice {
                 amount
                 currencyCode
               }

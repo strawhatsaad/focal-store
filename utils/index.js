@@ -5,12 +5,14 @@
  * @param {string} query The GraphQL query string.
  * @param {Record<string, any>} [variables={}] The variables for the GraphQL query.
  * @param {string | null} [customerAccessToken=null] The customer's access token for authenticated requests.
+ * @param {{ revalidate?: number | false, tags?: string[] } | null} [cacheOptions=null] Next.js cache options. Shopify calls are POST (default no-store); pass `{ revalidate: 3600 }` to opt into ISR. Do NOT pass when the query is customer-scoped.
  * @returns {Promise<any>} The Shopify API response.
  */
 export async function storeFront(
   query,
   variables = {},
-  customerAccessToken = null
+  customerAccessToken = null,
+  cacheOptions = null
 ) {
   const headers = {
     "Content-Type": "application/json",
@@ -36,15 +38,17 @@ export async function storeFront(
     throw new Error("Shopify Storefront Access Token is not configured.");
   }
 
+  const fetchInit = {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ query, variables }),
+  };
+  if (cacheOptions && !customerAccessToken) {
+    fetchInit.next = cacheOptions;
+  }
+
   try {
-    const response = await fetch(apiURL, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    });
+    const response = await fetch(apiURL, fetchInit);
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -328,7 +332,7 @@ export const CART_FRAGMENT = `
     id
     checkoutUrl
     cost { subtotalAmount { amount currencyCode } totalAmount { amount currencyCode } totalTaxAmount { amount currencyCode } }
-    lines(first: 100) { edges { node { id quantity merchandise { ... on ProductVariant { id title priceV2 { amount currencyCode } image { url(transform: {maxWidth: 100, maxHeight: 100}) altText } product { title handle } } } attributes { key value } } } }
+    lines(first: 25) { edges { node { id quantity merchandise { ... on ProductVariant { id title priceV2 { amount currencyCode } image { url(transform: {maxWidth: 200, maxHeight: 200}) altText } product { title handle } } } attributes { key value } } } }
     totalQuantity
     buyerIdentity { email phone customer { id } countryCode }
   }
