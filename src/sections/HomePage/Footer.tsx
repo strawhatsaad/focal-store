@@ -38,8 +38,9 @@ export const Footer = () => {
           name: "How to read your prescription",
           href: "/how-to-read-prescriptions",
         },
+        { name: "Return & Refund Policy", href: "/refund-policy" },
         { name: "Privacy Policy", href: "/privacy-policy" },
-        { name: "Terms of Use", href: "/terms-of-use" },
+        { name: "Terms of Service", href: "/terms-of-use" },
         {
           name: "Notice of Privacy Practices",
           href: "/notice-of-privacy-practices",
@@ -52,7 +53,7 @@ export const Footer = () => {
           name: "Washington Consumer Health Data Privacy Policy",
           href: "/washington-health-privacy",
         },
-        { name: "Accessibility Statement", href: "/accessibility" }, // Added new link
+        { name: "Accessibility Statement", href: "/accessibility" },
       ],
     },
     {
@@ -161,8 +162,8 @@ export const Footer = () => {
               <div className="flex flex-col sm:flex-row justify-center sm:justify-start items-center sm:items-start gap-3 sm:gap-4 mt-1 sm:mt-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <MailIcon size={16} className="sm:size-5" />
-                  <Link href={"mailto:hello@focaloptical.com"}>
-                    <span>hello@focaloptical.com</span>
+                  <Link href={"mailto:info@focaloptical.com"}>
+                    <span>info@focaloptical.com</span>
                   </Link>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">

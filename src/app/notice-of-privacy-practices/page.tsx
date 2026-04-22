@@ -143,10 +143,10 @@ const NoticeOfPrivacyPracticesPage = () => {
           <p>
             To exercise any of these rights, contact us at{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             .
           </p>
@@ -186,10 +186,10 @@ const NoticeOfPrivacyPracticesPage = () => {
             <br />
             Email:{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             <br />
             Website:{" "}

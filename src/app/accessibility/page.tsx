@@ -113,10 +113,10 @@ const AccessibilityStatementPage = () => {
             <br />
             Email:{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             <br />
             Website:{" "}
@@ -138,10 +138,10 @@ const AccessibilityStatementPage = () => {
             specific questions about the accessibility features of our site,
             please reach out to us at{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             . We are happy to assist you and will do our best to provide the
             information you need through an alternative communication method or
