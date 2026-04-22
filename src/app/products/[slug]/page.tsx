@@ -1,9 +1,11 @@
 import Hero from "@/sections/Products/ProductDetails/Hero";
-import React from "react";
+import React, { Suspense } from "react";
 import { storeFront } from "../../../../utils";
 import RelatedProducts from "@/sections/Products/ProductDetails/RelatedProducts";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
 import FAQSection from "@/sections/Products/ProductDetails/FAQ";
+
+export const revalidate = 3600;
 
 interface PageProps {
   params: {
@@ -13,8 +15,6 @@ interface PageProps {
 
 const ProductDetails = async ({ params }: PageProps) => {
   const { slug } = params;
-
-  console.log("Fetching product (generic) with slug:", slug);
 
   // Use the GraphQL query provided by the user
   const singleProductQuery = gql`
@@ -106,7 +106,10 @@ const ProductDetails = async ({ params }: PageProps) => {
 
   let result;
   try {
-    result = await storeFront(singleProductQuery, variables);
+    result = await storeFront(singleProductQuery, variables, null, {
+      revalidate: 3600,
+      tags: [`product:${slug}`],
+    });
   } catch (error) {
     console.error("Error fetching single product (generic):", error);
     return (
@@ -126,8 +129,6 @@ const ProductDetails = async ({ params }: PageProps) => {
   }
 
   const data = result.data.productByHandle;
-  // Log the raw metafields data to ensure it's coming through as expected
-  console.log("Raw product data from Shopify:", JSON.stringify(data, null, 2));
 
   // Helper function to safely access metafields
   const getMetafieldValue = (
@@ -197,33 +198,55 @@ const ProductDetails = async ({ params }: PageProps) => {
     ),
   };
 
-  // Log the constructed product object to verify its structure
-  console.log(
-    "Constructed product object for props:",
-    JSON.stringify(product, null, 2)
+  return (
+    <main>
+      <Hero product={product} />
+      <div className="lg:hidden container">
+        <ProductFeatures
+          product={product}
+          selectedVariant={product.variants[0]?.name}
+        />
+      </div>
+      <hr className="my-12 md:mb-8 md:mt-0 border-gray-800 container" />
+      <FAQSection product={product} />
+      <Suspense fallback={<RelatedProductsSkeleton />}>
+        <RelatedProductsSection
+          collectionHandle={product.collectionHandle}
+          excludeSlug={slug}
+        />
+      </Suspense>
+    </main>
   );
+};
 
-  const relatedProductCollectionHandle = product.collectionHandle;
+async function RelatedProductsSection({
+  collectionHandle,
+  excludeSlug,
+}: {
+  collectionHandle: string;
+  excludeSlug: string;
+}) {
   let relatedProductsResult;
   try {
-    relatedProductsResult = await storeFront(allProductsQuery, {
-      handle: relatedProductCollectionHandle,
-    });
+    relatedProductsResult = await storeFront(
+      allProductsQuery,
+      { handle: collectionHandle },
+      null,
+      { revalidate: 3600, tags: [`collection:${collectionHandle}`] }
+    );
   } catch (error) {
     console.error(
-      `Error fetching related products for collection ${relatedProductCollectionHandle}:`,
+      `Error fetching related products for collection ${collectionHandle}:`,
       error
     );
-    relatedProductsResult = {
-      data: { collectionByHandle: { products: { edges: [] } } },
-    };
+    return null;
   }
 
   const relatedProductsData =
     relatedProductsResult.data?.collectionByHandle?.products?.edges || [];
 
   const relatedProducts = relatedProductsData
-    .filter(({ node }: any) => node && node.handle !== slug)
+    .filter(({ node }: any) => node && node.handle !== excludeSlug)
     .slice(0, 4)
     .map(({ node }: any) => ({
       id: node.handle,
@@ -247,34 +270,32 @@ const ProductDetails = async ({ params }: PageProps) => {
         "Related product",
     }));
 
+  return <RelatedProducts products={relatedProducts} headingText={true} />;
+}
+
+function RelatedProductsSkeleton() {
   return (
-    <main>
-      <Hero product={product} />
-      <div className="lg:hidden container">
-        <ProductFeatures
-          product={product}
-          selectedVariant={product.variants[0]?.name}
-        />
+    <div className="container py-8">
+      <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="aspect-square bg-gray-200 rounded animate-pulse"
+          />
+        ))}
       </div>
-      <hr className="my-12 md:mb-8 md:mt-0 border-gray-800 container" />
-      <FAQSection product={product} />
-      <div>
-        <RelatedProducts products={relatedProducts} headingText={true} />
-      </div>
-    </main>
+    </div>
   );
-};
+}
 
 export default ProductDetails;
 
 const gql = String.raw; // Keep this if not already defined, or ensure it's imported
 
-// allProductsQuery remains the same as your last provided version for this file
 const allProductsQuery = gql`
   query GetCollectionProducts($handle: String!) {
     collectionByHandle(handle: $handle) {
-      title
-      description
       products(first: 5) {
         edges {
           node {
@@ -293,20 +314,8 @@ const allProductsQuery = gql`
               url
               altText
             }
-            images(first: 1) {
-              edges {
-                node {
-                  transformedSrc
-                  altText
-                }
-              }
-            }
             priceRange {
               minVariantPrice {
-                amount
-                currencyCode
-              }
-              maxVariantPrice {
                 amount
                 currencyCode
               }

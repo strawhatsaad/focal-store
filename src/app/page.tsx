@@ -11,14 +11,18 @@ import { Hero } from "@/sections/HomePage/Hero";
 import { LensType } from "@/sections/HomePage/LensType";
 import { Testimonials } from "@/sections/HomePage/Testimonials";
 import { storeFront } from "../../utils";
-import Head from "next/head";
+
+export const revalidate = 3600;
 
 export default async function Home() {
   const variables = {
     handle: "Contacts", // Replace with dynamic value as needed
   };
 
-  let result = await storeFront(productQuery, variables);
+  let result = await storeFront(productQuery, variables, null, {
+    revalidate: 3600,
+    tags: ["collection:Contacts"],
+  });
 
   const data = result.data.collectionByHandle.products.edges;
 
@@ -31,13 +35,11 @@ export default async function Home() {
     imageAlt: node.featuredImage.altText,
   }));
 
-  const randomProducts = getRandomItems(products, 9);
-
   return (
     <main className="overflow-hidden">
       <Hero />
       <Headline />
-      <ContactLenses products={randomProducts} />
+      <ContactLenses products={products} />
       <CureBlindnessFeatures />
       <CureBlindnessDetails />
       <CureBlindnessVideo />
@@ -55,24 +57,18 @@ const productQuery = gql`
   query GetCollectionProducts($handle: String!) {
     collectionByHandle(handle: $handle) {
       title
-      description
-      products(first: 30) {
+      products(first: 9) {
         edges {
           node {
             id
             title
             handle
-            description
             featuredImage {
               url
               altText
             }
             priceRange {
               minVariantPrice {
-                amount
-                currencyCode
-              }
-              maxVariantPrice {
                 amount
                 currencyCode
               }
@@ -83,7 +79,3 @@ const productQuery = gql`
     }
   }
 `;
-
-function getRandomItems<T>(arr: T[], count: number): T[] {
-  return arr.sort(() => 0.5 - Math.random()).slice(0, count);
-}

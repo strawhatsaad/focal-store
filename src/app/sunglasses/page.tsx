@@ -1,9 +1,7 @@
 // src/app/sunglasses/page.tsx
-"use client"; // This page can be a client component if you add interactive elements like a newsletter signup
-
 import React from "react";
 import Link from "next/link";
-import { Sun, Sparkles, ArrowRight } from "lucide-react"; // Example icons
+import { Sun, Sparkles, ArrowRight } from "lucide-react";
 
 const SunglassesComingSoonPage = () => {
   return (

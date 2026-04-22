@@ -88,10 +88,8 @@ export const Footer = () => {
                   <Image
                     src={Logo}
                     alt="Focal Logo"
-                    layout="responsive"
-                    width={Logo.width}
-                    height={Logo.height}
                     sizes="(max-width: 639px) 120px, (max-width: 767px) 150px, 170px"
+                    className="h-auto w-full"
                   />
                 </div>
               </Link>

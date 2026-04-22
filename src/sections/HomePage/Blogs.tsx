@@ -76,14 +76,13 @@ export const Blogs = () => {
                 href={href}
                 className="group flex flex-col items-center text-center"
               >
-                <div className="w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-square lg:aspect-[3/4] overflow-hidden rounded-lg mb-2 sm:mb-3 group-hover:-translate-y-1 transition-transform duration-300">
+                <div className="relative w-full aspect-[4/3] sm:aspect-[3/2] md:aspect-square lg:aspect-[3/4] overflow-hidden rounded-lg mb-2 sm:mb-3 group-hover:-translate-y-1 transition-transform duration-300">
                   <Image
                     src={image}
                     alt={title}
-                    layout="responsive" // Use responsive layout for better scaling
-                    width={image.width} // Provide original width
-                    height={image.height} // Provide original height
-                    className="object-cover w-full h-full" // Ensure image covers its container
+                    fill
+                    sizes="(min-width: 1200px) 14vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
+                    className="object-cover"
                   />
                 </div>
                 {/* Adjusted text sizes and line clamping for titles */}

@@ -3,13 +3,23 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { twMerge } from "tailwind-merge";
 import ProductFeatures from "@/sections/Products/ProductDetails/ProductFeatures";
-import EyeglassesModal, { LensCustomizationData } from "../EyeglassesModal";
-import ContactLensPrescriptionModal, {
-  ContactLensPrescriptionData,
-} from "@/components/ContactLensPrescriptionModal";
-import EyeglassesPrescriptionModal from "@/components/EyeglassesPrescriptionModal";
+import type { LensCustomizationData } from "../EyeglassesModal";
+import type { ContactLensPrescriptionData } from "@/components/ContactLensPrescriptionModal";
+
+const EyeglassesModal = dynamic(() => import("../EyeglassesModal"), {
+  ssr: false,
+});
+const ContactLensPrescriptionModal = dynamic(
+  () => import("@/components/ContactLensPrescriptionModal"),
+  { ssr: false }
+);
+const EyeglassesPrescriptionModal = dynamic(
+  () => import("@/components/EyeglassesPrescriptionModal"),
+  { ssr: false }
+);
 import { useCart } from "@/context/CartContext";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -471,6 +481,8 @@ const Hero = ({ product }: any) => {
                 }
                 width={400}
                 height={400}
+                loading="eager"
+                fetchPriority="high"
                 className="object-contain max-w-full max-h-full"
                 key={selectedImage}
                 onError={(e) => {

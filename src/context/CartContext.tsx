@@ -125,7 +125,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState<boolean | undefined>(undefined);
   const { data: session, status: sessionStatus } = useSession();
 
-  const clearCartError = () => setError(null);
+  const clearCartError = useCallback(() => setError(null), []);
 
   const createCart = useCallback(async (): Promise<string | null> => {
     setLoading(true);
@@ -210,17 +210,26 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   };
 
   useEffect(() => {
+    const SESSION_CACHE_KEY = 'focalIsFirstTimeCustomer';
     const checkStatus = async () => {
         if (sessionStatus === 'loading') return;
         if (sessionStatus === 'unauthenticated') {
+            sessionStorage.removeItem(SESSION_CACHE_KEY);
             setIsFirstTimeCustomer(true);
             return;
         }
         if (sessionStatus === 'authenticated') {
+            const cached = sessionStorage.getItem(SESSION_CACHE_KEY);
+            if (cached !== null) {
+                setIsFirstTimeCustomer(cached === 'true');
+                return;
+            }
             try {
                 const res = await fetch('/api/account/status');
                 const data = await res.json();
-                setIsFirstTimeCustomer(res.ok ? data.isFirstTimeCustomer : false);
+                const value = res.ok ? Boolean(data.isFirstTimeCustomer) : false;
+                sessionStorage.setItem(SESSION_CACHE_KEY, String(value));
+                setIsFirstTimeCustomer(value);
             } catch {
                 setIsFirstTimeCustomer(false);
             }
@@ -312,7 +321,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   useEffect(() => {
     const initialize = async () => {
         setIsInitializing(true);
-        await checkPendingOrderStatus();
+        if (localStorage.getItem("pendingCheckout")) {
+            await checkPendingOrderStatus();
+        }
         const storedCartId = localStorage.getItem("focalCartId");
         if (storedCartId) {
             await fetchCart(storedCartId);
@@ -448,27 +459,44 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return cart?.lines.edges.reduce((sum, edge) => sum + edge.node.quantity, 0) || 0;
   }, [cart]);
 
+  const contextValue = useMemo<CartContextType>(
+    () => ({
+      cart,
+      cartId,
+      loading,
+      isInitializing,
+      error,
+      isFirstTimeCustomer,
+      createCart,
+      fetchCart,
+      addLineItem,
+      updateLineItem,
+      removeLineItem,
+      clearCartError,
+      associateCartWithCustomer,
+      itemCount,
+      clearCartAndCreateNew,
+    }),
+    [
+      cart,
+      cartId,
+      loading,
+      isInitializing,
+      error,
+      isFirstTimeCustomer,
+      createCart,
+      fetchCart,
+      addLineItem,
+      updateLineItem,
+      removeLineItem,
+      clearCartError,
+      associateCartWithCustomer,
+      itemCount,
+      clearCartAndCreateNew,
+    ]
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        cartId,
-        loading,
-        isInitializing,
-        error,
-        isFirstTimeCustomer,
-        createCart,
-        fetchCart,
-        addLineItem,
-        updateLineItem,
-        removeLineItem,
-        clearCartError,
-        associateCartWithCustomer,
-        itemCount,
-        clearCartAndCreateNew,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
   );
 };

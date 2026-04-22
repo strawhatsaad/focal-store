@@ -1,12 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import EyeglassesModal, { LensCustomizationData } from "../EyeglassesModal";
-import EyeglassesPrescriptionModal from "@/components/EyeglassesPrescriptionModal";
+import type { LensCustomizationData } from "../EyeglassesModal";
 import { Heart, X } from "lucide-react";
+
+const EyeglassesModal = dynamic(() => import("../EyeglassesModal"), {
+  ssr: false,
+});
+const EyeglassesPrescriptionModal = dynamic(
+  () => import("@/components/EyeglassesPrescriptionModal"),
+  { ssr: false }
+);
 
 const EyewearHero = ({ product }: any) => {
   const { data: session, status } = useSession();

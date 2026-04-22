@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronUpIcon } from "@heroicons/react/24/outline";
+import { ChevronUp } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
 interface FAQItemProps {
@@ -41,7 +41,7 @@ export default function FAQItem({
         className="flex w-full justify-between items-center text-left text-lg md:text-xl font-semibold text-gray-900 hover:text-blue-600"
       >
         <span>{title}</span>
-        <ChevronUpIcon
+        <ChevronUp
           className={`h-5 w-5 transition-transform duration-300 ${
             open ? "rotate-180" : ""
           }`}

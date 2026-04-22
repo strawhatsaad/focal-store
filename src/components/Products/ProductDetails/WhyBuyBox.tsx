@@ -1,34 +1,34 @@
 import {
-  TagIcon,
-  TruckIcon,
-  DevicePhoneMobileIcon,
-  CreditCardIcon,
-  CurrencyDollarIcon,
-} from "@heroicons/react/24/outline";
+  Tag,
+  Truck,
+  Smartphone,
+  CreditCard,
+  DollarSign,
+} from "lucide-react";
 
 const features = [
   {
-    icon: TagIcon,
+    icon: Tag,
     title: "20% off your first contacts order",
     description: "No promo code needed!",
   },
   {
-    icon: TruckIcon,
+    icon: Truck,
     title: "Free shipping and no hidden fees",
     description: "We do expedited shipping, too",
   },
   {
-    icon: DevicePhoneMobileIcon,
+    icon: Smartphone,
     title: "Renew your prescription from home",
     description: "Our Virtual Vision Test app makes it easy on an iPhone",
   },
   {
-    icon: CreditCardIcon,
+    icon: CreditCard,
     title: "Buy an annual supply, get a $50 eyewear credit",
     description: "Good to use on any glasses or sunglasses",
   },
   {
-    icon: CurrencyDollarIcon,
+    icon: DollarSign,
     title: "FSA, HSA, and insurance accepted",
     description: "Save an average of $115 when you use insurance",
   },
