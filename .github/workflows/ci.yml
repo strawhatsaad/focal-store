@@ -26,6 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # next-env.d.ts is gitignored but required for tsc to resolve Next.js
+      # ambient types (notably next/image-types/global for .png/.jpg imports).
+      # Next.js regenerates it on any next command; recreating it here lets
+      # tsc run standalone without invoking a full build first.
+      - name: Generate next-env.d.ts
+        run: |
+          cat > next-env.d.ts <<'EOF'
+          /// <reference types="next" />
+          /// <reference types="next/image-types/global" />
+
+          // NOTE: This file should not be edited
+          // see https://nextjs.org/docs/basic-features/typescript for more information.
+          EOF
+
       - name: Type-check
         run: npx tsc --noEmit
 
@@ -44,10 +58,24 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Check required secrets
+        id: check_secrets
+        env:
+          API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::warning::Shopify secrets are not configured in this repo. Skipping build. Add NEXT_PUBLIC_API_URL and the other Shopify/NextAuth/Email/Blob secrets under Settings → Secrets and variables → Actions to enable this job."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
+        if: steps.check_secrets.outputs.skip == 'false'
         run: npm ci
 
       - name: Build
+        if: steps.check_secrets.outputs.skip == 'false'
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_STOREFRONT_ACCESS_TOKEN: ${{ secrets.NEXT_PUBLIC_STOREFRONT_ACCESS_TOKEN }}
