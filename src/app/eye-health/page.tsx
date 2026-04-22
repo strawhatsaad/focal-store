@@ -1,11 +1,11 @@
 // src/app/blogs/page.tsx
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image, { StaticImageData } from "next/image";
 import { Search, ArrowRight } from "lucide-react";
-import Fuse from "fuse.js";
+import type FuseType from "fuse.js";
 
 // Import blog images
 import blogImage1 from "@/assets/What it Takes to Create Quailty Eywear.png";
@@ -304,27 +304,39 @@ const CategorySection = ({
 
 const BlogArchivePage = () => {
   const [query, setQuery] = useState("");
+  const [fuse, setFuse] = useState<FuseType<Blog> | null>(null);
+  const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>(allBlogs);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(allBlogs, {
-        keys: [
-          { name: "title", weight: 0.6 },
-          { name: "description", weight: 0.2 },
-          { name: "keywords", weight: 0.2 },
-        ],
-        includeScore: true,
-        threshold: 0.4,
-        minMatchCharLength: 2,
-      }),
-    []
-  );
-
-  const filteredBlogs = useMemo(() => {
-    if (query.trim() === "") {
-      return allBlogs;
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed === "") {
+      setFilteredBlogs(allBlogs);
+      return;
     }
-    return fuse.search(query).map((result) => result.item);
+    let cancelled = false;
+    (async () => {
+      let fuseInstance = fuse;
+      if (!fuseInstance) {
+        const { default: Fuse } = await import("fuse.js");
+        fuseInstance = new Fuse(allBlogs, {
+          keys: [
+            { name: "title", weight: 0.6 },
+            { name: "description", weight: 0.2 },
+            { name: "keywords", weight: 0.2 },
+          ],
+          includeScore: true,
+          threshold: 0.4,
+          minMatchCharLength: 2,
+        });
+        if (cancelled) return;
+        setFuse(fuseInstance);
+      }
+      const results = fuseInstance.search(trimmed).map((r) => r.item);
+      if (!cancelled) setFilteredBlogs(results);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [query, fuse]);
 
   const buyingGuides = filteredBlogs.filter(

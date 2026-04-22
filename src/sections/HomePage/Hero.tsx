@@ -2,11 +2,10 @@
 
 import ArrowIcon from "@/assets/arrow-right.svg";
 import heroImage from "@/assets/heroImage.png";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import LinkButton from "@/components/LinkButton";
-// Link from next/link is no longer needed here for these buttons
-// import Link from "next/link";
 
 export const Hero = () => {
   const heroRef = useRef(null);
@@ -70,14 +69,18 @@ export const Hero = () => {
           </div>
           {/* Image section */}
           <div className="w-full mt-6 mb-6 md:mb-0 md:mt-0 md:flex-1 relative order-1 md:order-2 flex justify-center items-center md:h-[648px]">
-            <motion.img
-              src={heroImage.src}
-              alt="Hero Image"
-              className="max-h-[280px] w-auto sm:max-h-[320px] md:absolute md:w-auto md:max-w-none md:-left-24 md:top-44 lg:-left-28 lg:top-0 md:max-h-[350px] lg:max-h-[460px] lg:mt-40 object-contain"
-              style={{
-                translateY: translateY,
-              }}
-            />
+            <motion.div
+              className="max-h-[280px] sm:max-h-[320px] md:absolute md:-left-24 md:top-44 lg:-left-28 lg:top-0 md:max-h-[350px] lg:max-h-[460px] lg:mt-40"
+              style={{ translateY: translateY }}
+            >
+              <Image
+                src={heroImage}
+                alt="Hero Image"
+                priority
+                sizes="(min-width: 1024px) 50vw, (min-width: 768px) 40vw, 80vw"
+                className="max-h-[280px] w-auto sm:max-h-[320px] md:max-h-[350px] lg:max-h-[460px] object-contain"
+              />
+            </motion.div>
           </div>
         </div>
       </div>
