@@ -488,6 +488,23 @@ export const FILE_DELETE_MUTATION = `
   }
 `;
 
+// --- Shop Policies (Storefront API) ---
+export const SHOP_POLICIES_QUERY = `
+  query getShopPolicies {
+    shop {
+      privacyPolicy { id title body handle url }
+      termsOfService { id title body handle url }
+      refundPolicy { id title body handle url }
+      shippingPolicy { id title body handle url }
+      subscriptionPolicy { id title body handle url }
+    }
+  }
+`;
+
+export async function getShopPolicies() {
+  return storeFront(SHOP_POLICIES_QUERY);
+}
+
 // --- Reorder Logic (Admin API) ---
 export const GET_ORDER_BY_NOTE_QUERY = `
   query getOrderByNote($query: String!) {

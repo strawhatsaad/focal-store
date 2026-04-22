@@ -137,10 +137,10 @@ const WashingtonHealthPrivacyPage = () => {
           <p>
             Email:{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
           </p>
           <p>
@@ -152,10 +152,10 @@ const WashingtonHealthPrivacyPage = () => {
             If we deny your request, you have the right to appeal the decision.
             To submit an appeal, please contact{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             . If your appeal is denied, we will provide you with instructions on
             how to contact the Washington State Attorney General.
@@ -182,10 +182,10 @@ const WashingtonHealthPrivacyPage = () => {
             <br />
             Email:{" "}
             <a
-              href="mailto:hello@focaloptical.com"
+              href="mailto:info@focaloptical.com"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              hello@focaloptical.com
+              info@focaloptical.com
             </a>
             <br />
             Website:{" "}
